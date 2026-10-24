@@ -241,9 +241,9 @@ add("Pitch", async (pres, sec) => {
     T(s, steps[i][2], { x: x + 0.15, y: y + 1.7, w: w - 0.3, h: 0.62, fontSize: 14, color: HEX.muted, align: "center" });
     if (i < 3) arrow(s, x + w + 0.06, y + 0.68, x + w + gap - 0.06, y + 0.68, HEX.accent);
   }
-  s.addImage({ data: await icon("LuTablet", HEX.accent), x: 2.45, y: 4.18, w: 0.5, h: 0.5, altText: "iPad" });
-  T(s, "Just an iPad. No special hardware.", { x: 3.05, y: 4.15, w: 5.0, h: 0.55, fontSize: 24, bold: true, color: HEX.accent, valign: "middle" });
-  s.addNotes("Still Here listens when the partner talks and suggests the two best replies, plus other ways to answer. The person raises their eyebrows to move and does a long blink to choose. The chosen reply is spoken in a natural voice, on a regular iPad with no eye tracker or special hardware.");
+  s.addImage({ data: await icon("LuSmartphone", HEX.accent), x: 1.75, y: 4.18, w: 0.5, h: 0.5, altText: "Phone or tablet" });
+  T(s, "Any phone or tablet. No special hardware.", { x: 2.35, y: 4.15, w: 6.2, h: 0.55, fontSize: 24, bold: true, color: HEX.accent, valign: "middle" });
+  s.addNotes("Still Here listens when the partner talks and suggests the two best replies, plus other ways to answer. The person raises their eyebrows to move and does a long blink to choose. The chosen reply is spoken in a natural voice, on an everyday phone or tablet with a front camera, no eye tracker or special hardware. Today we've tested it on an iPad; phones are next.");
 });
 
 // 4. How to use it
