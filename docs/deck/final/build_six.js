@@ -190,25 +190,36 @@ add("Pitch", async (pres, sec) => {
   s.addNotes("Hi, we're Liam and Richard, and this is Still Here. It helps people who can't speak or use their hands join a conversation while it's still happening.");
 });
 
-// 2. Problem
+// 2. Who it's for
 add("Pitch", async (pres, sec) => {
   const s = pres.addSlide({ masterName: "Content", sectionTitle: sec });
-  s.addText("The conversation moves on without them", { placeholder: "title" });
-  const stats = [
-    ["5M+", "Americans can't rely on speech¹"],
-    ["Most", "people with ALS lose their speech²"],
-    ["$10,000+", "eye-gaze devices³"],
-  ];
-  const w = 2.9, gap = 0.15;
-  for (let i = 0; i < 3; i++) {
-    const x = 0.5 + i * (w + gap);
-    card(s, x, 1.4, w, 2.7);
-    T(s, stats[i][0], { x: x + 0.2, y: 1.65, w: w - 0.4, h: 1.15, fontSize: 48, bold: true, color: HEX.accent, valign: "middle", align: "center" });
-    T(s, stats[i][1], { x: x + 0.2, y: 2.95, w: w - 0.4, h: 0.9, fontSize: 18, color: HEX.muted, align: "center" });
+  s.addText("Built for people living with ALS", { placeholder: "title" });
+  // Left: What is ALS?
+  card(s, 0.5, 1.25, 4.4, 2.75, { name: "ALS card" });
+  T(s, "What is ALS?", { x: 0.75, y: 1.42, w: 3.9, h: 0.4, fontSize: 20, bold: true, color: HEX.accent, valign: "middle" });
+  T(s, "A progressive disease that destroys the nerve cells controlling muscles. People lose movement, speech, and breathing. Thinking often stays intact.¹",
+    { x: 0.75, y: 1.9, w: 3.9, h: 1.25, fontSize: 15, color: HEX.ink });
+  s.addShape("line", { x: 0.75, y: 3.25, w: 3.9, h: 0, line: { color: HEX.line, width: 0.75 } });
+  T(s, "Most people with ALS lose their speech.²", { x: 0.75, y: 3.32, w: 3.9, h: 0.55, fontSize: 16, bold: true, color: HEX.accent, valign: "middle" });
+  // Right: Also helps
+  card(s, 5.1, 1.25, 4.4, 2.75, { name: "also helps card" });
+  T(s, "Also helps", { x: 5.35, y: 1.42, w: 3.9, h: 0.4, fontSize: 20, bold: true, color: HEX.accent, valign: "middle" });
+  const groups = ["Locked-in syndrome", "Cerebral palsy", "High spinal cord injury", "Muscular dystrophy or MS", "Intubated hospital patients"];
+  for (let i = 0; i < groups.length; i++) {
+    const y = 1.92 + i * 0.4;
+    s.addImage({ data: await icon("LuCheck", HEX.accent), x: 5.37, y: y + 0.07, w: 0.22, h: 0.22, altText: "" });
+    T(s, groups[i], { x: 5.7, y, w: 3.65, h: 0.36, fontSize: 14, color: HEX.ink, valign: "middle" });
   }
-  T(s, "¹ CommunicationFIRST, organization estimate (accessed 2026-10-24).  ² Eshghi et al., Scientific Reports 12:15713 (2022).  ³ Montana AT Program, Tobii I-16 eye-gaze device, est. $10,695 (older model).",
-    { x: 0.5, y: 4.6, w: 8.2, h: 0.5, fontSize: 9, color: HEX.muted, valign: "bottom" });
-  s.addNotes("Imagine a friend asks, \"Are you coming to dinner tonight?\" and by the time you spell out your answer, everyone has moved on. More than five million people in the U.S. are estimated to be unable to rely on speech alone, and most people with ALS lose their speech. Dedicated eye-gaze devices have cost over ten thousand dollars.");
+  // Bottom: small callouts
+  const calls = [["5M+", "Americans can't rely on speech³"], ["$10,000+", "eye-gaze devices⁴"]];
+  for (let i = 0; i < 2; i++) {
+    const x = 0.5 + i * 4.6;
+    T(s, calls[i][0], { x, y: 4.12, w: 1.45, h: 0.45, fontSize: 24, bold: true, color: HEX.accent, valign: "middle" });
+    T(s, calls[i][1], { x: x + 1.5, y: 4.12, w: 2.9, h: 0.45, fontSize: 14, color: HEX.muted, valign: "middle" });
+  }
+  T(s, "¹ ALS Association, \"What is ALS?\" and \"Changes in Thinking\" (accessed 2026-10-24).  ² Eshghi et al., Scientific Reports 12:15713 (2022).  ³ CommunicationFIRST, organization estimate (accessed 2026-10-24).  ⁴ Montana AT Program, Tobii I-16 eye-gaze device, est. $10,695 (older model).",
+    { x: 0.5, y: 4.68, w: 8.1, h: 0.45, fontSize: 8, color: HEX.muted, valign: "top" });
+  s.addNotes("Imagine a friend asks, \"Are you coming to dinner tonight?\" and by the time you spell out an answer, everyone has moved on. We built for ALS first because most people with ALS lose their speech while their thinking often stays intact, and that is exactly what Still Here needs. The same face controls can also help people with locked-in syndrome, cerebral palsy, high spinal cord injury, and patients who cannot speak for a while, like after intubation.");
 });
 
 // 3. Solution
@@ -235,7 +246,31 @@ add("Pitch", async (pres, sec) => {
   s.addNotes("Still Here listens when the partner talks and suggests the two best replies, plus other ways to answer. The person raises their eyebrows to move and does a long blink to choose. The chosen reply is spoken in a natural voice, on a regular iPad with no eye tracker or special hardware.");
 });
 
-// 4. See it
+// 4. How to use it
+add("Pitch", async (pres, sec) => {
+  const s = pres.addSlide({ masterName: "Content", sectionTitle: sec });
+  s.addText("Your face is the controller", { placeholder: "title" });
+  const rows = [
+    ["LuChevronsUp", "Raise eyebrows", "Next option"],
+    ["LuFastForward", "Keep them up", "Keep moving"],
+    ["LuUndo2", "Drop your jaw", "Go back"],
+    ["LuEyeClosed", "Long blink", "Choose and speak"],
+  ];
+  const x0 = 0.5, w = 5.0, h = 0.66, gap = 0.12, y0 = 1.25;
+  for (let i = 0; i < rows.length; i++) {
+    const y = y0 + i * (h + gap);
+    card(s, x0, y, w, h, { name: "gesture row" });
+    await iconCircle(s, rows[i][0], x0 + 0.13, y + 0.09, 0.48);
+    T(s, rows[i][1], { x: x0 + 0.78, y, w: 1.7, h, fontSize: 17, bold: true, valign: "middle" });
+    arrow(s, x0 + 2.5, y + h / 2, x0 + 2.85, y + h / 2, HEX.accent);
+    T(s, rows[i][2], { x: x0 + 3.0, y, w: 1.95, h, fontSize: 16, color: HEX.accent, bold: true, valign: "middle" });
+  }
+  T(s, "One-minute calibration learns your face. Partner just talks.", { x: 0.5, y: 4.45, w: 8.2, h: 0.45, fontSize: 18, bold: true, color: HEX.muted, valign: "middle" });
+  await screenshot(s, path.join(SCREENS, "02-board-highlight.png"), 5.85, 1.25, 3.65, 3.05, { alt: "Board with the highlighted reply card" });
+  s.addNotes("There is no touch screen tapping and no eye tracker. Raising your eyebrows moves to the next option, keeping them up keeps moving, dropping your jaw goes back, and a long blink chooses and speaks. A one-minute calibration learns each person's face, and the partner simply talks.");
+});
+
+// 5. See it
 add("Pitch", async (pres, sec) => {
   const s = pres.addSlide({ masterName: "Content", sectionTitle: sec });
   s.addText("One blink to answer", { placeholder: "title" });
@@ -247,11 +282,11 @@ add("Pitch", async (pres, sec) => {
   s.addNotes("Here is the dinner question on the iPad. Two likely replies appear, and one long blink speaks the highlighted one. If neither fits, Other ways to answer lets the person pick a direction instead. Nothing is spoken unless the person chooses it.");
 });
 
-// 5. How it works
+// 6. How it works + close
 add("Pitch", async (pres, sec) => {
   const s = pres.addSlide({ masterName: "Content", sectionTitle: sec });
   s.addText("Simple, private, personal", { placeholder: "title" });
-  await diagramBlock(s, path.join(DIAGRAM, "architecture-simple.png"), 0.4, 1.55, 5.8, 3.2,
+  await diagramBlock(s, path.join(DIAGRAM, "architecture-simple.png"), 0.4, 1.2, 5.8, 2.75,
     "Simplified architecture: iPad (camera, microphone, speaker), our Railway server, OpenAI and ElevenLabs", { left: 0, top: 170, width: 1920, height: 880 });
   const lines = [
     ["LuScanFace", "Calibrated to your face"],
@@ -259,32 +294,16 @@ add("Pitch", async (pres, sec) => {
     ["LuShieldCheck", "Learns you, with permission"],
   ];
   for (let i = 0; i < 3; i++) {
-    const y = 1.65 + i * 0.95;
+    const y = 1.35 + i * 0.85;
     await iconCircle(s, lines[i][0], 6.55, y, 0.6);
     T(s, lines[i][1], { x: 7.3, y, w: 2.25, h: 0.6, fontSize: 16, bold: true, valign: "middle" });
   }
-  footnote(s, "Camera frames stay on the iPad by design. Keys never leave the server.", { y: 5.2 });
-  s.addNotes("Face tracking runs on the iPad, so camera frames stay on the device by design, and a short calibration learns each person's face and blinks. Our server keeps the API keys private and calls OpenAI for replies and ElevenLabs for the voice. Learning is off by default and only keeps preferences the person approves.");
-});
-
-// 6. Impact and close
-add("Pitch", async (pres, sec) => {
-  const s = pres.addSlide({ masterName: "Dark Plain", sectionTitle: sec });
-  s.addText("Positive change, on hardware people own", { placeholder: "title" });
-  T(s, "3.8 s", { x: 0.5, y: 1.35, w: 3.8, h: 1.2, fontSize: 80, bold: true, color: HEX.mint, valign: "middle" });
-  T(s, "from partner to suggestions", { x: 0.5, y: 2.6, w: 3.8, h: 0.45, fontSize: 18, color: "E6E8EB" });
-  T(s, "Next", { x: 5.2, y: 1.3, w: 4.0, h: 0.4, fontSize: 16, bold: true, color: "9AA0A8" });
-  const next = [["LuUsers", "Test with people with ALS"], ["LuSmartphone", "Phones and offline"], ["LuAudioLines", "Personal voice"]];
-  for (let i = 0; i < 3; i++) {
-    const y = 1.8 + i * 0.68;
-    await iconCircle(s, next[i][0], 5.2, y, 0.5, { fill: HEX.tint, color: HEX.accent });
-    T(s, next[i][1], { x: 5.9, y, w: 3.6, h: 0.5, fontSize: 18, bold: true, color: HEX.white, valign: "middle" });
-  }
-  const mark = logoFile("mark-white-512.png");
-  if (mark) s.addImage({ path: mark, x: 0.5, y: 4.02, w: 0.5, h: 0.5, altText: "Still Here mark" });
-  T(s, "Your words. Your choice.", { x: mark ? 1.15 : 0.5, y: 3.97, w: 5.5, h: 0.6, fontSize: 30, bold: true, color: HEX.mint, valign: "middle" });
-  footnote(s, "3.8 s: median, Mac to deployed server, synthetic speech.", { dark: true, y: 5.2 });
-  s.addNotes("From the partner finishing to suggestions on screen takes a median of 3.8 seconds, measured from a Mac with synthetic speech. Next, we want to test with people with ALS, bring it to phones and offline use, and add a personal voice with consent. Your words, your choice. Thank you.");
+  s.addShape("line", { x: 0.5, y: 4.08, w: 9.0, h: 0, line: { color: HEX.line, width: 0.75 } });
+  const mark = logoFile("mark-512.png");
+  if (mark) s.addImage({ path: mark, x: 0.5, y: 4.22, w: 0.46, h: 0.46, altText: "Still Here mark" });
+  T(s, "Your words. Your choice.", { x: mark ? 1.1 : 0.5, y: 4.17, w: 6.0, h: 0.56, fontSize: 26, bold: true, color: HEX.accent, valign: "middle" });
+  T(s, "Next: test with people with ALS · phones and offline · personal voice", { x: mark ? 1.1 : 0.5, y: 4.78, w: 7.4, h: 0.32, fontSize: 13, color: HEX.muted, valign: "middle" });
+  s.addNotes("Face tracking runs on the iPad, so camera frames stay on the device by design, and a short calibration learns each person's face. Our server keeps the API keys private and calls OpenAI for replies and ElevenLabs for the voice, and learning is off by default and keeps only what the person approves. Next, we want to test with people with ALS, bring it to phones and offline use, and add a personal voice. Your words, your choice. Thank you.");
 });
 
 async function diagramBlock(s, file, x, y, maxW, maxH, label, crop) {
