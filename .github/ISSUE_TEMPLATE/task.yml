@@ -1,0 +1,35 @@
+name: Hackathon task
+description: One small outcome with a human owner and a clear completion check.
+title: "[Task] "
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Human owner
+      description: Who is responsible for the result and review handoff?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What should a user or teammate be able to do?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Describe observable checks that show this task works.
+    validations:
+      required: true
+  - type: textarea
+    id: coordination
+    attributes:
+      label: Scope and coordination
+      description: Files/interfaces affected, dependencies, and who to coordinate with.
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Relevant build/test commands or a manual check; mark unknowns explicitly.
