@@ -1,5 +1,37 @@
 /* Setup + calibration styles owned by SetupFlow / BlinkCalibration. Uses globals.css tokens. */
 
+/* ---------- Page layout ---------- */
+
+/* Hint text is read by a helper at arm's length (~70 cm): keep it at 17 px, not the global 15 px. */
+.setupPage :global(.hint) { font-size: 1.0625rem; }
+.setupPage :global(.choice-hero .tag) { font-size: 0.95rem; }
+
+/* Portrait and narrow: one column, same spacing as before. */
+.optionsArea { display: grid; gap: 1.25rem; min-width: 0; }
+.accessArea, .actionsArea { min-width: 0; }
+
+/* Wide landscape (same breakpoint as the board): two columns.
+   Left: access choice + Start/Next. Right: Voice first (Enable audio above the fold), then the rest.
+   Placement only — DOM and reading order stay access → voice → … → start. */
+@media (orientation: landscape) and (min-width: 1024px) and (min-height: 600px) {
+  /* Doubled class beats the global .setup rule regardless of stylesheet order. */
+  .setupPage.setupPage { max-width: 84rem; padding: 1.25rem 1.5rem 3rem; }
+  .setupPage :global(.setup-head) { margin-bottom: 1rem; gap: 0.35rem; }
+  .setupForm {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "access options"
+      "actions options";
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+  .accessArea { grid-area: access; }
+  .optionsArea { grid-area: options; }
+  /* Start/Next stays in reach while the helper scrolls the right column. */
+  .actionsArea { grid-area: actions; position: sticky; top: 1rem; }
+}
+
 /* ---------- Access choice ---------- */
 
 .altGrid {
