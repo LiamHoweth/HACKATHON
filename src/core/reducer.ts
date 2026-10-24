@@ -528,9 +528,10 @@ function endSession(s: State, at: number): State {
     settings: s.settings,
     surfaceRevision: s.surfaceRevision + 1,
     surfaceOpenedAt: at,
-    approvedPreferences: s.approvedPreferences,
-    approvedProfile: s.approvedProfile,
-    savedPhrases: s.savedPhrases,
+    // Session-only approvals end with the session; device-retained ones remain until deleted.
+    approvedPreferences: s.settings.persistOnDevice ? s.approvedPreferences : [],
+    approvedProfile: s.settings.persistOnDevice ? s.approvedProfile : [],
+    savedPhrases: s.settings.persistOnDevice ? s.savedPhrases : s.savedPhrases.filter((p) => p.builtIn),
     suppressedDimensions: s.settings.persistOnDevice ? s.suppressedDimensions : [],
     storageStatus: s.storageStatus,
     effects: [],

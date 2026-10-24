@@ -239,8 +239,8 @@ describe('Core safety', () => {
     expect(d.userTurns()[0].value.delivery).toBe('interrupted');
   });
 
-  it('CORE-11 after End session, old-epoch results/speech are ignored, conversation cleared, approved preferences kept', () => {
-    const d = new Driver();
+  it('CORE-11 after End session, old-epoch results/speech are ignored, conversation cleared, device-retained preferences kept', () => {
+    const d = new Driver({ persistOnDevice: true });
     d.savePreference('length', 'detailed');
     expect(d.s.approvedPreferences).toHaveLength(1);
     // A spoken turn in the old session (gives an old utterance id).
@@ -275,6 +275,20 @@ describe('Core safety', () => {
     d.speech('end', oldUtt, oldEpoch);
     expect(d.s).toBe(before);
     expect(d.s.conversation).toEqual([]);
+  });
+});
+
+describe('Session-only approvals', () => {
+  it('CORE-11b approvals made for this session only end with the session', () => {
+    const d = new Driver({ persistOnDevice: false });
+    d.savePreference('length', 'detailed');
+    expect(d.s.approvedPreferences).toHaveLength(1);
+    d.act('more');
+    d.act('t-controls');
+    d.act('ct-end');
+    d.act('end-confirm');
+    expect(d.s.phase).toBe('setup');
+    expect(d.s.approvedPreferences).toEqual([]);
   });
 });
 
