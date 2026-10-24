@@ -14,7 +14,7 @@ Still Here
 
 ## Team
 
-Liam Howeth and Richard Oghenefejiro.
+Liam Howeth and Richard Oduma.
 
 ## Elevator pitch (Devpost, 200 characters or fewer)
 

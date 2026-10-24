@@ -158,7 +158,7 @@ Environment variable names (see [.env.example](.env.example); values go only in 
 
 Built at **SASEHacks for Good 2026** (University of Oklahoma, October 24, 2026). Hacking began at 09:00 CT.
 
-Team: Liam Howeth and Richard Oghenefejiro.
+Team: Liam Howeth and Richard Oduma.
 
 Built with AI coding assistants, directed and reviewed by the team: **Claude Code** wrote the application, docs, and final deck; **Codex** made an earlier deck draft and the initial repository scaffolding (no application code). Details: [docs/AI_USAGE.md](docs/AI_USAGE.md).
 

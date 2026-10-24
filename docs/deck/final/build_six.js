@@ -185,7 +185,7 @@ add("Pitch", async (pres, sec) => {
   if (lock) s.addImage({ path: lock, x: 0.45, y: 1.3, w: 4.4, h: 1.1, altText: "Still Here" });
   else T(s, "Still Here", { x: 0.6, y: 1.35, w: 4.6, h: 1.0, fontSize: 54, bold: true, color: HEX.white, valign: "bottom" });
   T(s, "Be part of the conversation while it's still happening.", { x: 0.6, y: 2.65, w: 4.4, h: 0.9, fontSize: 22, bold: true, color: HEX.mint });
-  T(s, "Liam Howeth  ·  Richard Oghenefejiro  ·  SASEHacks for Good", { x: 0.6, y: 4.6, w: 4.7, h: 0.3, fontSize: 12, color: "9AA0A8" });
+  T(s, "Liam Howeth  ·  Richard Oduma  ·  SASEHacks for Good", { x: 0.6, y: 4.6, w: 4.7, h: 0.3, fontSize: 12, color: "9AA0A8" });
   await screenshot(s, path.join(SCREENS, "02-board-highlight.png"), 5.4, 1.05, 4.2, 3.6, { dark: true, alt: "Still Here board on iPad: partner question and two reply cards" });
   s.addNotes("Hi, we're Liam and Richard, and this is Still Here. It helps people who can't speak or use their hands join a conversation while it's still happening.");
 });
