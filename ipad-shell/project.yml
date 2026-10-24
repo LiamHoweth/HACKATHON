@@ -1,0 +1,44 @@
+# Thin native iPad shell for the hackathon demo: a full-screen WKWebView around the deployed
+# Still Here web app, with camera/audio pre-granted and the access code built in (gitignored).
+# Regenerate: scripts/build-ipad-shell.sh (runs xcodegen, builds, installs).
+name: StillHereShell
+options:
+  bundleIdPrefix: com.liamhoweth
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: TA67BL3L69
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "2"
+targets:
+  StillHereShell:
+    type: application
+    platform: iOS
+    sources:
+      - path: StillHereShell
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liamhoweth.stillhere.demo
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
+    info:
+      path: StillHereShell/Info.plist
+      properties:
+        CFBundleDisplayName: Still Here
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSCameraUsageDescription: "Still Here uses the front camera on this iPad to detect eyebrow raises and blinks. Video is processed on the device and is not recorded or uploaded."
+        NSMicrophoneUsageDescription: "Still Here records your conversation partner only when they tap Talk, so their words can be shown as text."
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight

@@ -66,3 +66,9 @@ npm-debug.log*
 # MediaPipe WASM runtime, copied from the pinned npm package by scripts/copy-mediapipe-assets.mjs
 /public/wasm/*.js
 /public/wasm/*.wasm
+
+# Native iPad demo shell: generated project, build output, and the built-in access code
+/ipad-shell/StillHereShell.xcodeproj/
+/ipad-shell/build/
+/ipad-shell/StillHereShell/DemoSecrets.swift
+/ipad-shell/StillHereShell/Info.plist

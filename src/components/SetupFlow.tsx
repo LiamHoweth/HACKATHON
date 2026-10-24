@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { StillHereRuntime } from '@/runtime/contract';
 import { VOICE_TEST_TEXT } from '@/runtime/contract';
 import { DEFAULT_SETTINGS } from '@/core/state';
@@ -12,6 +12,7 @@ import { BUILT_IN_PHRASES } from '@/core/phrases';
 import { BlinkCalibration, describeBrowCalibration, describeCalibration, type FaceMode } from './BlinkCalibration';
 import { SPEECH_PROVIDER_LABELS, audioStatusLabel, formatTime } from './labels';
 import type { PreviewOutcome } from '@/runtime/useAudio';
+import { inNativeShell, isDemoMode } from '@/runtime/demo-mode';
 import css from './setup.module.css';
 
 /** Setup groups keyboard and switch under one alternative; this is the choice inside it. */
@@ -50,6 +51,17 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const [name, setName] = useState('');
   const [interests, setInterests] = useState('');
   const [demoUsed, setDemoUsed] = useState(false);
+
+  // Demo mode (native iPad shell or ?demo=1): pre-select Live AI + consent, and unlock audio in
+  // the shell where autoplay is allowed. Applied after mount to avoid hydration mismatches.
+  const demoApplied = useRef(false);
+  useEffect(() => {
+    if (demoApplied.current || !isDemoMode()) return;
+    demoApplied.current = true;
+    setChosenAiMode('live');
+    setConsent(true);
+    if (inNativeShell()) void runtime.audio?.enableAudio();
+  }, [runtime.audio]);
 
   const liveAvailable = !!serverStatus?.replies.configured;
   const fixtureAvailable = serverStatus ? serverStatus.fixturesEnabled : true;
