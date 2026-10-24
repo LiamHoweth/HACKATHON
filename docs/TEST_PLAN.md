@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Test plan
 
 This maps the acceptance IDs in the governing brief (the one-file iPad gestures + ElevenLabs prompt, §29) to tests. **"Written" means a test with that ID exists in `src/tests/`.** At 11:50 CT every written test passed (`npm test`: 134/134 in 10 files, recorded in [TEST_RESULTS.md](TEST_RESULTS.md)). Official results are recorded by the integrator in TEST_RESULTS.

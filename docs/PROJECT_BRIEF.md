@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Project brief
 
 Status: event and idea selected (Still Here, **iPad eyebrow NEXT + long-blink SELECT + ElevenLabs** since ~12:00 CT). Facts below come from Liam's master prompts and the event briefing they supplied, and from the repository itself. The one-file iPad + ElevenLabs prompt now governs and supersedes the blink-first and earlier briefs. Fields still unconfirmed are marked. Do not invent answers to fill the template.

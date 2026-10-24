@@ -1,12 +1,29 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/deck/logo/lockup-horizontal-white.png">
+    <img src="docs/deck/logo/lockup-horizontal.png" alt="Still Here" width="420">
+  </picture>
+</p>
+
 # Still Here
 
 **AI offers possible words. The person decides what to say.**
+
+**Demo:** video [ADD VIDEO LINK] (TODO: owner adds before submission) | Pitch deck: [docs/deck/final/Still_Here_Final.pptx](docs/deck/final/Still_Here_Final.pptx) | Live app: available on request (needs an access code)
+
+<p align="center">
+  <img src="docs/deck/screens/02-board.png" alt="Still Here on an iPad: the partner's question, two likely replies, and an Other ways to answer card" width="800">
+</p>
 
 Still Here is a conversation-first AAC (augmentative and alternative communication) prototype for people who can't speak or use their hands. It runs on a stock iPad using only the front camera: the conversation partner just talks, the app offers a few likely replies, and the person picks one with eyebrow raises and a long blink. The chosen reply is spoken aloud in a natural voice.
 
 > Engineering prototype built in one day. Not a medical device. Not tested with AAC users.
 
 ## How it works
+
+<p align="center">
+  <img src="docs/deck/diagram/architecture-simple.png" alt="Simple architecture: iPad camera and microphone, on-device gesture detection, Railway server, OpenAI and ElevenLabs" width="800">
+</p>
 
 ```text
 Partner just talks (hands-free listening, no button presses)
@@ -22,12 +39,13 @@ Partner just talks (hands-free listening, no button presses)
 | Raise both eyebrows (hold about 0.35-0.5 s, set in calibration) | Next: move one choice |
 | Keep eyebrows up | Keep moving, one step every 0.6 s; relax to stop |
 | Brief jaw drop (about 0.4-1.5 s, then close) | Back one choice; talking and yawns are ignored |
-| Long, deliberate blink (about 1 s) | Choose; normal blinks are ignored |
+| Long, deliberate blink (calibrated, roughly 0.6-1 s) | Choose; normal blinks are ignored |
 | Long blink while speaking | Stop speaking |
 
 - **Other ways to answer** shows 3-5 AI-suggested directions (for "How was your day?": Rough day, Mixed day, Not now, You first). Replies for each direction are fetched in the background.
 - **None of these** gives new meanings, not paraphrases. **Guide my response** (agree, disagree, ask), **Quick phrases**, and **My words** (spell it out) work without accepting any AI suggestion; Quick phrases and My words need no AI at all.
 - **Fast mode** (on by default): one long blink speaks the highlighted reply immediately. Turning it off in setup restores **review + a separate confirming blink**, with review starting on Cancel.
+- **Conversation handling:** follow-up lines within 20 s merge into the open question and suggestions refresh; pure filler ("uh huh", "mm-hmm") is ignored; if several faces are in view, tracking locks onto one (unit-tested only). The camera preview stays alive between screens. Text uses the Atkinson Hyperlegible typeface; the voice is the prebuilt ElevenLabs voice "Will".
 - Fallback inputs: auto-scan + blink, keyboard or single switch, and touch. All inputs go through the same guarded action path.
 
 Full user guide: [docs/manual/QUICK_GUIDE.md](docs/manual/QUICK_GUIDE.md).
@@ -76,7 +94,7 @@ Full log: [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 - **Web app:** Next.js 16 (App Router), React 19, TypeScript, zod. One pure reducer (`src/core/reducer.ts`) makes every decision, and one target registry (`src/core/targets.ts`) defines what can be selected. Touch, keyboard, switch, blink, and eyebrow input all reach the same guarded `ACTIVATE` path.
 - **Gestures:** MediaPipe FaceLandmarker (`@mediapipe/tasks-vision` 1.1.1, local WASM + model in `public/`). Pure gesture logic in `src/access/`; `src/access/gesture-arbiter.ts` is the only emitter of accepted commands (blink always wins; ambiguous input is discarded).
-- **Replies:** OpenAI Responses API, `gpt-6-astra`, strict JSON schema, no tools, output validated server-side.
+- **Replies:** OpenAI Responses API, `gpt-6-astra`, strict JSON schema, no tools, output validated server-side. The OpenAI priority tier is OFF: in a live test 4 of 6 requests timed out.
 - **Speech to text:** OpenAI `gpt-transcribe`.
 - **Voice:** ElevenLabs `eleven_v4_turbo`, server-side only (`src/server/elevenlabs/`).
 - **Backend:** Railway, single instance. Paid routes require an access code (`x-still-here-access` header), with per-client rate limits and a daily voice character budget.
@@ -140,13 +158,15 @@ Environment variable names (see [.env.example](.env.example); values go only in 
 
 Built at **SASEHacks for Good 2026** (University of Oklahoma, October 24, 2026). Hacking began at 09:00 CT.
 
-Team: Liam Howeth, ...
+Team: Liam Howeth, **TODO (team): add the other team members' names and roles before submission.**
 
-Built with AI coding assistants, **Claude Code and Codex**, directed and reviewed by the team. Details: [docs/AI_USAGE.md](docs/AI_USAGE.md).
+Built with AI coding assistants, directed and reviewed by the team: **Claude Code** wrote the application, docs, and final deck; **Codex** made an earlier deck draft and the initial repository scaffolding (no application code). Details: [docs/AI_USAGE.md](docs/AI_USAGE.md).
+
+**Timeline note (event rule: all code written after hacking starts at 9:00 AM):** the repository setup commit at 08:59 contained documentation, a contributing guide, a CI workflow, and a repo-hygiene script, with no application code. All application code was written after 9:00; the first application commit is at 10:53.
 
 **Related work:** conversation-first AI-assisted AAC and camera-based AAC already exist (VisioALS, Google SpeakFaster, Project Converse / DEAN, Speak4Me, Bobbai). We do not claim a first; our contribution is this implemented combination. No code or assets were copied. See [docs/REFERENCES.md](docs/REFERENCES.md).
 
-**Licenses and attribution:** No project license chosen yet. Third-party: `@mediapipe/tasks-vision` WASM runtime and the MediaPipe Face Landmarker model (`float16/1`), both Apache-2.0, served locally (sources and hashes in `public/models/README.md`). Atkinson Hyperlegible typeface (Braille Institute), loaded via `next/font/google`. ElevenLabs and OpenAI are remote APIs; no provider code or audio is included. Fixtures are synthetic.
+**License: not yet chosen** (the owner decides; no `LICENSE` file is included, so default copyright applies). **Attribution:** Third-party: `@mediapipe/tasks-vision` WASM runtime and the MediaPipe Face Landmarker model (`float16/1`), both Apache-2.0, served locally (sources and hashes in `public/models/README.md`). Atkinson Hyperlegible typeface (Braille Institute), loaded via `next/font/google`. ElevenLabs and OpenAI are remote APIs; no provider code or audio is included. Fixtures are synthetic.
 
 ## Repo map
 

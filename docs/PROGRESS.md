@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Progress
 
 **Last updated:** 2026-10-24, 12:23 CDT, by the presentation-evidence workstream (Claude Code), against commit `5de1a57`. The integrator updates this file after each gate.

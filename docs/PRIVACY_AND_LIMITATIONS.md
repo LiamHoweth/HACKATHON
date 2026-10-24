@@ -46,7 +46,7 @@ End session invalidates the session epoch, aborts pending generation, cancels sp
 ## Limitations
 
 - **Reliability not measured on the iPad.** The hands-free conversation was verified once in a team manual test, but the 20-raise / 20-blink `/trial` run and the network check (SYS-13) have not been run.
-- **Eyebrow and blink detection are experimental.** Reliability is **not measured**. Expect lighting, glasses, camera angle, fatigue, speech movements, partial eye closure, and individual motor ability to affect them. They are not clinically reliable switches, and this is not gaze tracking. The 500 ms hold is a user-requested design target, not a validated value.
+- **Eyebrow and blink detection are experimental.** Reliability is **not measured**. Expect lighting, glasses, camera angle, fatigue, speech movements, partial eye closure, and individual motor ability to affect them. They are not clinically reliable switches, and this is not gaze tracking. The eyebrow hold time (about 0.35-0.5 s, set in calibration; keeping the brows up repeats Next every 0.6 s) is a design target, not a validated value, and the jaw-drop Back gesture has not yet been tried by a person on the iPad.
 - **Not everyone can raise their eyebrows or blink on purpose.** Auto-scan + blink, keyboard, switch, and touch stay available.
 - **iPad Safari audio.** Safari may block audio that a real touch did not start. A camera gesture may not count. The installed app unlocks audio at launch, but Safari in the browser backup may still block it. When blocked, the app should say "Audio blocked" rather than pretend it spoke.
 - **Natural voice not formally evaluated.** The ElevenLabs key is configured on the server and team members have heard replies on the iPad, but there are no listener ratings. Generated speech can mispronounce or drop words even when the text is exact; listening tests (TTS-09) have not been run.
@@ -58,7 +58,8 @@ End session invalidates the session epoch, aborts pending generation, cancels sp
 - **Back-channel filter.** Only pure filler ("uh huh", "mm-hmm", "hmm", "oh", "wow", "got it", "I see") is ignored. Short answers like "yeah" or "sure" are kept, as are "Yes?", "No." and "Hey".
 - **Prefetch sends unchosen text.** In fast mode, suggestions the person never picks are still sent to ElevenLabs.
 - **Not tested with AAC users** or people with ALS. No clinicians or specialists were consulted.
-- **Nothing measured yet.**
+- **Not yet tested by a person on the iPad:** hold-to-move, jaw-drop Back, Other ways to answer (branching), multi-face lock, and audible prefetch. They are deployed and unit-tested only. The 586 unit tests (plus 2 expected failures) check logic with mocked providers, not hardware.
+- **No clinical validation.** No AAC user, person with ALS, clinician, or speech-language pathologist has tested or reviewed it.
 - **Accessibility:** contrast, 200% zoom, VoiceOver, and Dynamic Type not checked. We make no conformance claim.
 - **Switch hardware:** emulated with a keyboard key. External switches are untested.
 - **Learning:** length only, using word counts. Position bias is a confounder.

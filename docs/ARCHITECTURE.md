@@ -1,6 +1,19 @@
 # Architecture
 
-This describes the code on 2026-10-24 at ~12:30 CT: commit `5de1a57` (12:13, eyebrow NEXT + blink SELECT, gesture arbiter, iPad UI, ElevenLabs speech path; deployed to Railway as `f65385bb`) plus uncommitted working-tree changes that are marked as such (the access-throttle fix, HSTS, the `/trial` recorder, gesture metrics). The governing brief is iPad Safari, eyebrow NEXT + long-blink SELECT, ElevenLabs voice ([D27](DECISIONS.md), [D28](DECISIONS.md)). Test evidence: [TEST_RESULTS.md](TEST_RESULTS.md) and [PROGRESS.md](PROGRESS.md). Nothing here has run on a physical iPad or a real camera.
+**Updated about 3 PM CT:** see "Current state" below for what changed after this snapshot. The original text follows. It describes the code on 2026-10-24 at ~12:30 CT: commit `5de1a57` (12:13, eyebrow NEXT + blink SELECT, gesture arbiter, iPad UI, ElevenLabs speech path; deployed to Railway as `f65385bb`) plus uncommitted working-tree changes that are marked as such (the access-throttle fix, HSTS, the `/trial` recorder, gesture metrics). The governing brief is iPad Safari, eyebrow NEXT + long-blink SELECT, ElevenLabs voice ([D27](DECISIONS.md), [D28](DECISIONS.md)). Test evidence: [TEST_RESULTS.md](TEST_RESULTS.md) and [PROGRESS.md](PROGRESS.md). Nothing here has run on a physical iPad or a real camera.
+
+## Current state (2026-10-24, about 3 PM CT)
+
+The sections below were written earlier in the day. Where they conflict with this list, this list is current:
+
+- **Fast mode is the default.** One long blink on a suggestion speaks it immediately. The review screen plus a separate confirming blink (and the 600 ms arming delay in the data-flow steps below) apply only when fast mode is turned off in setup.
+- **Voice is prefetched in fast mode.** `src/audio/speech-prefetch.ts` asks the server for the on-screen suggested sentences ahead of time (including ones never chosen), so the chosen one can play from memory. Outside fast mode nothing is pre-synthesized and only the confirmed sentence is sent.
+- **Eyebrow input:** the hold time comes from calibration (about 0.35-0.5 s, replacing the fixed 500 ms in the module notes), and keeping the eyebrows up repeats NEXT every 0.6 s (`repeatMs: 600`). A brief jaw drop (`src/access/jaw-gesture.ts`) goes back one choice.
+- **Hands-free listening:** `src/audio/continuous-listener.ts` and `src/runtime/useContinuousListening.ts` cut utterances with on-device voice detection and send only those clips to transcription. Follow-up lines within 20 s merge into the open question, and pure filler is ignored.
+- **Other ways to answer:** 2 replies plus 3-5 directions; replies for each direction are prefetched in the background.
+- **Multi-face lock:** `src/access/face-selector.ts` follows the most central, longest-present face (unit-tested only).
+- **Reply tier:** OpenAI priority tier is OFF (it caused timeouts; see [TEST_RESULTS.md](TEST_RESULTS.md)).
+- **Verification status:** 586 unit tests pass plus 2 expected failures (34 files), and the deployed smoke test passes 6/6. Hold-to-move, jaw-drop Back, branching, multi-face lock, and audible prefetch have **not yet been tried by a person on the iPad**.
 
 ## Stack
 
@@ -16,7 +29,7 @@ Browser
      ├─ executes queued Effects exactly once (generate, speak, persist, record, …)
      ├─ runtime/useBlink.ts        camera → MediaPipe (local assets) → blink + brow scores
      │    ├─ access/blink-gesture  long-blink SELECT proposals
-     │    ├─ access/brow-gesture   500 ms eyebrow NEXT proposals ('brow-blink' mode only)
+     │    ├─ access/brow-gesture   eyebrow NEXT proposals (calibrated hold, repeats while held; 'brow-blink' mode only)
      │    └─ access/gesture-arbiter  the ONLY emitter of accepted NAV_NEXT / SELECT
      │                             → useStillHere → scan-controller.next() or the same guarded ACTIVATE
      ├─ access/                    scan-controller (one chained timer, or manual stepping), input-controller
@@ -74,13 +87,13 @@ Server (Next.js route handlers)
 1. `PARTNER_SUBMIT`: if the user is idle on the board, the turn is accepted for context, a reply workspace is created, and a `generate` effect is queued. If the user is busy, the turn is staged and the user sees a notice.
 2. The runtime posts the `ReplyRequest` to `/api/replies`. The result returns as `GENERATION_RESULT` with the request identity.
 3. The reducer installs the batch only if the epoch, workspace, request ID, context revision, preference revision, and anchor content revision all match and the workspace is still open. Application IDs are assigned to candidates.
-4. `ACTIVATE` on a candidate opens a frozen `ReviewSnapshot`.
-5. `ACTIVATE` on **Speak** creates a `ConfirmedUtterance` only if the confirming event and cycle differ from the selection's, the surface revision is current, and at least 600 ms have passed since the review opened. It then appends a user turn with `delivery: 'queued'` and queues one `speak` effect. The provider is `settings.speechProvider` (`elevenlabs` by default).
+4. With fast mode on (default), `ACTIVATE` on a candidate speaks it directly. With fast mode off, it opens a frozen `ReviewSnapshot`.
+5. With fast mode off, `ACTIVATE` on **Speak** creates a `ConfirmedUtterance` only if the confirming event and cycle differ from the selection's, the surface revision is current, and at least 600 ms have passed since the review opened. It then appends a user turn with `delivery: 'queued'` and queues one `speak` effect. The provider is `settings.speechProvider` (`elevenlabs` by default).
 6. `SPEECH_EVENT`s update delivery. Errors or uncertainty show the text on screen and never replay.
 
 ### Speech authorization and the basic-voice fallback
 
-- Only a `ConfirmedUtterance` reaches any voice. Its `exactText` is what ElevenLabs (or `speechSynthesis`) receives; nothing is pre-synthesized and no suggestion is spoken before confirmation.
+- Only a `ConfirmedUtterance` is ever **played**. Its `exactText` is what is spoken (ElevenLabs or `speechSynthesis`). In fast mode the on-screen suggested sentences are synthesized **ahead of time** (`speech-prefetch.ts`) so the chosen one can start from memory, which means unchosen suggestions are sent to ElevenLabs, but no prefetched audio is played unless the person chooses it. With fast mode off, nothing is pre-synthesized and only the confirmed sentence is sent.
 - After an ElevenLabs `error` or `uncertain` delivery, the reducer records `lastFailedSpeech` and the board offers **Say it with the basic device voice** and **Dismiss voice problem** (`src/core/targets.ts`). Choosing it opens a **new** review (origin `basic-voice`, linked to the original utterance id); speaking needs a **new, separate confirmation**, and the resulting utterance uses provider `browser`, labeled "basic device voice". There is no silent fallback. A later confirmed utterance clears the offer.
 - Covered by `speech-authorization.test.ts` (TTS-07, passing at 12:28 CT on the working tree). Audible output has not been confirmed by a listener.
 
@@ -126,9 +139,9 @@ Server (Next.js route handlers)
 
 The default access mode is **`brow-blink`** (`src/core/state.ts`). `blink` (timed auto-scan + blink select), `switch`, `keyboard`, and `pointer` are fallbacks. All of them end in the same guarded `ACTIVATE`.
 
-- `blink-detector.ts`: MediaPipe `FaceLandmarker` in `VIDEO` mode, `numFaces: 2`, blendshapes on, GPU delegate with CPU fallback, throttled frame processing. Per frame it outputs the face count, an eye-closure score = min(`eyeBlinkLeft`, `eyeBlinkRight`), and a brow score = max(`browInnerUp`, mean of `browOuterUpLeft`/`browOuterUpRight`).
+- `blink-detector.ts`: MediaPipe `FaceLandmarker` in `VIDEO` mode, `numFaces: 2` (the face selector then locks onto one face), blendshapes on, GPU delegate with CPU fallback, throttled frame processing. Per frame it outputs the face count, an eye-closure score = min(`eyeBlinkLeft`, `eyeBlinkRight`), and a brow score = max(`browInnerUp`, mean of `browOuterUpLeft`/`browOuterUpRight`).
 - `blink-gesture.ts`: pure long-blink state machine (phases `no-face`, `face-lost`, `multiple-faces`, `ready`, `closing`, `cooldown`). Emits `closure-start`, `select`, `discard`, `face-lost`, `face-found`.
-- `brow-gesture.ts`: pure eyebrow state machine, `NEUTRAL → RISING → (held ≥ 500 ms) one brow-next → LATCHED → stable release → REARMING (cooldown) → NEUTRAL`. A long hold never repeats. After a reset, face loss, stale frame, or cancel, a neutral frame is required before a new raise can start, so a raise never carries across a screen change. Brow input runs only in `brow-blink` mode.
+- `brow-gesture.ts`: pure eyebrow state machine, `NEUTRAL → RISING → (held ≥ the calibrated hold, about 0.35-0.5 s) one brow-next → LATCHED → stable release → REARMING (cooldown) → NEUTRAL`. Holding the brows up keeps moving, one NEXT every 0.6 s, until they relax. After a reset, face loss, stale frame, or cancel, a neutral frame is required before a new raise can start, so a raise never carries across a screen change. Brow input runs only in `brow-blink` mode.
 - `gesture-arbiter.ts`: the **only** emitter of accepted commands (`NAV_NEXT`, `SELECT`). A closure onset freezes the highlight at once and cancels an unfinished raise. No NEXT is accepted during a closure. A brow-start and a closure-start within 120 ms are ambiguous: the raise is cancelled, the blink cycle discarded, and nothing happens. Each accepted command carries a fresh physical cycle id. Feedback ("Eyebrow raise detected — Next", "Blink detected — Selected") is shown only after acceptance.
 - `blink-calibration.ts`, `brow-calibration.ts`: pure sample segmentation and threshold proposal, honest failure when classes overlap, scalar-only storage.
 - `scan-controller.ts`: in `brow-blink` it runs in **manual** mode with **no timer** (auto-scan off): the highlight starts on the surface's first, safe target and moves one step, wrapping, per accepted `NAV_NEXT` (eyebrow, or Tab/ArrowRight as a keyboard fallback). In `blink` mode it is the timed auto-scan. Only one highlight mover is active at a time ([D31](DECISIONS.md)).

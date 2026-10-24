@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Presentation log
 
 This is a living journal of features, claims, and evidence. Build, verification, and measurement are separate dimensions. "Implemented" does not mean tested. A synthetic or mocked test is not camera, iPad, or hardware verification. An iPad **Simulator** capture is not a physical iPad pass. A desktop browser pass is not an iPad pass. Never backfill evidence that does not exist.

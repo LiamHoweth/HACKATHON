@@ -4,6 +4,8 @@ Record executed checks only, including failures and reruns. Give each entry its 
 
 Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.14.0, Next.js 16.4.3 dev server on localhost:3000, Claude desktop app built-in browser pane (Chromium-based), working tree on `main` after commit `bb16883`.
 
+**Current summary (2:30-3:10 PM CT, 2026-10-24):** unit tests **586 passed + 2 expected fail (34 files)**; deployed smoke test **6/6**. Hold-to-move, jaw-drop Back, Other ways to answer, multi-face lock, and audible prefetch are **NOT YET** tested by a person on the iPad. Rows below are dated historical snapshots and are not rewritten: earlier counts (134, 514, and so on) were true at their time and are superseded by the numbers above; the earlier eyebrow "500 ms hold" and review-then-confirm flow were replaced by calibrated hold timing and fast mode as the default.
+
 ## Automated checks
 
 | When (CT) | Command | Result | Environment | Notes |

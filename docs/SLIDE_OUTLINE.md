@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Slide outline
 
 Six parts (governing iPad + ElevenLabs brief §33). **Status at 12:20 CT (commit `5de1a57`):** gestures, calibration, iPad layout, and the ElevenLabs path are implemented and pass 285 automated tests (synthetic frames, mocked providers); nothing is physical-iPad verified; ElevenLabs live verification is blocked because `ELEVENLABS_API_KEY` is not configured. Before presenting, reconcile every claim with [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md). Anything still marked "not run", "not measured", or "not iPad-verified" there must be described that way on the slides. Do not use patient imagery, testimonials, pity framing, or sponsor logos. Use only real app screenshots, kept separate from diagrams.

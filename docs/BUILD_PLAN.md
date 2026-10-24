@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Build plan
 
 The governing brief is now the one-file **iPad gestures + ElevenLabs** master prompt (`Still_Here_Claude_ONE_FILE_ElevenLabs_iPad_Implementation.md`, supplied locally and not committed). It supersedes the blink-first brief. Its gates (§34) are listed below in dependency order. A gate is **done** only when its checks are recorded in [TEST_RESULTS.md](TEST_RESULTS.md). Other status values are **partial**, **in progress**, and **not started**.

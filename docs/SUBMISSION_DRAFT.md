@@ -1,3 +1,5 @@
+> **Historical working document** from earlier in the hackathon (October 24, 2026). Some details are superseded; see [README.md](../README.md) for the current state.
+
 # Submission draft (Devpost-style)
 
 **Status: final draft, not submitted.** Liam reviews it, refreshes the items marked **[REFRESH]** against [PRESENTATION_NOTES.md](PRESENTATION_NOTES.md) (the authoritative log) and [TEST_RESULTS.md](TEST_RESULTS.md), and submits it himself. Every claim here reflects PRESENTATION_NOTES through its 12:45 CT entry, on commit `5de1a57` plus uncommitted wave-3 work. Use SUBMISSION_CHECKLIST.md (checklist not yet written) to work through the steps before 17:00 CT.
