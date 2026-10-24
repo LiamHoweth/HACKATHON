@@ -8,6 +8,8 @@ export type ServerStatus = {
   transcription: { configured: boolean; provider: string | null };
   fixturesEnabled: boolean;
   accessRequired: boolean;
+  /** null when no access code was sent with the status request. */
+  accessCodeValid?: boolean | null;
 };
 
 export type VoiceInfo = { voiceURI: string; name: string; lang: string; localService: boolean; default: boolean };

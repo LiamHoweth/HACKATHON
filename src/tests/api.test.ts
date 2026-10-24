@@ -76,10 +76,11 @@ const configureLive = () => {
 describe('/api/status', () => {
   it('SYS-01 reports configuration availability without secret values', async () => {
     const { GET } = await import('@/app/api/status/route');
-    let body = await (await GET()).json();
+    const statusReq = () => new Request('http://localhost:3000/api/status', { headers: { host: 'localhost:3000' } });
+    let body = await (await GET(statusReq())).json();
     expect(body.replies.configured).toBe(false);
     configureLive();
-    body = await (await GET()).json();
+    body = await (await GET(statusReq())).json();
     expect(body.replies).toEqual({ configured: true, provider: 'anthropic', model: 'claude-opus-5-5' });
     expect(JSON.stringify(body)).not.toContain('test-key-not-real');
   });
@@ -135,6 +136,24 @@ describe('/api/replies', () => {
     create.mockResolvedValueOnce(modelReply(GOOD));
     res = await POST(post(baseRequest({ mode: 'live' }), { host: 'still-here.example.com', 'x-still-here-access': 'letmein' }));
     expect((await res.json()).ok).toBe(true);
+  });
+
+  it('SYS-12 a production build never trusts a localhost Host header without the access code', async () => {
+    configureLive();
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const { POST } = await import('@/app/api/replies/route');
+      const res = await POST(post(baseRequest({ mode: 'live' })));
+      expect((await res.json()).error.code).toBe('UNAUTHORIZED');
+      expect(create).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('SYS-02 a chunked body larger than the limit is rejected without a content-length', async () => {
+    const { POST } = await import('@/app/api/replies/route');
+    const big = new ReadableStream({ start(c) { for (let i = 0; i < 20; i++) c.enqueue(new TextEncoder().encode('x'.repeat(5000))); c.close(); } });
+    const req = new Request('http://localhost:3000/api/replies', { method: 'POST', body: big, headers: { host: 'localhost:3000', 'content-type': 'application/json' }, duplex: 'half' } as RequestInit);
+    expect((await POST(req)).status).toBe(413);
   });
 
   it('CORE-01 live mode with configuration calls the provider and labels output live-model', async () => {

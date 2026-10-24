@@ -1,0 +1,9 @@
+# Never upload local secrets or build output to Railway.
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+ios/
+docs/screenshots/
+*.tsbuildinfo
