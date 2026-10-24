@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Not app code: pitch-deck generators (CommonJS) and generated build folders.
+    "docs/**",
+    "public/wasm/**",
+    "ios/build/**",
+    "ipad-shell/build/**",
   ]),
 ]);
 
