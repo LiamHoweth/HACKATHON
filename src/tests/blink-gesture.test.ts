@@ -239,3 +239,46 @@ describe('ACCESS-11 blink gesture: closure-onset selection once, reacquisition n
     expect(s.count('select')).toBe(0);
   });
 });
+
+describe('Blink gesture: short dropout mid-closure (audit finding 6)', () => {
+  it('a single no-face frame mid-closure discards it as face-lost without a face-lost pause', () => {
+    const s = new Sim();
+    s.arm();
+    s.closed(400);
+    s.hold(66, null, 0); // one frame, far below the 500 ms face-lost rule
+    expect(s.discards()).toEqual(['face-lost']);
+    expect(s.count('face-lost')).toBe(0);
+    // The face returns with eyes still closed long enough to look valid: the old closure never selects.
+    s.closed(800);
+    s.open(1000);
+    expect(s.count('select')).toBe(0);
+    expect(s.count('face-lost')).toBe(0);
+    expect(s.g.snapshot().status).toBe('ready');
+    // A fresh deliberate closure still works.
+    s.closed(900);
+    s.open(500);
+    expect(s.count('select')).toBe(1);
+  });
+
+  it('a face without a score mid-closure discards it as stale without a face-lost pause', () => {
+    const s = new Sim();
+    s.arm();
+    s.closed(400);
+    s.hold(132, null, 1);
+    expect(s.discards()).toEqual(['stale']);
+    expect(s.count('face-lost')).toBe(0);
+    s.closed(500);
+    s.open(500);
+    expect(s.count('select')).toBe(0);
+  });
+
+  it('a dropout that lasts past 500 ms still raises exactly one face-lost after the discard', () => {
+    const s = new Sim();
+    s.arm();
+    s.closed(300);
+    s.hold(700, null, 0);
+    expect(s.discards()).toEqual(['face-lost']);
+    expect(s.count('face-lost')).toBe(1);
+    expect(s.g.snapshot().status).toBe('face-lost');
+  });
+});

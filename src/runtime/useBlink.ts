@@ -420,7 +420,7 @@ export class BlinkEngine {
 
   // ===== Frames =====
   private readonly onFrame = (raw: RawBlinkFrame) => {
-    this.lastFrameAt = raw.t;
+    this.lastFrameAt = performance.now(); // processing time; raw.t may be the earlier capture time
     this.stalled = false;
     this.faceCount = raw.faces;
     const single = raw.faces === 1 && raw.score !== null;

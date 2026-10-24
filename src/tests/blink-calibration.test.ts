@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BLINK_CALIBRATION_KEY, ClosureSegmenter, type Closure, computeBlinkCalibration, loadCalibration, parseStoredCalibration,
-  provisionalThresholds, saveCalibration, type CalibrationSamples,
+  provisionalThresholds, saveCalibration, type CalibrationSamples, CALIBRATION_WARNING_TEXT, calibrationWarnings,
 } from '@/access/blink-calibration';
 
 const baseline = Array.from({ length: 45 }, (_, i) => 0.05 + (i % 10) * 0.01); // 0.05..0.14
@@ -61,13 +61,47 @@ describe('ACCESS-10 blink calibration proposal', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('ACCESS-10 no natural blinks observed still yields the 400 ms floor and reports null', () => {
+  it('ACCESS-10 no natural blinks observed uses a cautious 600 ms default (not the 400 ms floor), reports null, and warns', () => {
     const r = computeBlinkCalibration(samples({ naturalDurationsMs: [], naturalPeaks: [] }), 1);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.calibration.minClosureMs).toBe(400);
+      expect(r.calibration.minClosureMs).toBeGreaterThanOrEqual(600);
+      expect(r.calibration.minClosureMs).toBeLessThanOrEqual(0.8 * 850);
       expect(r.calibration.naturalMaxMs).toBeNull();
+      expect(calibrationWarnings(r.calibration)).toEqual(['no-natural-blinks']);
+      expect(CALIBRATION_WARNING_TEXT['no-natural-blinks']).toContain('No natural blinks were measured');
     }
+  });
+
+  it('ACCESS-10 no natural blinks and deliberate closures too short for the cautious default fail honestly', () => {
+    const r = computeBlinkCalibration(samples({ naturalDurationsMs: [], naturalPeaks: [], deliberateDurationsMs: [700, 720, 740] }), 1);
+    expect(r.ok).toBe(false); // cap 560 < 600
+    if (!r.ok) expect(r.reason).toMatch(/Keyboard or switch/);
+  });
+});
+
+describe('Blink calibration margin (audit finding 4)', () => {
+  it('fails when the achievable cap is below 1.5 × the longest natural blink', () => {
+    // natural max 400: 1.3 × 400 = 520 < 700, so the old overlap check passed; cap 0.8 × 700 = 560 < 600.
+    const r = computeBlinkCalibration(samples({ naturalDurationsMs: [250, 400], deliberateDurationsMs: [700, 800, 900] }), 1);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/Keyboard or switch/);
+  });
+
+  it('passes just above the 1.5 × margin and the proposal clears 1.3 × natural max without a warning', () => {
+    // natural max 400, cap 0.8 × 760 = 608 ≥ 600.
+    const r = computeBlinkCalibration(samples({ naturalDurationsMs: [250, 400], deliberateDurationsMs: [760, 800, 900] }), 1);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.calibration.minClosureMs).toBeGreaterThanOrEqual(600);
+    expect(r.calibration.minClosureMs).toBeLessThanOrEqual(608);
+    expect(calibrationWarnings(r.calibration)).toEqual([]);
+  });
+
+  it('warns in review when the (hand-adjusted) minimum drops below 1.3 × natural max', () => {
+    expect(calibrationWarnings({ minClosureMs: 500, naturalMaxMs: 400 })).toEqual(['min-near-natural']); // 500 < 520
+    expect(calibrationWarnings({ minClosureMs: 520, naturalMaxMs: 400 })).toEqual([]);
+    expect(calibrationWarnings({ minClosureMs: 300, naturalMaxMs: 400 })).toEqual(['min-near-natural']);
   });
 });
 

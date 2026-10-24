@@ -163,10 +163,12 @@ export class BlinkGesture {
 
     // ---- Face presence ----
     if (faces === 0 || (faces === 1 && score === null)) {
+      // A closure cannot be measured across a frame without a face or a score: discard it now
+      // (even a short dropout), but only raise the face-lost pause via the >faceLostMs rule below.
+      if (this.phase === 'closing') this.discard(ev, t, faces === 0 ? 'face-lost' : 'stale');
       this.singleSince = null;
       if (this.missingSince === null) this.missingSince = t;
       if (t - this.missingSince >= this.timing.faceLostMs && this.phase !== 'no-face' && this.phase !== 'face-lost') {
-        if (this.phase === 'closing') this.discard(ev, t, 'face-lost');
         if (this.acquired) {
           this.phase = 'face-lost';
           ev.push({ type: 'face-lost', at: t });

@@ -13,7 +13,10 @@ import { targetsFor } from '@/core/targets';
 import { ACCESS_HEADER, type BlinkGestureEvent, type ServerStatus, type StillHereRuntime, type TranscriptDraftState, type VoiceInfo } from './contract';
 import { CALIBRATING_STAGES, useBlink } from './useBlink';
 import { EffectsRunner } from './effects-runner';
-import { ScanController } from '@/access/scan-controller';
+import {
+  ACQUIRE_HOLD_MAX_MS, acquireHoldActive as isAcquireHoldActive, attributeClosure, nextAcquireHold, ScanController,
+  type AcquireHold, type HighlightLogEntry,
+} from '@/access/scan-controller';
 import { InputController, isScanMode } from '@/access/input-controller';
 import type { ScanConfig } from '@/access/scan-controller';
 import { SpeechController, type SynthLike } from '@/audio/speech-controller';
@@ -105,7 +108,9 @@ export function useStillHere(): StillHereRuntime {
   const lastScanCfgRef = useRef<ScanConfig | null>(null);
   // Recent highlight changes with monotonic times, so a closure is matched to the target that
   // was highlighted when the eyes started closing (detection runs a frame or two behind).
-  const highlightLogRef = useRef<{ id: string | null; at: number; rev: number }[]>([]);
+  const highlightLogRef = useRef<HighlightLogEntry[]>([]);
+  // requiresArming per current target id (unknown ids are treated as guarded).
+  const armingRef = useRef<Map<string, boolean>>(new Map());
 
   // ---- Long-lived controllers (created once, client-side, in effects) ----
   const runnerRef = useRef<EffectsRunner | null>(null);
@@ -174,16 +179,31 @@ export function useStillHere(): StillHereRuntime {
   const targets = useMemo(() => targetsFor(state), [state]);
   const enabledIds = useMemo(() => targets.filter((t) => t.enabled).map((t) => t.id), [targets]);
   const enabledKey = enabledIds.join('|');
+  useIsoLayoutEffect(() => {
+    armingRef.current = new Map(targets.map((t) => [t.id, !!t.requiresArming]));
+  });
   const scanning = isScanMode(state.settings.accessMode) && state.phase === 'active';
   // Blink in use but no stable single face yet: do not cycle choices before input is possible.
   const blinkAcquiring = blink.active && blink.cameraOn
     && (blink.status === 'starting' || blink.status === 'no-face' || blink.status === 'multiple-faces');
+  // The acquisition hold is released after ACQUIRE_HOLD_MAX_MS or by any keyboard switch press,
+  // and re-applies on the next acquisition episode.
+  const [acquireHold, setAcquireHold] = useState<AcquireHold>({ acquiring: false, released: false });
+  if (acquireHold.acquiring !== blinkAcquiring) setAcquireHold(nextAcquireHold(acquireHold, { type: 'acquiring', value: blinkAcquiring }));
+  const acquireHoldActive = blinkAcquiring && isAcquireHoldActive(acquireHold);
+  useEffect(() => {
+    if (!acquireHoldActive) return;
+    const id = window.setTimeout(() => setAcquireHold((h) => nextAcquireHold(h, { type: 'timeout' })), ACQUIRE_HOLD_MAX_MS);
+    return () => window.clearTimeout(id);
+  }, [acquireHoldActive]);
 
   useEffect(() => {
     if (!scanRef.current) {
-      scanRef.current = new ScanController((id) => {
+      // The revision comes from the scan config that produced the highlight, never from React
+      // state, so a timer tick can never pair an old-surface id with a new revision.
+      scanRef.current = new ScanController((id, rev) => {
         const log = highlightLogRef.current;
-        log.push({ id, at: now(), rev: stateRef.current.surfaceRevision });
+        log.push({ id, at: now(), rev });
         if (log.length > 16) log.splice(0, log.length - 16);
         setHighlighted(id);
       });
@@ -194,13 +214,13 @@ export function useStillHere(): StillHereRuntime {
       surfaceRevision: state.surfaceRevision,
       intervalMs: state.settings.scanIntervalMs,
       readingPauseMs: state.settings.readingPauseMs,
-      held: scanning && (switchHeld || blinkHeld || blinkAcquiring),
+      held: scanning && (switchHeld || blinkHeld || acquireHoldActive),
       pin: blinkHeld ? blinkPinRef.current : null,
       hidden,
     };
     lastScanCfgRef.current = cfg;
     scanRef.current.update(cfg);
-  }, [scanning, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, blinkHeld, blinkAcquiring, hidden]);
+  }, [scanning, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, blinkHeld, acquireHoldActive, hidden]);
 
   useEffect(() => {
     return () => {
@@ -235,6 +255,8 @@ export function useStillHere(): StillHereRuntime {
       onHeldChange: (held) => {
         switchHeldRef.current = held;
         setSwitchHeld(held);
+        // A keyboard switch press means someone is using the fallback: stop waiting for a face.
+        if (held) setAcquireHold((h) => nextAcquireHold(h, { type: 'switch-press' }));
       },
       onSafetyPause: () => dispatch({ type: 'SAFETY_PAUSE', at: now() }),
     });
@@ -261,11 +283,6 @@ export function useStillHere(): StillHereRuntime {
       blinkPinRef.current = null;
       setBlinkHeld(false);
     };
-    const highlightAt = (at: number): { id: string | null; rev: number } => {
-      const log = highlightLogRef.current;
-      for (let i = log.length - 1; i >= 0; i--) if (log[i].at <= at) return log[i];
-      return { id: scanRef.current?.current ?? null, rev: stateRef.current.surfaceRevision };
-    };
     const onGesture = (e: BlinkGestureEvent) => {
       const s = stateRef.current;
       const usable = blinkUsableRef.current && s.phase === 'active' && s.settings.accessMode === 'blink';
@@ -273,11 +290,13 @@ export function useStillHere(): StillHereRuntime {
         case 'closure-start': {
           blinkSnapRef.current = null;
           if (!usable || switchHeldRef.current) return; // a keyboard switch press owns this cycle
-          const h = highlightAt(e.at);
-          const current = scanRef.current?.current ?? null;
-          if (!h.id || !current) return;
-          blinkSnapRef.current = { targetId: h.id, surfaceRevision: h.rev, cycleId: newId(), at: e.at };
-          freeze(h.id);
+          if (!scanRef.current?.current) return;
+          // Detection lags the real eyelid onset: credit the previous highlight if it moved just
+          // before, and discard (no freeze, no selection) a guarded target that was not armed.
+          const a = attributeClosure(highlightLogRef.current, e.at, (id) => armingRef.current.get(id) ?? true);
+          if (!a.ok) return;
+          blinkSnapRef.current = { targetId: a.targetId, surfaceRevision: a.surfaceRevision, cycleId: newId(), at: e.at };
+          freeze(a.targetId);
           return;
         }
         case 'select': {

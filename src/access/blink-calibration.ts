@@ -33,6 +33,12 @@ export const CALIBRATION_MINIMUMS = {
   minSignalSpread: 0.15,
   /** Floor for the minimum deliberate closure. */
   minClosureFloorMs: 400,
+  /** Cautious minimum closure used when no natural blinks were measured (separation unknown). */
+  noNaturalDefaultMs: 600,
+  /** The achievable minimum (cap) must be at least this multiple of the longest natural blink. */
+  capOverNaturalMin: 1.5,
+  /** Warn when the chosen minimum is below this multiple of the longest natural blink. */
+  warnMinOverNatural: 1.3,
 } as const;
 
 export type CalibrationSamples = {
@@ -167,7 +173,25 @@ export function computeBlinkCalibration(s: CalibrationSamples, calibratedAt: num
       reason: `Deliberate closures were short (shortest ${Math.round(deliberateMin)} ms), too close to ordinary blinks to separate safely. Holding a little longer may help.` + fallback,
     };
   }
-  const minClosureMs = Math.min(cap, Math.max(CALIBRATION_MINIMUMS.minClosureFloorMs, nat * 1.6));
+  if (naturalMax !== null && cap < CALIBRATION_MINIMUMS.capOverNaturalMin * naturalMax) {
+    return {
+      ok: false,
+      reason: `Deliberate closures (from ${Math.round(deliberateMin)} ms) were not clearly longer than ordinary blinks (up to ${Math.round(naturalMax)} ms), so ordinary blinks could select by mistake. Holding a little longer may help.` + fallback,
+    };
+  }
+  let minClosureMs: number;
+  if (naturalMax === null) {
+    // Separation from ordinary blinks is unknown: use a cautious default, never the bare floor.
+    if (cap < CALIBRATION_MINIMUMS.noNaturalDefaultMs) {
+      return {
+        ok: false,
+        reason: `No natural blinks were measured, and deliberate closures (shortest ${Math.round(deliberateMin)} ms) were too short for a cautious minimum. Redo and hold each closure a little longer.` + fallback,
+      };
+    }
+    minClosureMs = CALIBRATION_MINIMUMS.noNaturalDefaultMs;
+  } else {
+    minClosureMs = Math.min(cap, Math.max(CALIBRATION_MINIMUMS.minClosureFloorMs, naturalMax * 1.6));
+  }
   const maxClosureMs = Math.max(2000, deliberateMax * 2);
 
   return {
@@ -183,6 +207,21 @@ export function computeBlinkCalibration(s: CalibrationSamples, calibratedAt: num
       deliberateMinMs: Math.round(deliberateMin),
     },
   };
+}
+
+export type CalibrationWarning = 'no-natural-blinks' | 'min-near-natural';
+
+export const CALIBRATION_WARNING_TEXT: Record<CalibrationWarning, string> = {
+  'no-natural-blinks': 'No natural blinks were measured — the minimum uses a cautious default.',
+  'min-near-natural': 'This minimum is close to (or below) the longest natural blink, so ordinary blinks could select. Consider a longer minimum.',
+};
+
+/** Warnings to show in the review stage for a proposed (possibly hand-adjusted) calibration. */
+export function calibrationWarnings(c: Pick<BlinkCalibration, 'minClosureMs' | 'naturalMaxMs'>): CalibrationWarning[] {
+  const out: CalibrationWarning[] = [];
+  if (c.naturalMaxMs === null) out.push('no-natural-blinks');
+  else if (c.minClosureMs < CALIBRATION_MINIMUMS.warnMinOverNatural * c.naturalMaxMs) out.push('min-near-natural');
+  return out;
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);

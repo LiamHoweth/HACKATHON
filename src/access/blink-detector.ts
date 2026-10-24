@@ -6,6 +6,9 @@
 //
 // Frame loop: requestAnimationFrame, throttled to ~15 processed fps. detectForVideo is
 // synchronous, so a slow frame simply delays the next one: frames are skipped, never queued.
+// Frame timestamps: when the browser supports requestVideoFrameCallback, each frame is stamped
+// with its camera capture time (performance timeline) instead of the later processing time, so
+// closure onsets line up better with what was highlighted. Timestamps stay strictly increasing.
 import { FaceLandmarker, FilesetResolver, type FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 
 export type RawBlinkFrame = { t: number; faces: number; score: number | null };
@@ -39,6 +42,23 @@ export function eyeClosureFromResult(result: FaceLandmarkerResult): { faces: num
   return { faces, score: Math.min(left, right) };
 }
 
+/** Capture metadata older than this (relative to processing) is not trusted for the frame. */
+export const MAX_CAPTURE_AGE_MS = 250;
+
+/**
+ * Timestamp for a processed frame: the camera capture time when it is known, recent and not in
+ * the future, else the processing time. Always strictly greater than `lastT` (the gesture
+ * machine treats a non-increasing timestamp as stale).
+ */
+export function frameTimestamp(processedAt: number, captureTime: number | null, lastT: number): number {
+  let t = processedAt;
+  if (captureTime !== null && Number.isFinite(captureTime) && captureTime <= processedAt
+    && processedAt - captureTime <= MAX_CAPTURE_AGE_MS && captureTime > lastT) {
+    t = captureTime;
+  }
+  return t > lastT ? t : lastT + 0.01;
+}
+
 async function createLandmarker(wasmBase: string, modelPath: string): Promise<{ landmarker: FaceLandmarker; delegate: 'GPU' | 'CPU' }> {
   const fileset = await FilesetResolver.forVisionTasks(wasmBase);
   const options = (delegate: 'GPU' | 'CPU') => ({
@@ -65,6 +85,9 @@ export class BlinkDetector {
   private frameTimes: number[] = [];
   private consecutiveErrors = 0;
   private readonly minIntervalMs: number;
+  private vfc: number | null = null;
+  private captureTime: number | null = null;
+  private lastFrameT = -Infinity;
 
   private constructor(
     private landmarker: FaceLandmarker,
@@ -91,6 +114,9 @@ export class BlinkDetector {
   start(): void {
     if (this.closed || this.running) return;
     this.running = true;
+    this.lastFrameT = -Infinity;
+    this.captureTime = null;
+    this.scheduleVideoFrame();
     this.schedule();
   }
 
@@ -98,6 +124,8 @@ export class BlinkDetector {
     this.running = false;
     if (this.raf !== null) cancelAnimationFrame(this.raf);
     this.raf = null;
+    if (this.vfc !== null && typeof this.video.cancelVideoFrameCallback === 'function') this.video.cancelVideoFrameCallback(this.vfc);
+    this.vfc = null;
     this.frameTimes = [];
   }
 
@@ -117,6 +145,18 @@ export class BlinkDetector {
     this.raf = requestAnimationFrame(this.tick);
   }
 
+  private scheduleVideoFrame() {
+    if (!this.running || typeof this.video.requestVideoFrameCallback !== 'function') return;
+    this.vfc = this.video.requestVideoFrameCallback(this.onVideoFrame);
+  }
+
+  private readonly onVideoFrame = (_now: number, meta: VideoFrameCallbackMetadata) => {
+    this.vfc = null;
+    if (!this.running) return;
+    this.captureTime = typeof meta.captureTime === 'number' && Number.isFinite(meta.captureTime) ? meta.captureTime : null;
+    this.scheduleVideoFrame();
+  };
+
   private readonly tick = () => {
     this.raf = null;
     if (!this.running) return;
@@ -131,7 +171,9 @@ export class BlinkDetector {
       let frame: RawBlinkFrame | null = null;
       try {
         const result = this.landmarker.detectForVideo(v, ts);
-        frame = { t: now, ...eyeClosureFromResult(result) };
+        const t = frameTimestamp(now, this.captureTime, this.lastFrameT);
+        this.lastFrameT = t;
+        frame = { t, ...eyeClosureFromResult(result) };
         this.consecutiveErrors = 0;
       } catch (e) {
         this.consecutiveErrors += 1;

@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { BlinkCalibration as Calibration, BlinkGestureEvent, BlinkRuntime, CalibrationStage, StillHereRuntime } from '@/runtime/contract';
 import { BlinkStatus, ClosureBar } from './BlinkStatus';
 import { BLINK_ARMED } from './labels';
+import { CALIBRATION_WARNING_TEXT, calibrationWarnings } from '@/access/blink-calibration';
 
 type Props = {
   runtime: StillHereRuntime;
@@ -228,7 +229,7 @@ function ReviewStage({ blink }: { blink: BlinkRuntime }) {
     );
   }
   const fmt = (ms: number | null) => (ms === null ? 'not measured' : `${Math.round(ms)} ms`);
-  const tight = p.naturalMaxMs !== null && p.minClosureMs <= p.naturalMaxMs;
+  const warnings = calibrationWarnings(p);
   return (
     <div className="cal-body">
       <h2>Check your timing</h2>
@@ -250,7 +251,7 @@ function ReviewStage({ blink }: { blink: BlinkRuntime }) {
             onClick={() => cal.setMinClosureMs(Math.min(p.maxClosureMs - MIN_CLOSURE_STEP_MS, p.minClosureMs + MIN_CLOSURE_STEP_MS))}
           >+</button>
         </div>
-        {tight && <p className="warning">This is at or below the longest natural blink, so ordinary blinks could select. Consider a longer minimum.</p>}
+        {warnings.map((w) => <p key={w} className="warning" role="status">{CALIBRATION_WARNING_TEXT[w]}</p>)}
       </div>
       <div className="cal-row">
         <button type="button" className="btn btn-primary btn-large" onClick={cal.accept}>Accept and practice</button>
