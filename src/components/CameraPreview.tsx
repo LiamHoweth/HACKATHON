@@ -13,7 +13,9 @@ import { feedbackTone } from './GestureFeedback';
  * untouched. This is live video only. Nothing is recorded, saved or uploaded.
  *
  * The hide/show toggle is a plain button (touch / helper), never a registry target, so it can
- * never take a scan or gesture step.
+ * never take a scan or gesture step. Its label names the action it will take ("Hide preview" /
+ * "Show preview"), so it deliberately has no aria-pressed (a changing label plus a pressed state
+ * would contradict each other).
  */
 export function CameraPreview({ runtime }: { runtime: StillHereRuntime }) {
   const ref = useRef<HTMLVideoElement>(null);
@@ -39,7 +41,6 @@ export function CameraPreview({ runtime }: { runtime: StillHereRuntime }) {
         <button
           type="button"
           className="btn btn-small btn-quiet camera-preview-toggle"
-          aria-pressed={!visible}
           onClick={() => setVisible((v) => !v)}
         >
           {visible ? 'Hide preview' : 'Show preview'}

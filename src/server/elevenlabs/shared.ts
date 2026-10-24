@@ -14,6 +14,7 @@ export type SynthesisFailureKind =
   | 'timeout'     // ELEVENLABS_TIMEOUT_MS elapsed
   | 'aborted'     // the client went away or Stop was pressed
   | 'malformed'   // empty, oversized or non-MP3 audio, or an unparseable stream
+  | 'too-long'    // this message exceeds a per-request character limit (the user can shorten it)
   | 'rejected'    // provider refused the request shape (400/422) for another reason
   | 'unavailable';// network failure, 5xx, or the socket closed before the final message
 
@@ -38,7 +39,9 @@ export function looksLikeMp3(bytes: Uint8Array): boolean {
 /** Classifies a provider error identifier or status string without retaining its text. */
 export function classifyProviderError(identifier: string): SynthesisFailureKind {
   const s = identifier.toLowerCase();
-  if (/quota|credit|character_limit|insufficient/.test(s)) return 'quota';
+  // A per-request text-length limit is about this input, not the account: never 'quota'.
+  if (/character_limit|max_character|text_too_long|too_long/.test(s)) return 'too-long';
+  if (/quota|credit|insufficient/.test(s)) return 'quota';
   if (/voice/.test(s) && /not_found|not found|invalid|unknown|does not exist|missing|unavailable/.test(s)) return 'voice';
   if (/auth|api_key|api key|unauthori[sz]ed|permission|forbidden|invalid_key/.test(s)) return 'auth';
   if (/rate|too_many|too many|concurren|throttl|busy/.test(s)) return 'rate';

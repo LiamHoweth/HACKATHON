@@ -21,6 +21,7 @@ const FAILURES: Record<SynthesisFailureKind, { code: ApiError['code']; status: n
   timeout: { code: 'TIMEOUT', status: 502, message: 'The voice service took too long.', recoverable: true },
   aborted: { code: 'NETWORK', status: 499, message: 'Speech request was cancelled.', recoverable: true },
   malformed: { code: 'PROVIDER_UNAVAILABLE', status: 502, message: 'The voice service returned unusable audio.', recoverable: true },
+  'too-long': { code: 'INVALID_INPUT', status: 400, message: 'This message is too long for the natural voice. Shorten it or use the basic device voice.', recoverable: true },
   rejected: { code: 'PROVIDER_UNAVAILABLE', status: 502, message: 'The voice service refused this request.', recoverable: false },
   unavailable: { code: 'PROVIDER_UNAVAILABLE', status: 502, message: 'The voice service is unavailable.', recoverable: true },
 };

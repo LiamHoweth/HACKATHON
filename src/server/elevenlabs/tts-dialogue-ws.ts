@@ -15,13 +15,19 @@ import { classifyProviderError, ELEVENLABS_WS, MAX_AUDIO_BYTES, SynthesisError, 
 
 type Listener = (event: { data?: unknown; code?: number }) => void;
 export type WebSocketLike = {
+  /** Binary frames must arrive as ArrayBuffer (Node's default 'blob' cannot be read synchronously). */
+  binaryType?: string;
   send(data: string): void;
   close(code?: number, reason?: string): void;
   addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: Listener): void;
 };
 export type WebSocketFactory = (url: string) => WebSocketLike;
 
-const defaultFactory: WebSocketFactory = (url) => new WebSocket(url) as unknown as WebSocketLike;
+const defaultFactory: WebSocketFactory = (url) => {
+  const ws = new WebSocket(url);
+  ws.binaryType = 'arraybuffer';
+  return ws as unknown as WebSocketLike;
+};
 
 export function dialogueSocketUrl(cfg: Pick<ServerConfig, 'elevenLabsModelId' | 'elevenLabsOutputFormat'>): string {
   const q = new URLSearchParams({ model_id: cfg.elevenLabsModelId, output_format: cfg.elevenLabsOutputFormat });
@@ -57,6 +63,8 @@ export function synthesizeDialogueWs(input: SynthesisInput, cfg: ServerConfig, s
     signal.addEventListener('abort', onAbort, { once: true });
 
     try { ws = factory(dialogueSocketUrl(cfg)); } catch { finish(new SynthesisError('unavailable')); return; }
+    // Any factory: ask for ArrayBuffer binary frames (frameText decodes ArrayBuffer and views).
+    try { ws.binaryType = 'arraybuffer'; } catch { /* read-only on some implementations */ }
 
     ws.addEventListener('open', () => {
       try {

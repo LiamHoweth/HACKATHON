@@ -10,7 +10,11 @@
 // While RISING, a frame counts as "still raised" while score > releaseThreshold (hysteresis band).
 // After construction, reset(), or any non-'too-short' cancel, a neutral frame (score ≤
 // releaseThreshold) must be seen before a new raise can start, so a raise held across a surface
-// change, face dropout or blink can never carry over into a NEXT.
+// change, face dropout or blink can never carry over into a NEXT. Any untrustworthy frame (no
+// single face, no score, stale gap, out-of-order time) also requires a fresh neutral frame, and a
+// raise can only start after exactly one face has been tracked continuously for stableFaceMs
+// (mirrors BlinkGesture). reset() keeps a latched / rearming raise latched, so a raise held across
+// a surface change still needs a full stable release and the cooldown before the next NEXT.
 // Thresholds and durations are prototype defaults, not clinical values.
 import type { BlinkGestureEvent, BrowCalibration, BrowStatus } from '@/runtime/contract';
 
@@ -44,6 +48,8 @@ export const DEFAULT_BROW_CALIBRATION: BrowCalibration = {
 export const BROW_TIMING = {
   /** A gap between frames longer than this makes an in-progress raise untrustworthy. */
   staleGapMs: 700,
+  /** Exactly one face (with a score) for this long before a raise may start (same as blink). */
+  stableFaceMs: 500,
 } as const;
 
 type Phase = Exclude<BrowStatus, 'disabled'>;
@@ -54,6 +60,8 @@ export class BrowGesture {
   private phase: Phase = 'neutral';
   private needNeutral = true;
   private lastT: number | null = null;
+  /** Start of the current run of trustworthy single-face frames (null: none yet). */
+  private stableSince: number | null = null;
   private onset: number | null = null;
   private releaseSince: number | null = null;
   private rearmUntil = 0;
@@ -81,11 +89,20 @@ export class BrowGesture {
     return clamp01((t - this.onset) / Math.max(1, this.cal.holdMs));
   }
 
-  /** New surface / session: back to neutral, and a neutral frame must be seen before a raise. */
+  /**
+   * New surface / session: a raise in progress is dropped (a neutral frame must be seen before
+   * the next one). A latched or rearming raise stays latched: it needs a full stable release
+   * (releaseMs) plus the cooldown before it can navigate again, so a raise held across the screen
+   * change can never produce a second NEXT. Frame-time continuity is kept (stale gaps and
+   * face stability are still judged against the last frame).
+   */
   reset(): void {
-    this.phase = 'neutral';
+    if (this.phase === 'latched' || this.phase === 'rearming') {
+      this.phase = 'latched';
+    } else {
+      this.phase = 'neutral';
+    }
     this.needNeutral = true;
-    this.lastT = null;
     this.onset = null;
     this.releaseSince = null;
     this.rearmUntil = 0;
@@ -106,13 +123,14 @@ export class BrowGesture {
     // Out-of-order or duplicate timestamp: ignore the frame; a pending raise is untrustworthy.
     if (this.lastT !== null && t <= this.lastT) {
       this.cancelRising(ev, this.lastT, 'stale');
+      this.untrusted();
       return ev;
     }
     // Long gap (throttling, sleep, hidden tab): never commit across it, and never count
     // unobserved time toward a stable release.
     if (this.lastT !== null && t - this.lastT > BROW_TIMING.staleGapMs) {
       this.cancelRising(ev, t, 'stale');
-      this.releaseSince = null;
+      this.untrusted();
     }
     this.lastT = t;
 
@@ -120,20 +138,26 @@ export class BrowGesture {
     const score = typeof f.score === 'number' && Number.isFinite(f.score) ? f.score : null;
 
     if (faces !== 1 || score === null) {
-      // No measurable single face: cancel a raise in progress, and require observed neutral
-      // time again before a latched raise can release.
+      // No measurable single face: cancel a raise in progress, require a fresh neutral frame and
+      // a new stable-face period, and require observed neutral time again before a latched
+      // raise can release.
       this.cancelRising(ev, t, faces > 1 ? 'ambiguous' : 'face-lost');
-      this.releaseSince = null;
+      this.untrusted();
       return ev;
     }
+    if (this.stableSince === null) this.stableSince = t;
+    const stable = t - this.stableSince >= BROW_TIMING.stableFaceMs;
 
     const { raisedThreshold, releaseThreshold, holdMs, releaseMs, cooldownMs } = this.cal;
     const released = score <= releaseThreshold;
 
     switch (this.phase) {
       case 'neutral':
-        if (released) this.needNeutral = false;
-        else if (!this.needNeutral && score >= raisedThreshold) {
+        // Like blink re-arming after face-found: the neutral frame that arms a raise must itself
+        // come after the stable-face period, so a raise begun during acquisition never counts.
+        if (released) {
+          if (stable) this.needNeutral = false;
+        } else if (!this.needNeutral && score >= raisedThreshold) {
           this.phase = 'rising';
           this.onset = t;
           ev.push({ type: 'brow-start', at: t });
@@ -186,6 +210,13 @@ export class BrowGesture {
     ev.push({ type: 'brow-next', at: t, heldMs: held });
     this.phase = 'latched';
     this.onset = null;
+    this.releaseSince = null;
+  }
+
+  /** An untrustworthy frame or gap: no raise may start until neutral + a stable face are seen again. */
+  private untrusted() {
+    this.needNeutral = true;
+    this.stableSince = null;
     this.releaseSince = null;
   }
 

@@ -53,6 +53,11 @@ export function Composer({ runtime, surface }: { runtime: StillHereRuntime; surf
           value={draft}
           maxLength={limit}
           rows={2}
+          // Single-line message: Enter never inserts a line break, and pasted line breaks/tabs
+          // become spaces in the reducer before the draft is stored (speech refuses them).
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.preventDefault();
+          }}
           onChange={(e) => dispatch({ type: 'COMPOSE_TEXT', purpose, text: e.target.value })}
         />
       </div>

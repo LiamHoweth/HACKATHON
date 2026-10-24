@@ -20,10 +20,10 @@ export async function GET(request: Request) {
       },
       speech: {
         configured: cfg.speechConfigured,
-        provider: cfg.speechConfigured ? 'elevenlabs' : null,
+        provider: cfg.speechConfigured && reveal ? 'elevenlabs' : null,
         model: cfg.speechConfigured && reveal ? cfg.elevenLabsModelId : null,
       },
-      transcription: { configured: cfg.transcriptionConfigured, provider: cfg.transcriptionConfigured ? cfg.transcriptionProvider : null },
+      transcription: { configured: cfg.transcriptionConfigured, provider: cfg.transcriptionConfigured && reveal ? cfg.transcriptionProvider : null },
       fixturesEnabled: cfg.fixturesEnabled,
       accessRequired: cfg.accessToken.length > 0 || production,
       accessCodeValid: !sent ? null : verdict === 'ok',

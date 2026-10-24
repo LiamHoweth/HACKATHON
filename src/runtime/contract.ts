@@ -233,7 +233,8 @@ export type AudioRuntime = {
   /** Call ONLY from a real click/touch handler. Resolves true when audio can play. */
   enableAudio: () => Promise<boolean>;
   /** Setup preview with fixed text through the selected provider; never enters history. */
-  testNaturalVoice: (voiceChoiceId?: Id | null) => Promise<void>;
+  /** Resolves with the preview outcome ('played' means the browser accepted playback, not that it was heard). */
+  testNaturalVoice: (voiceChoiceId?: Id | null) => Promise<'played' | 'blocked' | 'not-configured' | 'failed' | 'busy'>;
   /** Milliseconds from confirmation to playback start for the last utterance, if measured. */
   lastConfirmToPlayMs: number | null;
 };

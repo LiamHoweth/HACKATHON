@@ -5,6 +5,9 @@ import { modelOutputSchema } from '@/core/schemas';
 import { normalizeForDuplicate, wordCount } from '@/core/limits';
 import type { z } from 'zod';
 
+// C0/C1 control characters and DEL (the same set /api/speech refuses).
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 export type CheckResult = { ok: true; output: ModelOutput } | { ok: false; problems: string[] };
 
@@ -24,6 +27,9 @@ export function checkModelOutput(raw: unknown, request: ReplyRequest): CheckResu
       problems.push(`Candidate ${i + 1} exceeds the length policy (${maxWords} words / ${maxCharacters} characters).`);
     }
     if (/[<>]/.test(text) || /```/.test(text)) problems.push(`Candidate ${i + 1} contains markup.`);
+    // Line breaks, tabs and other control characters are refused by /api/speech; ask for a repair
+    // instead of normalizing here, so the displayed text is always the spoken text.
+    if (CONTROL_CHARS.test(text)) problems.push(`Candidate ${i + 1} contains a line break, tab or other control character; write it as one line.`);
     const n = normalizeForDuplicate(text);
     if (seen.has(n)) problems.push(`Candidate ${i + 1} duplicates another candidate.`);
     seen.add(n);

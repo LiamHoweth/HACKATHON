@@ -281,12 +281,18 @@ label { font-weight: 600; }
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "header dock" "notice notice" "main main" "side side";
     gap: 0.75rem 1rem;
+    /* Rows hug their content: a short board/review must not stretch to fill min-height:100dvh. */
+    align-content: start;
   }
   .app-main-col, .app-side-col { display: contents; }
   .app-header { grid-area: header; align-self: start; }
   .notice-region { grid-area: notice; }
   .app-main-col > .surface { grid-area: main; }
   .camera-dock { grid-area: dock; width: var(--side-w); margin-top: 0.6rem; }
+  /* Touch / keyboard / switch: no self-view, so the dock only reserves what its voice-status line
+     needs (zero when empty). The gesture-feedback live region stays mounted (sr-only). */
+  .app:not(.mode-brow-blink):not(.mode-blink) .camera-dock { width: auto; max-width: var(--side-w); }
+  .app:not(.mode-brow-blink):not(.mode-blink) .camera-dock:not(:has(.gf-line)) { margin-top: 0; }
   .partner { grid-area: side; }
 }
 @media (max-width: 640px) {
@@ -333,16 +339,23 @@ label { font-weight: 600; }
   overflow-wrap: anywhere;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
-.target:hover:not(:disabled) { background: var(--surface-2); }
+/* Hover only on devices that really hover: Safari on iPad otherwise leaves a sticky tap-hover. */
+@media (hover: hover) {
+  .target:hover:not(:disabled) { background: var(--surface-2); }
+}
 .target:disabled { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
 .target-label { font-weight: 700; font-size: 1.2rem; }
 .target-detail { color: var(--muted); font-size: 0.95rem; font-weight: 400; }
 
 .tone-speak { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .tone-speak .target-detail { color: inherit; }
-.tone-speak:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+@media (hover: hover) {
+  .tone-speak:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+}
 .tone-cancel { border-width: 3px; }
-.tone-quiet { border-color: var(--border-soft); }
+/* Low emphasis by weight, not by a faint edge: the border keeps >= 3:1 (--border) in both themes;
+   a thinner border and a lighter label carry the "quiet" meaning. (Dashed stays reserved for disabled.) */
+.tone-quiet { border-color: var(--border); border-width: 1px; }
 .tone-quiet .target-label { font-weight: 600; }
 
 /* Switch scanning highlight: thick ring + yellow fill. Never relies on focus. */
@@ -360,6 +373,17 @@ label { font-weight: 600; }
 }
 .target.is-scan .target-detail { color: var(--scan-text); }
 .target.is-held { box-shadow: inset 0 0 0 8px var(--scan-text); }
+/* Keyboard focus on the scanned target: the scan ring moves into box-shadow and focus keeps its own
+   dashed blue outline at a larger offset, so both indicators stay visible and distinct. */
+.target.is-scan:focus-visible,
+.target.is-scan:hover:focus-visible:not(:disabled) {
+  outline: 4px dashed var(--focus);
+  outline-offset: 13px;
+  box-shadow: inset 0 0 0 3px var(--scan-text), 0 0 0 3px var(--bg), 0 0 0 9px var(--scan-ring);
+}
+.target.is-scan.is-held:focus-visible {
+  box-shadow: inset 0 0 0 8px var(--scan-text), 0 0 0 3px var(--bg), 0 0 0 9px var(--scan-ring);
+}
 
 .target-list { display: grid; gap: 0.75rem; }
 .layout-stack { grid-template-columns: minmax(0, 1fr); max-width: 44rem; }
@@ -368,6 +392,9 @@ label { font-weight: 600; }
 .layout-keys { grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); }
 .layout-keys .target { min-height: 72px; align-items: center; text-align: center; }
 .layout-keys .target-label { font-size: 1.45rem; letter-spacing: 0.04em; }
+/* Letter-group keys ("A B C D E F") never break mid-group: wider columns and no wrapping. */
+.layout-keys:has(> [data-target-id^="grp-"]) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); }
+.layout-keys .target[data-target-id^="grp-"] .target-label { white-space: nowrap; overflow-wrap: normal; letter-spacing: 0; }
 
 /* ---------- Board ---------- */
 
@@ -560,6 +587,7 @@ label { font-weight: 600; }
 
 @media (forced-colors: active) {
   .target.is-scan { outline: 6px solid Highlight; forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .target.is-scan:focus-visible { outline: 4px dashed CanvasText; outline-offset: 10px; }
   .tone-speak { border: 3px solid ButtonText; }
   .blink-badge { forced-color-adjust: none; background: HighlightText; color: Highlight; border-color: Highlight; }
   .blink-status { border-color: CanvasText; }
@@ -605,6 +633,15 @@ label { font-weight: 600; }
 .board .candidates .target, .board-primary .target, .board-anchor .target { scroll-margin: 1.75rem 0 12rem; }
 .board-footer .target { scroll-margin: 1.75rem 0 1rem; }
 .target.is-blink-scan.is-held { box-shadow: inset 0 0 0 10px var(--scan-text), 0 0 0 16px color-mix(in srgb, var(--scan-bg) 40%, transparent); }
+.target.is-blink-scan:focus-visible,
+.target.is-blink-scan:hover:focus-visible:not(:disabled) {
+  outline: 4px dashed var(--focus);
+  outline-offset: 18px;
+  box-shadow: inset 0 0 0 4px var(--scan-text), 0 0 0 4px var(--bg), 0 0 0 12px var(--scan-ring);
+}
+.target.is-blink-scan.is-held:focus-visible {
+  box-shadow: inset 0 0 0 10px var(--scan-text), 0 0 0 4px var(--bg), 0 0 0 12px var(--scan-ring);
+}
 
 .blink-badge {
   position: absolute; top: -1rem; right: 1rem;
@@ -779,6 +816,7 @@ label { font-weight: 600; }
 /* Progress slot is always reserved so the line never jumps when a gesture starts. */
 .gf-progress { grid-column: 2; display: block; height: 8px; }
 .gf-enable { grid-column: 1 / -1; justify-self: start; }
+.btn.gf-enable, .btn.speech-enable { min-height: 48px; }
 .gf-tone-off { color: var(--muted); background: var(--surface-2); }
 .gf-tone-ok { color: var(--accent); background: var(--accent-soft); }
 .gf-tone-work { color: var(--info-text); background: var(--info-bg); }
@@ -845,4 +883,11 @@ label { font-weight: 600; }
 
 @media (forced-colors: active) {
   .gf-line, .camera-preview-frame { border-color: CanvasText; }
+}
+
+/* Short viewports (including 200% zoom on iPad landscape): the tools footer scrolls with the board
+   instead of sticking, so it never covers the response cards. */
+@media (max-height: 599.98px) {
+  .board-footer { position: static; }
+  .board .candidates .target, .board-primary .target, .board-anchor .target { scroll-margin: 1rem 0; }
 }

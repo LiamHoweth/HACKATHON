@@ -1,6 +1,6 @@
 # Slide outline
 
-Six parts (governing iPad + ElevenLabs brief §33). Before presenting, reconcile every claim with [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md). Anything still marked "not run", "not measured", or "not iPad-verified" there must be described that way on the slides. Do not use patient imagery, testimonials, pity framing, or sponsor logos. Use only real app screenshots, kept separate from diagrams.
+Six parts (governing iPad + ElevenLabs brief §33). **Status at 12:20 CT (commit `5de1a57`):** gestures, calibration, iPad layout, and the ElevenLabs path are implemented and pass 285 automated tests (synthetic frames, mocked providers); nothing is physical-iPad verified; ElevenLabs live verification is blocked because `ELEVENLABS_API_KEY` is not configured. Before presenting, reconcile every claim with [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md). Anything still marked "not run", "not measured", or "not iPad-verified" there must be described that way on the slides. Do not use patient imagery, testimonials, pity framing, or sponsor logos. Use only real app screenshots, kept separate from diagrams.
 
 ## 1. Human problem
 
@@ -22,6 +22,7 @@ Six parts (governing iPad + ElevenLabs brief §33). Before presenting, reconcile
 - **Eyebrows up for half a second moves one item. A deliberate long blink selects. A fresh blink authorizes speech.**
 - Small live self-view at the top right, with accepted-gesture feedback ("Eyebrow raise detected — Next", "Blink detected — Selected").
 - Live demo: [DEMO_SCRIPT.md](DEMO_SCRIPT.md). Operator's hands away after one setup touch.
+- Screenshot candidates: real captures only. Current ones are iPad **Simulator** captures in touch mode (`docs/screenshots/ipad-sim-landscape-*.png`); label them "iPad Simulator" or replace them with physical-iPad captures in eyebrow mode.
 
 *Speaker notes:* Say if a helper granted camera permission or tapped Enable Audio. If eyebrow detection fails, switch to auto-scan + blink and say "the eyebrow path is experimental".
 
@@ -31,7 +32,7 @@ Six parts (governing iPad + ElevenLabs brief §33). Before presenting, reconcile
 - Prebuilt AI voice, not a clone. Disclosed as AI-generated.
 - Fallback: an explicitly labeled basic device voice that needs a fresh confirmation.
 
-*Speaker notes:* Say this only if the voice was actually heard on the iPad. As of 12:05 CT: **not configured, live voice not verified.** Do not quote vendor latency as our latency.
+*Speaker notes:* Say this only if the voice was actually heard on the iPad. As of 12:20 CT: **implemented; live verification blocked (`ELEVENLABS_API_KEY` not configured locally or on Railway).** If still blocked, the slide says "implemented, not yet heard" and the demo uses the labeled basic device voice. Do not quote vendor latency as our latency.
 
 ## 5. Engineering and measured evidence
 
@@ -39,7 +40,7 @@ Six parts (governing iPad + ElevenLabs brief §33). Before presenting, reconcile
 - Per-person calibration, hysteresis, a 500 ms monotonic hold, latch and rearm, and one arbiter that accepts at most one command per physical gesture.
 - One reducer and one target registry. Every input goes through the same guarded path. Review starts on Cancel. Confirmation needs a new input cycle.
 - Structured OpenAI generation (`gpt-6-astra`, strict JSON schema, `store: false`, no tools). ElevenLabs key held on the server only.
-- Tests: the number from [TEST_RESULTS.md](TEST_RESULTS.md) (134/134 at 11:50 CT). **iPad trial: real counts with n and conditions, or "not measured".**
+- Tests: 285/285 automated tests at 12:18 CT (unit, synthetic frames, mocked providers; confirm the number is recorded in [TEST_RESULTS.md](TEST_RESULTS.md)). Live OpenAI verified with synthetic inputs. **iPad trial: real counts with n and conditions, or "not measured".**
 
 *Speaker notes:* Give missed and false counts with n, never percentages from a tiny sample. Synthetic tests prove logic, not reliability.
 

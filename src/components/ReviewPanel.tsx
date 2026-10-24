@@ -20,6 +20,11 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
       </SurfaceTitle>
       {review ? (
         <>
+          {review.origin.kind === 'basic-voice' && (
+            <p className="info review-voice-notice" role="status">
+              <strong>Will be spoken with the basic device voice</strong>, not the natural voice.
+            </p>
+          )}
           <blockquote className="review-text" lang={state.settings.language}>{review.snapshot.exactText}</blockquote>
           <p className="review-source">
             <span className="meta-label">Source:</span> {MESSAGE_SOURCE_LABELS[review.snapshot.source]}

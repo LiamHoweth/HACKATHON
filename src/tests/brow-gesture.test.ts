@@ -37,10 +37,10 @@ class Sim {
   clear() { this.events = []; }
 }
 
-/** A sim that has seen neutral frames (armed). */
+/** A sim that has seen neutral frames from one stable face for ≥ stableFaceMs (armed). */
 function armed(dt = 33) {
   const s = new Sim(dt);
-  s.neutral(200);
+  s.neutral(600);
   expect(s.g.status).toBe('neutral');
   return s;
 }
@@ -192,14 +192,19 @@ describe('BrowGesture — latch and re-arm (GEST-03/04)', () => {
     expect(s.count('brow-next')).toBe(1);
   });
 
-  it('reset() from latched clears latch but still requires a neutral frame first', () => {
+  it('reset() from latched keeps the latch: a full stable release and the cooldown are required', () => {
     const s = armed();
     s.raised(600);
     expect(s.g.status).toBe('latched');
     s.g.reset();
+    expect(s.g.status).toBe('latched');
     s.raised(1000);
     expect(s.count('brow-next')).toBe(1);
-    s.neutral(33);
+    s.neutral(33); // one neutral frame is not a release
+    s.raised(600);
+    expect(s.count('brow-next')).toBe(1);
+    s.neutral(900); // releaseMs 250 + cooldown 500 (frame-quantized)
+    expect(s.g.status).toBe('neutral');
     s.raised(600);
     expect(s.count('brow-next')).toBe(2);
   });

@@ -198,7 +198,7 @@ describe('TTS-07 basic-voice fallback after an ElevenLabs failure', () => {
     it(`TTS-07 SPEECH_EVENT ${kind} sets lastFailedSpeech and the board offers speak-basic + dismiss-failed`, () => {
       const { d, failed } = failedElevenLabsTurn(kind);
       expect(userTurnFor(d, failed.id).delivery).toBe(kind === 'error' ? 'failed' : 'uncertain');
-      expect(d.s.lastFailedSpeech).toEqual({ utteranceId: failed.id, text: failed.exactText, source: 'demo-fixture' });
+      expect(d.s.lastFailedSpeech).toEqual({ utteranceId: failed.id, text: failed.exactText, source: 'demo-fixture', delivery: kind === 'error' ? 'failed' : 'uncertain' });
       expect(d.surface().kind).toBe('board');
       expect(ids(d.s)).toEqual(expect.arrayContaining(['speak-basic', 'dismiss-failed']));
       // No automatic replay.

@@ -153,7 +153,7 @@ export type State = {
   review: ReviewState | null;
   speech: SpeechState | null;
   /** Last confirmed message whose ElevenLabs playback failed or was uncertain; offers a labeled basic-voice retry. */
-  lastFailedSpeech: { utteranceId: Id; text: string; source: ReviewSnapshot['source'] } | null;
+  lastFailedSpeech: { utteranceId: Id; text: string; source: ReviewSnapshot['source']; delivery: 'failed' | 'uncertain' } | null;
   contextRevision: number;
   preferenceRevision: number;
   approvedPreferences: ApprovedPreference[];

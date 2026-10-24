@@ -1,8 +1,6 @@
 # Architecture
 
-**12:05 CT update:** the governing brief is now iPad eyebrow NEXT + long-blink SELECT + ElevenLabs. In progress and uncommitted at 12:05: `src/access/brow-gesture.ts` (500 ms brow hold), `src/access/gesture-arbiter.ts` (the only emitter of accepted gesture commands), the speech contract in `src/runtime/contract.ts`, and a labeled basic-voice path in `src/core/`. A server route `POST /api/speech` (ElevenLabs) is planned but was not yet present. The rest of this file describes the code as of 11:30 CT, with blink committed since (`2230926`, `08c6abc`).
-
-This describes the code on 2026-10-24 at 11:30 CT. The kernel, runtime, UI, and server are integrated and tested (see [TEST_RESULTS.md](TEST_RESULTS.md)). The **blink access adapter** is being built. It is described here from its runtime contract and the uncommitted modules present at 11:35 (`src/access/blink-{detector,gesture,calibration}.ts`, `src/components/Blink{Calibration,Status}.tsx`). It was not yet wired into `useStillHere`. Check [PROGRESS.md](PROGRESS.md) for the latest status.
+This describes the code on 2026-10-24 at ~12:30 CT: commit `5de1a57` (12:13, eyebrow NEXT + blink SELECT, gesture arbiter, iPad UI, ElevenLabs speech path; deployed to Railway as `f65385bb`) plus uncommitted working-tree changes that are marked as such (the access-throttle fix, HSTS, the `/trial` recorder, gesture metrics). The governing brief is iPad Safari, eyebrow NEXT + long-blink SELECT, ElevenLabs voice ([D27](DECISIONS.md), [D28](DECISIONS.md)). Test evidence: [TEST_RESULTS.md](TEST_RESULTS.md) and [PROGRESS.md](PROGRESS.md). Nothing here has run on a physical iPad or a real camera.
 
 ## Stack
 
@@ -16,10 +14,14 @@ Browser
   runtime/useStillHere.ts + effects-runner.ts
      ├─ dispatch(Action) → core/reducer.ts (pure)
      ├─ executes queued Effects exactly once (generate, speak, persist, record, …)
-     ├─ access/                    scan-controller (one chained timer), input-controller
-     │    └─ blink (in progress)   camera → MediaPipe (local assets) → eye-closure score
-     │                             → gesture state machine → SELECT → same guarded ACTIVATE
-     ├─ audio/                     speech-controller, recording-controller, transcript-client, voices
+     ├─ runtime/useBlink.ts        camera → MediaPipe (local assets) → blink + brow scores
+     │    ├─ access/blink-gesture  long-blink SELECT proposals
+     │    ├─ access/brow-gesture   500 ms eyebrow NEXT proposals ('brow-blink' mode only)
+     │    └─ access/gesture-arbiter  the ONLY emitter of accepted NAV_NEXT / SELECT
+     │                             → useStillHere → scan-controller.next() or the same guarded ACTIVATE
+     ├─ access/                    scan-controller (one chained timer, or manual stepping), input-controller
+     ├─ audio/                     eleven-player (one audio element), speech-controller (basic voice),
+     │                             recording-controller, transcript-client, voices
      └─ adaptation/preference-store.ts  versioned local storage (approved items only)
   core/      pure state, reducer, target registry, context builder, schemas, limits
   adaptation/ pure session observations + preference resolution
@@ -27,8 +29,10 @@ Browser
 Server (Next.js route handlers)
   /api/replies    → validate (zod) → fixture, or OpenAI (default) / Anthropic adapter → validate output → JSON
   /api/transcribe → bounded audio → OpenAI-compatible transcription → draft
+  /api/speech     → access gate + rate limit + daily char budget → ElevenLabs (exact confirmed text) → audio/mpeg
+  /api/voices     → server-approved ElevenLabs voices (never the key)
   /api/status     → which services are configured (no secrets)
-  server/  config, request-guards, reply-prompt, provider, validation, fixtures, transcription
+  server/  config, request-guards, reply-prompt, provider, validation, fixtures, transcription, elevenlabs/
 ```
 
 ## Core modules (`src/core/`)
@@ -54,7 +58,8 @@ Server (Next.js route handlers)
 | File | Responsibility |
 | --- | --- |
 | [`config.ts`](../src/server/config.ts) | Reads env vars server-side (`server-only`). Replies are configured only when `AI_PROVIDER` is `openai` or `anthropic` and that provider's key and `REPLY_MODEL` are set |
-| [`request-guards.ts`](../src/server/request-guards.ts) | Access gate (`x-still-here-access`, timing-safe compare). With no token set, non-localhost requests are flagged `unprotected-remote`. Also provides the per-process rate limiter, bounded body reads, `no-store` JSON, and content-free logs |
+| [`request-guards.ts`](../src/server/request-guards.ts) | Access gate (`x-still-here-access`, timing-safe compare). With no token set, non-localhost requests are flagged `unprotected-remote`. Failed-code throttle: 10 wrong codes per client per 10 minutes. In the working tree (uncommitted, pending redeploy) **a correct code is checked first and always passes**, a missing code is denied without counting, and only wrong non-empty codes count, so a shared Wi-Fi IP cannot lock out a client that has the code. Also provides the per-process rate limiter, bounded body reads, `no-store` JSON, and content-free logs |
+| [`elevenlabs/`](../src/server/elevenlabs/README.md) | Server-only ElevenLabs adapter: model routing (`eleven_v4_turbo` → Text-to-Dialogue WebSocket; `ELEVENLABS_TRANSPORT=http` → another, labeled model), approved voice ids, character budget, MP3 validation. Mock-tested; no live call yet (no key) |
 | [`reply-prompt.ts`](../src/server/reply-prompt.ts) | Fixed system instructions plus a separate structured JSON data payload. Dynamic text is never concatenated into instructions |
 | [`provider.ts`](../src/server/provider.ts) | **OpenAI** (verified): `fetch` to the Responses API with `store: false`, strict `json_schema` output, no tools, optional reasoning effort, and 429/401 mapping. **Anthropic** (unverified): `client.beta.messages.create`, `output_config: { effort: 'low', format: json_schema }`, optional `fallbacks: 'default'` with beta `server-side-fallback-2026-07-01`, `maxRetries: 0`, at most one repair attempt within the deadline, refusal mapped to `PROVIDER_REFUSAL` |
 | [`validation.ts`](../src/server/validation.ts) | Output screening: schema (exactly three), length policy with small tolerance, markup, exact duplicates, repeats of rejected text. These are screening checks, not proof of semantic diversity |
@@ -70,8 +75,14 @@ Server (Next.js route handlers)
 2. The runtime posts the `ReplyRequest` to `/api/replies`. The result returns as `GENERATION_RESULT` with the request identity.
 3. The reducer installs the batch only if the epoch, workspace, request ID, context revision, preference revision, and anchor content revision all match and the workspace is still open. Application IDs are assigned to candidates.
 4. `ACTIVATE` on a candidate opens a frozen `ReviewSnapshot`.
-5. `ACTIVATE` on **Speak** creates a `ConfirmedUtterance` only if the confirming event and cycle differ from the selection's, the surface revision is current, and at least 600 ms have passed since the review opened. It then appends a user turn with `delivery: 'queued'` and queues one `speak` effect.
+5. `ACTIVATE` on **Speak** creates a `ConfirmedUtterance` only if the confirming event and cycle differ from the selection's, the surface revision is current, and at least 600 ms have passed since the review opened. It then appends a user turn with `delivery: 'queued'` and queues one `speak` effect. The provider is `settings.speechProvider` (`elevenlabs` by default).
 6. `SPEECH_EVENT`s update delivery. Errors or uncertainty show the text on screen and never replay.
+
+### Speech authorization and the basic-voice fallback
+
+- Only a `ConfirmedUtterance` reaches any voice. Its `exactText` is what ElevenLabs (or `speechSynthesis`) receives; nothing is pre-synthesized and no suggestion is spoken before confirmation.
+- After an ElevenLabs `error` or `uncertain` delivery, the reducer records `lastFailedSpeech` and the board offers **Say it with the basic device voice** and **Dismiss voice problem** (`src/core/targets.ts`). Choosing it opens a **new** review (origin `basic-voice`, linked to the original utterance id); speaking needs a **new, separate confirmation**, and the resulting utterance uses provider `browser`, labeled "basic device voice". There is no silent fallback. A later confirmed utterance clears the offer.
+- Covered by `speech-authorization.test.ts` (TTS-07, passing at 12:28 CT on the working tree). Audible output has not been confirmed by a listener.
 
 ## Identities and what they protect
 
@@ -90,7 +101,8 @@ Server (Next.js route handlers)
 
 - **Client to server:** every request is parsed with a strict zod schema with bounds (10 turns, 600 chars per turn, 1,000 chars partner text, 12 profile entries, 8 rejected batches, allowed length policies only, 64 KB request cap). The `approved` labels are provenance, not authentication.
 - **Model to app:** output is untrusted. It is parsed by a strict schema, screened, and given IDs by the app. The model has no tools and cannot speak, save, or navigate.
-- **Paid endpoints:** access is gated by `APP_ACCESS_TOKEN`, and remote requests without a token are refused. The rate limiter works for one process only.
+- **Paid endpoints** (`/api/replies` live, `/api/transcribe`, `/api/speech`): access is gated by `APP_ACCESS_TOKEN`, and remote requests without a token are refused. Only wrong non-empty codes count toward the throttle; a correct code always passes (working tree, pending redeploy). The rate limiter, throttle, and character budget work for one process only.
+- **Security headers** on every path (`next.config.ts`): `nosniff`, `no-referrer`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, and a `Permissions-Policy` allowing camera/microphone for this origin only. HSTS is added in the working tree, pending redeploy.
 - **Browser storage:** only approved preferences, profile entries, custom phrases, and suppressed dimensions are stored, using a versioned schema. `preference-store.ts` returns `corrupt` (and loads nothing) when the stored JSON fails the schema. Cross-tab synchronization is intentionally not implemented (see [DECISIONS.md](DECISIONS.md)).
 
 ## Runtime modules
@@ -100,29 +112,36 @@ Server (Next.js route handlers)
 | `src/runtime/useStillHere.ts`, `effects-runner.ts` | Implements `StillHereRuntime`; executes queued effects (generate, speak, persist, clear-storage, recording, export) |
 | `src/access/scan-controller.ts` | Single scanning timer using chained `setTimeout` (missed ticks are never replayed). Freezes while the switch is held or the tab is hidden |
 | `src/access/input-controller.ts` | Converts pointer/keyboard/switch events into guarded `ACTIVATE` actions |
-| `src/audio/speech-controller.ts` | The one wrapper around `speechSynthesis`. Accepts only a `ConfirmedUtterance`. Start/end watchdogs report `uncertain` without replaying |
+| `src/audio/eleven-player.ts`, `src/runtime/useAudio.ts` | The single audio element for ElevenLabs MP3 playback, the one-time **Enable audio / Test voice** unlock, Stop, and an honest "Audio blocked" state |
+| `src/audio/speech-controller.ts` | The one wrapper around `speechSynthesis` (basic device voice). Accepts only a `ConfirmedUtterance`. Start/end watchdogs report `uncertain` without replaying |
 | `src/audio/recording-controller.ts` | Push-to-record with runtime format selection (`MediaRecorder.isTypeSupported`) and a 20 s cap. Discards capture when the app speaks |
 | `src/adaptation/preference-store.ts` | Versioned storage key `still-here:v1`. Stores approved items only. No `storage` event listener (cross-tab sync disabled) |
 | `src/metrics/export.ts` | Content-minimal summary of metric events (kinds, timestamps, sources, IDs; no message text) |
 | `src/app/api/replies/route.ts` | Bounded read → strict schema → fixture (if enabled) or live (if configured, access-checked, rate-limited) |
 | `src/app/api/transcribe/route.ts` | Size/type checks, access gate, rate limit, then the OpenAI-compatible adapter |
-| `src/app/api/status/route.ts` | Reports configured/not configured, fixtures enabled, and whether an access code is required. Never returns secrets |
+| `src/app/api/speech/route.ts`, `voices/route.ts` | Access gate, rate limit, daily character budget, approved voice id, then the ElevenLabs adapter. Logs carry the utterance id, outcome, duration, and character count only |
+| `src/app/api/status/route.ts` | Reports configured/not configured (including speech), fixtures enabled, and whether an access code is required. Never returns secrets |
 
-## Blink access adapter (in progress)
+## Gesture access (camera)
 
-- `blink-detector.ts`: MediaPipe `FaceLandmarker` in `VIDEO` mode, `numFaces: 2`, blendshapes on, GPU delegate with CPU fallback, throttled frame processing. Per frame it outputs `{ faces, score }`, where score = min(`eyeBlinkLeft`, `eyeBlinkRight`).
-- `blink-gesture.ts`: a pure state machine with no timers or DOM (phases `no-face`, `face-lost`, `multiple-faces`, `ready`, `closing`, `cooldown`). Fed monotonic frames, it emits gesture events.
-- `blink-calibration.ts`: pure sample segmentation, threshold and duration proposal, honest failure, and scalar-only storage parsing.
+The default access mode is **`brow-blink`** (`src/core/state.ts`). `blink` (timed auto-scan + blink select), `switch`, `keyboard`, and `pointer` are fallbacks. All of them end in the same guarded `ACTIVATE`.
+
+- `blink-detector.ts`: MediaPipe `FaceLandmarker` in `VIDEO` mode, `numFaces: 2`, blendshapes on, GPU delegate with CPU fallback, throttled frame processing. Per frame it outputs the face count, an eye-closure score = min(`eyeBlinkLeft`, `eyeBlinkRight`), and a brow score = max(`browInnerUp`, mean of `browOuterUpLeft`/`browOuterUpRight`).
+- `blink-gesture.ts`: pure long-blink state machine (phases `no-face`, `face-lost`, `multiple-faces`, `ready`, `closing`, `cooldown`). Emits `closure-start`, `select`, `discard`, `face-lost`, `face-found`.
+- `brow-gesture.ts`: pure eyebrow state machine, `NEUTRAL → RISING → (held ≥ 500 ms) one brow-next → LATCHED → stable release → REARMING (cooldown) → NEUTRAL`. A long hold never repeats. After a reset, face loss, stale frame, or cancel, a neutral frame is required before a new raise can start, so a raise never carries across a screen change. Brow input runs only in `brow-blink` mode.
+- `gesture-arbiter.ts`: the **only** emitter of accepted commands (`NAV_NEXT`, `SELECT`). A closure onset freezes the highlight at once and cancels an unfinished raise. No NEXT is accepted during a closure. A brow-start and a closure-start within 120 ms are ambiguous: the raise is cancelled, the blink cycle discarded, and nothing happens. Each accepted command carries a fresh physical cycle id. Feedback ("Eyebrow raise detected — Next", "Blink detected — Selected") is shown only after acceptance.
+- `blink-calibration.ts`, `brow-calibration.ts`: pure sample segmentation and threshold proposal, honest failure when classes overlap, scalar-only storage.
+- `scan-controller.ts`: in `brow-blink` it runs in **manual** mode with **no timer** (auto-scan off): the highlight starts on the surface's first, safe target and moves one step, wrapping, per accepted `NAV_NEXT` (eyebrow, or Tab/ArrowRight as a keyboard fallback). In `blink` mode it is the timed auto-scan. Only one highlight mover is active at a time ([D31](DECISIONS.md)).
 
 | Piece | Responsibility |
 | --- | --- |
-| Assets | `public/wasm/*` (copied from `@mediapipe/tasks-vision` 1.1.1 by `scripts/copy-mediapipe-assets.mjs`) and `public/models/face_landmarker.task` (`float16/1`). Hashes in `public/models/README.md`. Loaded from the app's origin |
-| `BlinkRuntime` | `status` (`off`, `unsupported`, `permission-denied`, `starting`, `no-face`, `multiple-faces`, `ready`, `closing`, `selected`, `cooldown`, `face-lost`), a short `message`, `closureProgress`, `eyeScore` (calibration meter only), `faceCount`, measured `fps`, `calibration`, camera start/stop, preview attach, gesture-event subscription, and `calibrator` |
-| `BlinkCalibration` | Scalars only: `closedThreshold`/`openThreshold` (hysteresis), `minClosureMs`, `maxClosureMs`, `cooldownMs`, observed natural maximum and deliberate minimum |
-| Gesture events | `closure-start`, `select` (with duration), `discard` (`too-short`, `too-long`, `face-lost`, `multiple-faces`, `stale`), `face-lost`, `face-found` |
-| Calibration stages | `consent` → `position` → `baseline` → `natural` → `deliberate` → `review` → `practice-select` → `practice-confirm` → `done`, or `failed` with a reason |
+| Assets | `public/wasm/*` (copied from `@mediapipe/tasks-vision` 1.1.1 by `scripts/copy-mediapipe-assets.mjs`) and `public/models/face_landmarker.task` (`float16/1`, Apache-2.0 per its model cards). Hashes in `public/models/README.md`. Loaded from the app's origin |
+| `useBlink.ts` | Owns the camera, both gesture machines, and the one arbiter. Exposes status, messages, closure and brow progress, face count, fps, calibrations, preview attach, and the command stream |
+| `useStillHere.ts` | The arbiter's single command handler: `NAV_NEXT` → `scan.next()`; `SELECT` → `ACTIVATE` of the target snapshotted at closure onset (source `blink`) |
+| `CameraPreview.tsx`, `GestureFeedback.tsx` | Small mirrored, muted live preview at the top right and the accepted-command feedback. Nothing is recorded |
+| `src/components/trial/` | Uncommitted, in progress: the `/trial` engineering-trial recorder. It never dispatches app actions and keeps only counts and durations |
 
-Integration rule: at closure onset the adapter snapshots the highlighted target and surface revision and freezes scanning. A valid reopening emits one activation of *that* target through the same `ACTIVATE` path, as a new input cycle. So the reducer's existing guards (surface revision, fresh cycle for confirmation, 600 ms arming, Stop/Resume-only surfaces) apply to blink unchanged. **Not yet verified in code or on camera.**
+Integration rule: at closure onset the runtime snapshots the highlighted target and surface revision and freezes the highlight. A valid reopening emits one activation of *that* target through the same `ACTIVATE` path, as a new input cycle. So the reducer's guards (surface revision, fresh cycle for confirmation, 600 ms arming, Stop/Resume-only surfaces) apply to gestures unchanged. Covered by synthetic tests (`brow-gesture`, `gesture-arbiter`, `face-runtime`, `handsfree-pipeline`); **not verified on a real camera or iPad**.
 
 ## Not present
 

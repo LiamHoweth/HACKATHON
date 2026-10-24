@@ -4,6 +4,14 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Still Here',
   description: 'Your words. Your choice. AI offers possible words. The person decides what to say.',
+  applicationName: 'Still Here',
+  // Home Screen install (docs/IPAD_HOME_SCREEN.md). The manifest (app/manifest.ts) is linked
+  // automatically. statusBarStyle 'default' keeps status-bar text legible on the light theme;
+  // 'black-translucent' would draw white text over the light --bg.
+  appleWebApp: { capable: true, title: 'Still Here', statusBarStyle: 'default' },
+  // Next emits only `mobile-web-app-capable`; older iPadOS (pre-16.4, before manifest support)
+  // needs the legacy Apple name to launch standalone.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {

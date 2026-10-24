@@ -1,6 +1,11 @@
 // Content-minimal measurement export. state.metrics holds kinds, timestamps, sources and ids only:
-// no partner text and no message text ever leaves through this file.
+// no partner text and no message text ever leaves through this file. Gesture and speech timing
+// comes from the opt-in recorder in ./gesture-metrics (enums, timestamps and durations only).
 import type { MetricEvent, State } from '@/core/state';
+import {
+  createGestureMetrics, getSharedGestureMetrics, summarizeSelection,
+  type GestureMetricEvent, type GestureMetrics, type GestureSummary, type SelectionSummary, type SpeechSummary,
+} from './gesture-metrics';
 
 export type MetricsSummary = {
   confirmedMessages: Array<{
@@ -21,13 +26,21 @@ export type MetricsSummary = {
 
 export type MetricsExport = {
   format: 'still-here-metrics';
-  version: 1;
+  version: 2;
   exportedAt: string;
   clock: 'performance.now() milliseconds since page load (monotonic); durations only';
   note: string;
   settings: { accessMode: string; aiMode: string; scanIntervalMs: number; readingPauseMs: number };
   events: MetricEvent[];
   summary: MetricsSummary;
+  /** Raw gesture/speech timing events (no text, no ids). Empty unless measurement was on. */
+  gestureEvents: GestureMetricEvent[];
+  /** Eyebrow NEXT and blink SELECT detection: counts, medians/ranges, 'not measured' when empty. */
+  gestures: GestureSummary;
+  /** Natural-voice provider latency and confirmation-to-playback-callback timing. */
+  speech: SpeechSummary;
+  /** Selection actions per confirmed message, regeneration (with denominator), errors. */
+  selection: SelectionSummary;
 };
 
 const round = (n: number) => Math.round(n);
@@ -85,24 +98,42 @@ export function summarize(events: MetricEvent[]): MetricsSummary {
   };
 }
 
+/**
+ * Activation details are target ids. Compose-keyboard ids (`key-<letter>`) would spell out the
+ * composed message in sequence, so they are reduced to the target class.
+ */
+function minimalDetail(e: MetricEvent): string | undefined {
+  if (e.detail === undefined) return undefined;
+  if (e.kind === 'activation' && e.detail.startsWith('key-')) return 'key';
+  return e.detail;
+}
+
 /** Allow-list copy of each event so no unexpected field (e.g. text) can be exported. */
 function minimal(e: MetricEvent): MetricEvent {
   const out: MetricEvent = { t: round(e.t), kind: e.kind };
   if (e.workspaceId !== undefined) out.workspaceId = e.workspaceId;
   if (e.requestId !== undefined) out.requestId = e.requestId;
   if (e.source !== undefined) out.source = e.source;
-  if (e.detail !== undefined) out.detail = e.detail;
+  const detail = minimalDetail(e);
+  if (detail !== undefined) out.detail = detail;
   return out;
 }
 
-export function buildMetricsExport(state: State, now: Date = new Date()): MetricsExport {
+/**
+ * @param gestures the opt-in gesture/speech recorder (default: the page-wide shared one). Pass
+ *   null to export core events only; its sections then read 'not measured'.
+ */
+export function buildMetricsExport(
+  state: State, now: Date = new Date(), gestures: GestureMetrics | null = getSharedGestureMetrics(),
+): MetricsExport {
   const events = state.metrics.map(minimal);
+  const g = (gestures ?? createGestureMetrics()).toExportJSON(state.metrics);
   return {
     format: 'still-here-metrics',
-    version: 1,
+    version: 2,
     exportedAt: now.toISOString(),
     clock: 'performance.now() milliseconds since page load (monotonic); durations only',
-    note: 'Prototype measurement. Playback-start is the speech API callback, not verified audible onset. No message text included.',
+    note: 'Prototype measurement (opt-in, synthetic scenarios). Playback-start is the speech API callback, not verified audible onset. Counts, medians and ranges only; "not measured" means no events were recorded. Selection errors need observer annotation. No message text included.',
     settings: {
       accessMode: state.settings.accessMode,
       aiMode: state.settings.aiMode,
@@ -111,13 +142,17 @@ export function buildMetricsExport(state: State, now: Date = new Date()): Metric
     },
     events,
     summary: summarize(events),
+    gestureEvents: g.gestureEvents,
+    gestures: g.gestures,
+    speech: g.speech,
+    selection: summarizeSelection(events),
   };
 }
 
-export function downloadMetrics(state: State): boolean {
+export function downloadMetrics(state: State, gestures: GestureMetrics | null = getSharedGestureMetrics()): boolean {
   if (typeof document === 'undefined') return false;
   try {
-    const data = buildMetricsExport(state);
+    const data = buildMetricsExport(state, new Date(), gestures);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

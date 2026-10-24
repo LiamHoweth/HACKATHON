@@ -1,8 +1,9 @@
 # ElevenLabs speech adapter
 
 Server-only. The browser never sees the key; it calls `POST /api/speech` and `GET /api/voices`.
-Endpoint facts below come from the official docs, read on **2026-10-24**. Everything is mock-tested
-(`src/tests/speech-api.test.ts`). **No live ElevenLabs request has been made yet.**
+Endpoint facts below come from the official docs, read on **2026-10-24**. Implemented in commit `5de1a57`. Everything is mock-tested
+(`src/tests/speech-api.test.ts`). **No live ElevenLabs request has been made yet:** `ELEVENLABS_API_KEY` is not set
+locally or on Railway.
 
 ## Sources
 
@@ -25,7 +26,7 @@ Endpoint facts below come from the official docs, read on **2026-10-24**. Everyt
 - Close: `{"close_socket":true}` flushes, sends the remaining audio, sends `{"is_final":true}`, then closes. `{"keep_alive":true}` resets the 20 s inactivity timeout.
 - Server frames: `{audio: base64, alignment?, normalized_alignment?}`, `{is_final_audio_for_turn}`, `{is_final: true}`, and errors `{error: "<id e.g. authentication_required>", message, code: <ws close code>, param?}`.
 - The key needs the "Text to Speech" permission.
-- **Doc discrepancy, unresolved until the live check.** The guide and the models page say `model_id` must start with `eleven_v3` or `eleven_v4` and that v4 Turbo is "available via the Text to Dialogue websocket". The API reference schema still says "must start with `eleven_v3`" (default `eleven_v3_conversational`).
+- **`model_id` note (re-checked 2026-10-24, see `docs/REFERENCES.md`).** The TTD WebSocket guide and the models page say `model_id` must start with `eleven_v3` or `eleven_v4`, and that v4 Turbo is "available via the Text to Dialogue websocket". The live Text to Dialogue API reference (the `convert` page, re-checked today) now describes `model_id` with a default of `eleven_v3` and **without the "must start with `eleven_v3`" wording** quoted here earlier from the API reference schema (which also gave the default as `eleven_v3_conversational`). The WebSocket API reference page was not re-read in that pass. So the API reference no longer clearly contradicts v4, but **acceptance of `eleven_v4_turbo` for our account is still to be confirmed with a live call** (blocked: no key). If it is rejected, use `ELEVENLABS_TRANSPORT=http` with another model and label the substitution.
 
 **HTTP** (`tts-http.ts`, used when `ELEVENLABS_TRANSPORT=http` or the model is not a dialogue model)
 - `POST https://api.elevenlabs.io/v1/text-to-dialogue?output_format=…` with header `xi-api-key` and body `{inputs:[{text,voice_id}], model_id}`. Optional body fields: `settings{stability,similarity}`, `seed`, `language_code`, `apply_text_normalization`. The models page says `eleven_v4` is available via the Text to Dialogue API.
@@ -35,7 +36,7 @@ Endpoint facts below come from the official docs, read on **2026-10-24**. Everyt
 
 **Voices:** `GET https://api.elevenlabs.io/v2/voices?page_size≤100&next_page_token=…&include_total_count=false` returns `{voices:[{voice_id,name,description,category,labels,preview_url}], has_more, next_page_token, total_count}`.
 
-**Retention:** `enable_logging` defaults to `true`. `false` turns on Zero Retention Mode and disables history, and the docs say only **enterprise** customers may use it. We do not send it, so do not claim zero retention.
+**Retention:** `enable_logging` defaults to `true`. `false` turns on Zero Retention Mode and disables history, and the docs say only **enterprise** customers may use it. The Zero Retention Mode page lists the TTS WebSocket and the `/v1/text-to-dialogue/` endpoints but does **not** explicitly name the Text to Dialogue WebSocket. We do not send `enable_logging`, so do not claim zero retention (D35).
 
 ## Behavior summary
 

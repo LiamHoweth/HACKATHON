@@ -15,8 +15,9 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
   const ws = activeWorkspace(state);
   const open = ws && !ws.closed ? ws : null;
 
-  // Rendered in registry order: voice-problem recovery, candidates + None of these, next-step
-  // actions, then the compact action row. Visual order therefore equals gesture NEXT order.
+  // Rendered in registry order (boardTargets): candidates + None of these, next-step actions,
+  // voice-problem recovery, then the compact action row. Visual order therefore equals gesture
+  // NEXT order, and candidates keep a fixed position whether or not a voice problem is showing.
   const recovery = targets.filter((t) => t.id === 'speak-basic' || t.id === 'dismiss-failed');
   const candidates = targets.filter((t) => t.region === 'candidates');
   const inActionRow = (id: string, region: string) => region === 'tools' || id === 'start';
@@ -38,15 +39,18 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
 
   const lastUser = [...state.conversation].reverse().find((e) => e.role === 'user');
 
+  // Same wording as the status bar: the suggestion mode once, the batch source only when it differs.
+  const modeLabel = AI_MODE_LABELS[state.settings.aiMode];
+  const batchLabel = open?.batch && open.status === 'choosing' ? BATCH_SOURCE_LABELS[open.batch.source] : null;
+  const sourceLabel = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · this batch: ${batchLabel}` : modeLabel;
+
+  const failed = state.lastFailedSpeech;
+  const voiceProblemHead = failed?.delivery === 'uncertain'
+    ? 'The natural voice may have partly played. Your message:'
+    : 'The natural voice did not play. Your message:';
+
   return (
     <div className="board">
-      {state.lastFailedSpeech && (
-        <section className="voice-problem" aria-label="Voice problem">
-          <p className="voice-problem-head"><span aria-hidden="true">⊘ </span>The natural voice did not play this message:</p>
-          <blockquote className="voice-problem-text" lang={state.settings.language}>{state.lastFailedSpeech.text}</blockquote>
-          <TargetList targets={recovery} runtime={runtime} layout="row" label="Voice problem" className="voice-problem-actions" />
-        </section>
-      )}
       <section className="anchor" aria-label="Current question">
         {open ? (
           open.anchor.mode === 'reply' ? (
@@ -96,6 +100,14 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
       <TargetList targets={primary} runtime={runtime} layout="row" label="Next step" className="board-primary" />
       <TargetList targets={leftover} runtime={runtime} layout="row" className="board-primary" />
 
+      {failed && (
+        <section className="voice-problem" aria-label="Voice problem">
+          <p className="voice-problem-head"><span aria-hidden="true">⊘ </span>{voiceProblemHead}</p>
+          <blockquote className="voice-problem-text" lang={state.settings.language}>{failed.text}</blockquote>
+          <TargetList targets={recovery} runtime={runtime} layout="row" label="Voice problem" className="voice-problem-actions" />
+        </section>
+      )}
+
       {lastUser && lastUser.role === 'user' && (
         <p className={`last-said${lastUser.value.delivery === 'failed' ? ' last-said-failed' : ''}`}>
           <span className="meta-label">You last said:</span> “{lastUser.value.text}” <span className="muted">— {DELIVERY_LABELS[lastUser.value.delivery]}</span>
@@ -110,8 +122,7 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         {open && (
           <p className="board-context">
             <span className="meta-label">Active context:</span> {open.anchor.mode === 'reply' ? 'Reply' : 'Starting'}
-            {' · '}{AI_MODE_LABELS[state.settings.aiMode]}
-            {open.batch && open.status === 'choosing' ? ` (showing ${BATCH_SOURCE_LABELS[open.batch.source]})` : ''}
+            {' · '}{sourceLabel}
             {' • '}<span className="meta-label">Guidance:</span> {guidanceParts.length ? guidanceParts.join(' · ') : 'none'}
             {' • '}<span className="meta-label">Approved style:</span>{' '}
             {styleEntries.length

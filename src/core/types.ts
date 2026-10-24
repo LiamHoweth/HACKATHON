@@ -123,6 +123,11 @@ export type ConfirmedUtterance = {
   provider: SpeechProvider;
   /** Server-approved ElevenLabs voice choice; null means the server default. */
   voiceChoiceId: Id | null;
+  /**
+   * Monotonic time (performance.now) of the confirming ACTIVATE. Set by confirmSpeak; used to
+   * measure confirm-to-play latency. Optional only so hand-built test utterances stay valid.
+   */
+  confirmedAt?: number;
 };
 
 /** Body of POST /api/speech. Sent only for a ConfirmedUtterance produced by confirmSpeak. */

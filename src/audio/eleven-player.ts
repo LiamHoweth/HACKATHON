@@ -11,6 +11,12 @@ import type { ApiErrorCode, ConfirmedUtterance, Id, SpeechRequest } from '@/core
 import { ACCESS_HEADER, type SpeechPlaybackState } from '@/runtime/contract';
 
 export type ElevenEventKind = 'start' | 'end' | 'error' | 'interrupted' | 'uncertain';
+/**
+ * Result of a setup voice preview. 'played' means play() resolved or playback started (it is not
+ * proof that the listener heard it); 'busy' means a conversation message holds the voice or took
+ * over the preview; 'not-configured' means the server reported NOT_CONFIGURED.
+ */
+export type PreviewOutcome = 'played' | 'blocked' | 'not-configured' | 'failed' | 'busy';
 export type ElevenListener = (e: { utteranceId: Id; sessionEpoch: Id; kind: ElevenEventKind }) => void;
 
 /** The subset of HTMLAudioElement this player uses. */
@@ -142,6 +148,11 @@ type Job = {
   url: string | null;
   handlers: Array<[string, (ev: unknown) => void]>;
   t0: number;
+  /** Server error code of a failed request (used for the preview outcome only). */
+  code: ApiErrorCode | null;
+  /** How the job finished, once it has. */
+  endKind: ElevenEventKind | null;
+  endState: SpeechPlaybackState | null;
 };
 
 const errorName = (err: unknown) => (err && typeof err === 'object' && 'name' in err ? String((err as { name: unknown }).name) : '');
@@ -248,16 +259,21 @@ export class ElevenPlayer {
       exactText: utterance.exactText, // exact reviewed text, no normalization
       voiceChoiceId: utterance.voiceChoiceId,
     };
-    const job = this.newJob(utterance.id, utterance.sessionEpoch, utterance.exactText, false, opts.listener, opts.startedAt);
+    // Confirm-to-play latency is measured from the confirming ACTIVATE (monotonic) when known.
+    const t0 = typeof utterance.confirmedAt === 'number' ? utterance.confirmedAt : opts.startedAt;
+    const job = this.newJob(utterance.id, utterance.sessionEpoch, utterance.exactText, false, opts.listener, t0);
     void this.run(job, body, opts.accessCode);
     return true;
   }
 
-  /** Setup preview with fixed text. Never reports speech events and never enters history. */
-  async preview(opts: { accessCode: string; voiceChoiceId: Id | null }): Promise<void> {
+  /**
+   * Setup preview with fixed text. Never reports speech events and never enters history.
+   * Resolves once play() settles (or the request fails) with the outcome for the setup screen.
+   */
+  async preview(opts: { accessCode: string; voiceChoiceId: Id | null }): Promise<PreviewOutcome> {
     if (this.activeId) {
       this.set({ message: MESSAGES.previewBusy });
-      return;
+      return 'busy';
     }
     const id = `${VOICE_TEST_PREFIX}${++this.previewSeq}-${Math.round(this.now())}`;
     const body: SpeechRequest = {
@@ -269,6 +285,7 @@ export class ElevenPlayer {
     };
     const job = this.newJob(id, body.sessionEpoch, NATURAL_VOICE_TEST_TEXT, true, null);
     await this.run(job, body, opts.accessCode);
+    return previewOutcome(job);
   }
 
   /** User Stop for a specific utterance: halt playback, abort the request, report 'interrupted' once. */
@@ -278,10 +295,18 @@ export class ElevenPlayer {
     this.finish(job, 'interrupted');
   }
 
-  /** Stop everything (session end / teardown). Late responses are discarded. */
+  /**
+   * Stop everything (session end / start / teardown). Late responses are discarded. With nothing
+   * in flight, a stale failure or blocked status from an earlier utterance is cleared to idle.
+   */
   cancelAll(): void {
     const job = this.active;
-    if (job && !job.finished) this.finish(job, 'interrupted');
+    if (job && !job.finished) {
+      this.finish(job, 'interrupted');
+      return;
+    }
+    const st = this.snap.state;
+    if (st === 'failed' || st === 'blocked' || st === 'uncertain') this.set({ state: 'idle', message: null });
   }
 
   // ---- internals ----
@@ -310,9 +335,13 @@ export class ElevenPlayer {
       id, sessionEpoch, text, preview, listener,
       ctrl: new AbortController(), started: false, finished: false, timedOut: false,
       timer: null, requestTimer: null, url: null, handlers: [], t0: startedAt ?? this.now(),
+      code: null, endKind: null, endState: null,
     };
     this.active = job;
-    this.set({ state: 'requesting', message: preview ? MESSAGES.previewing : MESSAGES.requesting });
+    // Each new conversational utterance starts a fresh latency measurement.
+    this.set(preview
+      ? { state: 'requesting', message: MESSAGES.previewing }
+      : { state: 'requesting', message: MESSAGES.requesting, lastConfirmToPlayMs: null });
     return job;
   }
 
@@ -344,6 +373,7 @@ export class ElevenPlayer {
           code = null;
         }
         if (!this.live(job)) return;
+        job.code = code;
         this.fail(job, res.ok ? MESSAGES.noAudio : speechErrorMessage(code, res.status));
         return;
       }
@@ -467,10 +497,21 @@ export class ElevenPlayer {
       uncertain: { state: 'uncertain', message: MESSAGES.uncertain },
       error: { state: 'failed', message: MESSAGES.playFailed },
     };
-    this.set({ ...base[kind], ...override });
+    const patch = { ...base[kind], ...override };
+    job.endKind = kind;
+    job.endState = patch.state ?? this.snap.state;
+    this.set(patch);
     // Previews never report speech events.
     job.listener?.({ utteranceId: job.id, sessionEpoch: job.sessionEpoch, kind });
   }
+}
+
+function previewOutcome(job: Job): PreviewOutcome {
+  if (!job.finished || job.started || job.endKind === 'end') return 'played';
+  if (job.endState === 'blocked') return 'blocked';
+  if (job.code === 'NOT_CONFIGURED') return 'not-configured';
+  if (job.endKind === 'interrupted') return 'busy'; // superseded by a conversation message or stopped
+  return 'failed';
 }
 
 function setPlaybackSession() {

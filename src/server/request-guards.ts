@@ -36,18 +36,31 @@ export function checkAccess(request: Request, cfg: ServerConfig): 'ok' | 'denied
   return isLocalDevHost(request) ? 'ok' : 'unprotected-remote';
 }
 
-// Failed access-code attempts are rate limited per client before comparing, so the code
-// cannot be brute-forced through /api/status or the paid routes.
+// Wrong access codes are rate limited per client. The code is a long random token, so the
+// throttle only slows guessing; it must never lock out a client that sends the correct code.
+// A correct code always passes and is never counted. A missing code is denied without
+// counting, so other people on shared Wi-Fi (same IP) cannot trip the throttle for everyone.
+const FAILED_LIMIT = 10;
+const FAILED_WINDOW_MS = 10 * 60_000;
+const FAILED_MAP_CAP = 5000;
 const failedAttempts = new Map<string, { count: number; resetAt: number }>();
 export function verifyAccessCode(request: Request, cfg: ServerConfig): 'ok' | 'denied' | 'throttled' {
+  if (accessCodeMatches(request, cfg)) return 'ok';
+  const sent = request.headers.get(ACCESS_HEADER) ?? '';
+  if (!cfg.accessToken || sent.length === 0) return 'denied';
   const key = clientKey(request);
   const now = Date.now();
   const f = failedAttempts.get(key);
-  if (f && f.resetAt > now && f.count >= 10) return 'throttled';
-  if (accessCodeMatches(request, cfg)) return 'ok';
-  if (failedAttempts.size > 5000) failedAttempts.clear();
-  if (!f || f.resetAt <= now) failedAttempts.set(key, { count: 1, resetAt: now + 10 * 60_000 });
-  else f.count += 1;
+  if (f && f.resetAt > now && f.count >= FAILED_LIMIT) return 'throttled';
+  if (!f || f.resetAt <= now) {
+    if (failedAttempts.size >= FAILED_MAP_CAP) {
+      for (const [k, v] of failedAttempts) if (v.resetAt <= now) failedAttempts.delete(k);
+      if (failedAttempts.size >= FAILED_MAP_CAP) failedAttempts.clear(); // hard cap
+    }
+    failedAttempts.set(key, { count: 1, resetAt: now + FAILED_WINDOW_MS });
+  } else {
+    f.count += 1;
+  }
   return 'denied';
 }
 

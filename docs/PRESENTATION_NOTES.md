@@ -1,0 +1,50 @@
+# Presentation notes (running log)
+
+The integrator keeps this compact, append-only log of facts we can say in the pitch. Each entry is tagged:
+**[VERIFIED]** = actually executed or observed (with where); **[SYNTHETIC]** = deterministic tests, not hardware; **[NOT YET]** = built but unverified. Detailed per-feature evidence lives in [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md).
+
+## One-line pitch
+AI offers possible words; the person decides what to say. On an iPad: raise your eyebrows for half a second to move, a long blink selects, and a separate new blink speaks the exact sentence aloud in a natural voice.
+
+## Story beats that are true today
+- Built in one day at SASEHacks for Good (OU, 2026-10-24). Hacking started 09:00 CT, and the first app code landed in commit `bb16883`.
+- Safety core: nothing is ever spoken without (1) a deliberate selection, then (2) a review of the exact text, then (3) a separate, fresh confirmation. One physical gesture can never do two things. **[SYNTHETIC]** reducer, gesture and pipeline tests; **[VERIFIED]** browser switch test: one held key with 20 auto-repeats produced exactly one action.
+- The user stays the author: "None of these" yields different meanings rather than paraphrases; guidance covers agree, disagree, alternative, humor and so on; My words (own composition) and quick phrases ("Please give me a moment") work with no AI at all.
+- Consent-based learning: after three explicit "shorter" choices, it suggests "shorter replies?", saves only after two separate approvals, and you can see, pause or delete it. **[VERIFIED]** in the browser (11:10 CT).
+
+## Numbers we can cite (with conditions)
+- Live AI: OpenAI Responses `gpt-6-astra`, about 4 s per batch of 3 suggestions (local and Railway, synthetic prompts). 14 of 14 live scenarios returned valid batches: it held disagreement, did not follow prompt injection, and did not invent consent on a medication question. **[VERIFIED]** in `docs/evidence/live-scenarios.json` (no human judgments recorded yet).
+- Model choice: astra beat luna (luna is slower, uses 2–3× the tokens, and once dropped plain yes/no answers). Small sample (n = 6 per model). **[VERIFIED]**
+- Transcription: `gpt-transcribe` produced the exact transcript of a synthetic clip in about 1.2–1.8 s. **[VERIFIED]**
+- Tests: 296+ automated tests (unit, API, synthetic hands-free pipeline). The count is still rising; refresh it before the talk.
+- Railway deployment `https://api-production-18038.up.railway.app`: an access code gates paid calls, spoofed headers can't bypass it, there are no secrets in the client bundle, and security headers plus HSTS are on (HSTS is pending the next redeploy). **[VERIFIED]** by a live security probe (about 47 requests).
+
+## Demo moments (rehearse these)
+1. Partner types "Are you coming to dinner tonight?". Three suggestions appear.
+2. Eyebrows up 0.5 s: the highlight moves exactly one step ("Eyebrow raise detected — Next"). Holding longer does not repeat.
+3. Long blink selects. The review screen starts on **Cancel**. An eyebrow raise moves to **Speak**, and a **new** blink speaks the sentence.
+4. Do "None of these" once to show the user rejecting the AI.
+5. Quick phrase: "Please give me a moment."
+6. Fallbacks if the room breaks things: Touch mode, auto-scan with blink, the basic device voice, and Fixture demo (all labeled on screen).
+
+## Honest limits (say them)
+- Not clinically validated, no AAC users have tested it, and eyebrow and blink reliability are **not measured** yet ([NOT YET]: the physical-iPad 20-raise / 20-blink trial, using the `/trial` page).
+- ElevenLabs natural voice is implemented (server-only key, Text-to-Dialogue WebSocket for `eleven_v4_turbo`, exact text only) but **live voice is not verified until the key is added**.
+- iPad Safari may need one tap to "Enable audio". Camera frames stay on the device; the confirmed sentence goes to ElevenLabs.
+
+## Engineering decisions worth one slide
+- One reducer and one target registry: touch, keyboard, switch, blink and eyebrow all converge on one guarded action path.
+- A gesture arbiter: blink closure freezes the highlight and cancels a pending eyebrow; ambiguous input is discarded rather than guessed.
+- Pivots during the day: switch-first, then blink-first, then iPad eyebrow NEXT plus blink SELECT with ElevenLabs. The safety core never changed.
+- Multi-agent build: up to 15 concurrent Claude Code agents with exclusive file ownership, plus independent review and audit agents whose findings were fixed with regression tests.
+
+## Log (newest last)
+- 12:23 CT: Created this log. Wave-2 reviews found and wave-3 fixed: the access-code lockout on shared Wi-Fi, the wrong-target risk right after an eyebrow Next, Pause taking 11 raises (now 7), and stale voice status. iPad Simulator Safari layout was checked in landscape and portrait (`docs/screenshots/ipad-sim-*`).
+- 12:26 CT — Prior art checked (docs/REFERENCES.md) [VERIFIED web sources]. **VisioALS** is the closest overlap: a caregiver asks, 4 AI replies are offered, the user picks one by gaze quadrant, and an ElevenLabs cloned voice speaks it. Also SpeakFaster (Google), Project Converse/DEAN (research probe, n=2), Speak4Me (coming soon), Bobbai, and Alek (shut down 2026-06-01). Say "we built on a known idea"; our difference is the *combination*: separate select vs confirm authorization with immutable review, eyebrow NEXT plus blink SELECT with arbitration, meaning-diverse "None of these", and consent-gated learning. MediaPipe model license is Apache-2.0, but its model card says it is "not intended for human life-critical decisions". That is why review and confirm are mandatory and we make no reliability claims.
+- 12:30 CT: Performance (docs/PERFORMANCE.md) [VERIFIED on the Mac, not the iPad]. First load of the home page is 11 requests and ~247 KB, with first paint ~0.4 s. MediaPipe face tracking runs at ~12 ms/frame on CPU and ~15 ms on GPU, against a 66 ms budget at 15 fps. The first camera start downloads ~7.9 MB (wasm and model), which is cached immutably afterwards. Railway time to first byte is ~130 ms, and fixture replies take ~140–400 ms.
+- 12:36 CT — Demo device: iPad Air 13" (M2, iPad14,10), iPadOS 27.2, USB, Developer Mode on. The deployed app opens in iPad Safari via `xcrun devicectl device process launch --payload-url … com.apple.mobilesafari`, and screenshots come from `xcrun devicectl device capture screenshot` (2732×2048). [VERIFIED] The setup screen renders on the real iPad. Use a Private Safari window for the demo (the tab bar showed personal tabs).
+- 12:36 CT — Metrics module: opt-in, content-free gesture and voice timing (eyebrow onset→NEXT, blink closure, TTS request→bytes→playing callback). The export no longer leaks typed letters through key ids. [SYNTHETIC] 18 tests.
+- 12:45 CT — Trial recorder at `/trial` [BUILT, not iPad-run]. It covers steps A–F: 20 eyebrow raises, 20 long blinks, 2 min of normal movement (counts inadvertent commands), face-loss ×3, 2-second holds ×5, and interrupted/ambiguous gestures. Misses, inadvertent NEXT, wrong target and extra commands are counted separately. JSON export has no images. Run it on the iPad to get our first real reliability numbers.
+- 12:45 CT — Fixture fallback now matches the topic of the partner's question across 10 sets, gives 3 rounds of different meanings, and never produces consent wording on medication [SYNTHETIC]. Speech fixes: access-code check is debounced, line breaks are blocked before voice, the basic-voice review says which voice speaks, and the voice test reports its real outcome. The accessibility fix put Pause in More tools at 7 raises (was 11), and "None of these" keeps a fixed position. Tests: 396 [SYNTHETIC/unit].
+- 12:50 CT — Live AI rerun: 14/14 valid, median 3.8 s (range 2.35–6.43 s), no repairs needed [VERIFIED, synthetic prompts, Claude-reviewed, not human-reviewed]. Behavior was consistent with the earlier run: 12/14 kept the same act pattern, and the safety scenarios (disagree, unknown history, injection, medication) behaved identically. Best slide examples are scenarios 12 (medication: clarify or set a boundary, never consent), 11 (injection refused) and 7 (no invented memories). See `docs/evidence/live-scenarios-review.md`. A design choice to defend: medication questions offer no "yes" option, so a user who wants to agree uses My words.
+- 12:50 CT — Pitch deck: `docs/deck/Still_Here_Pitch.pptx` (12 slides plus notes). Its test count needs a refresh after TEST_RESULTS is updated. Rehearsal pack: `docs/REHEARSAL.md` (25 Q&A, never-say list, failure playbook, pre-stage checklist).

@@ -231,6 +231,14 @@ function insertKey(draft: string, key: string): string {
   return draft + key;
 }
 
+/**
+ * Replaces each run of C0/C1 control characters (newlines, tabs, DEL…) with one space. Used for
+ * typed/pasted draft text before it is stored; the reviewed exact text is never altered later.
+ */
+export function stripControlChars(text: string): string {
+  return text.replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ');
+}
+
 const draftLimit = (purpose: 'message' | 'seed' | 'phrase') =>
   purpose === 'message' ? LIMITS.composeChars : purpose === 'seed' ? LIMITS.seedChars : LIMITS.phraseChars;
 
@@ -494,6 +502,7 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
     delivery: 'queued', sessionEpoch: s.sessionEpoch,
     provider: r.origin.kind === 'basic-voice' ? 'browser' : s.settings.speechProvider,
     voiceChoiceId: s.settings.voiceChoiceId,
+    confirmedAt: at,
   };
   let anchorTurnId: Id | null = null;
   if (r.origin.kind === 'candidate') {
@@ -511,6 +520,8 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
     contextRevision: s.contextRevision + 1,
     review: null,
     speech: { utterance, afterStack: r.afterStack, userTurnId: turn.id },
+    // Any new confirmed utterance supersedes an earlier failure's basic-voice offer.
+    lastFailedSpeech: null,
   };
   if (r.origin.kind === 'candidate') {
     const origin = r.origin;
@@ -525,7 +536,6 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
       if (s.activeWorkspaceId === w.id) s = { ...s, activeWorkspaceId: null };
     }
   }
-  if (r.origin.kind === 'basic-voice') s = { ...s, lastFailedSpeech: null };
   if (r.origin.kind === 'composed') {
     s = { ...s, drafts: { ...s.drafts, message: '' } };
     // An own-words reply answers the active question (quick phrases do not).
@@ -547,12 +557,12 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
 }
 
 // After an ElevenLabs failure, offer a labeled basic-voice retry that needs its own new review and confirmation.
-function rememberFailure(next: State, before: State): State {
+function rememberFailure(next: State, before: State, delivery: 'failed' | 'uncertain'): State {
   const u = before.speech?.utterance;
   if (!u || u.provider !== 'elevenlabs') return next;
   const turn = before.conversation.find((e) => e.role === 'user' && e.value.utteranceId === u.id);
   const source = turn && turn.role === 'user' ? turn.value.source : 'user-composed';
-  return { ...next, lastFailedSpeech: { utteranceId: u.id, text: u.exactText, source } };
+  return { ...next, lastFailedSpeech: { utteranceId: u.id, text: u.exactText, source, delivery } };
 }
 
 function stopSpeech(s: State, at: number): State {
@@ -689,9 +699,9 @@ export function reducer(s: State, action: Action): State {
         case 'interrupted':
           return leave(setDelivery(s, action.utteranceId, 'interrupted'));
         case 'error':
-          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'failed')), s), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at);
+          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'failed')), s, 'failed'), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at);
         case 'uncertain':
-          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'uncertain')), s), 'Speech status is uncertain. It was not replayed automatically.', at);
+          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'uncertain')), s, 'uncertain'), 'Speech status is uncertain. It was not replayed automatically.', at);
       }
       return s;
     }
@@ -718,7 +728,8 @@ export function reducer(s: State, action: Action): State {
     case 'RECORDING_STATUS':
       return { ...s, recording: { status: action.status, message: action.message } };
     case 'COMPOSE_TEXT': {
-      const text = action.text.slice(0, draftLimit(action.purpose));
+      // Line breaks, tabs and other control characters never reach a draft (speech refuses them).
+      const text = stripControlChars(action.text).slice(0, draftLimit(action.purpose));
       return { ...s, drafts: { ...s.drafts, [action.purpose]: text } };
     }
     case 'SAFETY_PAUSE': {

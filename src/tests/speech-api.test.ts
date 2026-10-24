@@ -391,7 +391,8 @@ describe('GET /api/voices and /api/status', () => {
     process.env.APP_ACCESS_TOKEN = 'letmein';
     const res = await getStatus(statusReq());
     const text = await res.text();
-    expect(JSON.parse(text).speech).toEqual({ configured: true, provider: 'elevenlabs', model: null });
+    // Production without a valid code hides provider and model (no vendor disclosure).
+    expect(JSON.parse(text).speech).toEqual({ configured: true, provider: null, model: null });
     expect(text).not.toContain(KEY);
     body = (await (await getStatus(statusReq({ 'x-still-here-access': 'letmein' }))).json()) as { speech: unknown };
     expect(body.speech).toEqual({ configured: true, provider: 'elevenlabs', model: 'eleven_v4_turbo' });

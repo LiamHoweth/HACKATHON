@@ -56,8 +56,13 @@ export class ScanController {
   /**
    * onChange receives the highlighted id and the surface revision of the config that produced it
    * (null when scanning is inactive). It also fires on a surface change that keeps the same id.
+   * `at` is the gesture's own (camera-frame) time for a manual step made by next(at); otherwise
+   * undefined and the listener stamps the change with its own clock.
    */
-  constructor(private onChange: (highlightedId: string | null, surfaceRevision: number | null) => void, private clock: Clock = defaultClock) {}
+  constructor(
+    private onChange: (highlightedId: string | null, surfaceRevision: number | null, at?: number) => void,
+    private clock: Clock = defaultClock,
+  ) {}
 
   get current(): string | null {
     return this.highlighted;
@@ -136,13 +141,15 @@ export class ScanController {
   /**
    * Manual mode only: move the highlight exactly one step (wrapping). Refused (returns null)
    * when not in manual mode, inactive, held (blink closure / switch press) or hidden.
+   * `at` is the time of the gesture that caused the step (the eyebrow NEXT frame time), so the
+   * highlight log is on the same clock as blink-closure onsets.
    */
-  next(): string | null {
+  next(at?: number): string | null {
     const cfg = this.cfg;
     if (!cfg || !cfg.active || !cfg.manual || cfg.held || cfg.hidden || cfg.ids.length === 0) return null;
     const cur = this.highlighted ? cfg.ids.indexOf(this.highlighted) : -1;
     this.index = stepIndex(cur >= 0 ? cur : this.index, cfg.ids.length);
-    this.set(cfg.ids[this.index]); // a one-target surface logs nothing new (same id)
+    this.set(cfg.ids[this.index], false, at); // a one-target surface logs nothing new (same id)
     return cfg.ids[this.index];
   }
 
@@ -182,10 +189,10 @@ export class ScanController {
     this.timer = null;
   }
 
-  private set(id: string | null, force = false) {
+  private set(id: string | null, force = false, at?: number) {
     if (id === this.highlighted && !force) return;
     this.highlighted = id;
-    this.onChange(id, this.cfg ? this.cfg.surfaceRevision : null);
+    this.onChange(id, this.cfg ? this.cfg.surfaceRevision : null, at);
   }
 }
 
@@ -223,6 +230,18 @@ export const acquireHoldActive = (h: AcquireHold): boolean => h.acquiring && !h.
 
 export type HighlightLogEntry = { id: string | null; at: number; rev: number | null };
 
+/**
+ * Appends a highlight change keeping the log ordered by time (a manual step is stamped with its
+ * gesture's earlier frame time, so it may belong before entries logged at processing time).
+ * Trims to the newest `max` entries.
+ */
+export function logHighlight(log: HighlightLogEntry[], entry: HighlightLogEntry, max = 16): void {
+  let i = log.length;
+  while (i > 0 && log[i - 1].at > entry.at) i--;
+  log.splice(i, 0, entry);
+  if (log.length > max) log.splice(0, log.length - max);
+}
+
 export const ATTRIBUTION_TIMING = {
   /** A highlight change this close before the detected onset is treated as "after the real onset". */
   recentChangeMs: 300,
@@ -239,7 +258,9 @@ export type AttributionOptions = {
    * What to do when the highlight moved within recentChangeMs before the detected onset.
    * 'previous' (auto-scan): credit the previous target (the timer moved it under the closure).
    * 'discard' (manual eyebrow stepping): the user deliberately moved it, so crediting either
-   * target is a guess. Discard with reason 'ambiguous'.
+   * target is a guess. Discard with reason 'ambiguous'. In this mode ANY same-surface highlight
+   * change later than onsetAt − recentChangeMs (including one logged after the detected onset,
+   * because the step was processed after the closure frame was captured) also discards.
    */
   onRecentChange: 'previous' | 'discard';
 };
@@ -267,6 +288,12 @@ export function attributeClosure(
   if (i < 0) return { ok: false, reason: 'no-target' };
   const cur = log[i];
   if (cur.id === null || cur.rev === null) return { ok: false, reason: 'no-target' };
+  if (options.onRecentChange === 'discard') {
+    // Manual stepping: a same-surface move near or after the onset means the person may have seen
+    // either target when they started closing. Never guess.
+    const moved = log.some((e, k) => k !== i && e.rev === cur.rev && e.at > onsetAt - timing.recentChangeMs);
+    if (moved) return { ok: false, reason: 'ambiguous' };
+  }
 
   let pick = cur;
   let since = cur.at;
@@ -285,6 +312,8 @@ export function attributeClosure(
       // The surface itself changed just before the onset: the closure may have begun on the old
       // screen. Never credit either.
       return { ok: false, reason: 'surface-changed' };
+    } else if (!prev && options.onRecentChange === 'discard') {
+      return { ok: false, reason: 'ambiguous' }; // nothing earlier to compare with: never guess
     }
   }
   const highlightedFor = until - since;

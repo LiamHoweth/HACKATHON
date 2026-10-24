@@ -10,7 +10,7 @@
 // same guarded ACTIVATE (source 'blink').
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Action, InputSource, Settings, State } from '@/core/state';
-import { initialState } from '@/core/state';
+import { currentSurface, initialState } from '@/core/state';
 import type { ProfileDraft } from '@/core/types';
 import { newId, reducer } from '@/core/reducer';
 import { targetsFor } from '@/core/targets';
@@ -18,7 +18,7 @@ import { ACCESS_HEADER, type ServerStatus, type StillHereRuntime, type Transcrip
 import { CALIBRATING_STAGES, useBlink, type FaceCommandEvent, type FaceCommandResult } from './useBlink';
 import { EffectsRunner } from './effects-runner';
 import {
-  ACQUIRE_HOLD_MAX_MS, acquireHoldActive as isAcquireHoldActive, ATTRIBUTION_TIMING, attributeClosure, nextAcquireHold, ScanController,
+  ACQUIRE_HOLD_MAX_MS, acquireHoldActive as isAcquireHoldActive, ATTRIBUTION_TIMING, attributeClosure, logHighlight, nextAcquireHold, ScanController,
   type AcquireHold, type HighlightLogEntry,
 } from '@/access/scan-controller';
 import { hasHighlight, InputController, isFaceMode, isManualNavMode } from '@/access/input-controller';
@@ -28,8 +28,15 @@ import { getSynth, speakVoiceTest, subscribeVoices } from '@/audio/voices';
 import { recordingSupported } from '@/audio/recording-controller';
 import * as store from '@/adaptation/preference-store';
 import { useAudio } from './useAudio';
+import { getSharedGestureMetrics } from '@/metrics/gesture-metrics';
 
 const ACCESS_KEY = 'still-here:access';
+/**
+ * The access-code status re-check waits this long after typing stops, so a code typed one
+ * character at a time is checked once (not once per keystroke, which would burn the server's
+ * failed-attempt budget and trigger its throttle). The first check on mount is immediate.
+ */
+export const STATUS_RECHECK_DEBOUNCE_MS = 700;
 const now = () => performance.now();
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -88,6 +95,9 @@ export function useStillHere(): StillHereRuntime {
   });
 
   const [serverStatus, setServerStatus] = useState<ServerStatus | null>(null);
+  // The access code the current serverStatus was checked with (debounced; see below).
+  const [statusAccessCode, setStatusAccessCode] = useState('');
+  const statusCheckedRef = useRef(false);
   const serverStatusRef = useRef<ServerStatus | null>(null);
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
   const speechAvailable = useSyncExternalStore(noopSubscribe, speechSnapshot, serverFalse);
@@ -116,6 +126,8 @@ export function useStillHere(): StillHereRuntime {
   const highlightLogRef = useRef<HighlightLogEntry[]>([]);
   // requiresArming per current target id (unknown ids are treated as guarded).
   const armingRef = useRef<Map<string, boolean>>(new Map());
+  // Face lost / tracking interrupted while speaking: pause deferred until the speech ends.
+  const pendingPauseRef = useRef<'face-lost' | 'interrupted' | null>(null);
 
   // ---- Long-lived controllers (created once, client-side, in effects) ----
   const runnerRef = useRef<EffectsRunner | null>(null);
@@ -143,24 +155,34 @@ export function useStillHere(): StillHereRuntime {
     return subscribeVoices(getSynth(), setVoices);
   }, []);
 
-  // ---- Server status (refetched when the access code changes) ----
+  // ---- Server status (immediately on mount, then debounced while the access code is typed) ----
   useEffect(() => {
     const ctrl = new AbortController();
-    const headers: Record<string, string> = {};
-    if (accessCode) headers[ACCESS_HEADER] = accessCode;
-    fetch('/api/status', { headers, signal: ctrl.signal, cache: 'no-store' })
-      .then((r) => r.json())
-      .then((json: unknown) => {
-        const s = isServerStatus(json) ? json : null;
-        serverStatusRef.current = s;
-        setServerStatus(s);
-      })
-      .catch(() => {
-        if (ctrl.signal.aborted) return;
-        serverStatusRef.current = null;
-        setServerStatus(null);
-      });
-    return () => ctrl.abort();
+    const code = accessCode;
+    const delay = statusCheckedRef.current ? STATUS_RECHECK_DEBOUNCE_MS : 0;
+    const timer = window.setTimeout(() => {
+      statusCheckedRef.current = true;
+      const headers: Record<string, string> = {};
+      if (code) headers[ACCESS_HEADER] = code;
+      fetch('/api/status', { headers, signal: ctrl.signal, cache: 'no-store' })
+        .then((r) => r.json())
+        .then((json: unknown) => {
+          const s = isServerStatus(json) ? json : null;
+          serverStatusRef.current = s;
+          setServerStatus(s);
+          setStatusAccessCode(code);
+        })
+        .catch(() => {
+          if (ctrl.signal.aborted) return;
+          serverStatusRef.current = null;
+          setServerStatus(null);
+          setStatusAccessCode(code);
+        });
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+      ctrl.abort();
+    };
   }, [accessCode]);
 
   // ---- Effects: exactly once each ----
@@ -178,7 +200,10 @@ export function useStillHere(): StillHereRuntime {
     if (epochRef.current === state.sessionEpoch) return;
     epochRef.current = state.sessionEpoch;
     setTranscript({ status: 'none' });
+    getSharedGestureMetrics().reset();
   }, [state.sessionEpoch]);
+  // Opt-in measurement mode also gates gesture/voice timing capture (content-free).
+  useEffect(() => { getSharedGestureMetrics().setEnabled(state.settings.measurement); }, [state.settings.measurement]);
 
   // ---- Targets and scanning ----
   const targets = useMemo(() => targetsFor(state), [state]);
@@ -209,10 +234,10 @@ export function useStillHere(): StillHereRuntime {
     if (!scanRef.current) {
       // The revision comes from the scan config that produced the highlight, never from React
       // state, so a timer tick can never pair an old-surface id with a new revision.
-      scanRef.current = new ScanController((id, rev) => {
-        const log = highlightLogRef.current;
-        log.push({ id, at: now(), rev });
-        if (log.length > 16) log.splice(0, log.length - 16);
+      scanRef.current = new ScanController((id, rev, at) => {
+        // A gesture-driven step carries its own frame time (same clock as closure onsets);
+        // everything else is stamped now. The log stays ordered by time.
+        logHighlight(highlightLogRef.current, { id, at: at ?? now(), rev });
         setHighlighted(id);
       });
     }
@@ -247,12 +272,15 @@ export function useStillHere(): StillHereRuntime {
     });
   }, []);
 
-  /** One manual step (brow-blink). Refused while a switch press or blink closure holds the highlight. */
-  const stepHighlight = useCallback((): string | null => {
+  /**
+   * One manual step (brow-blink). Refused while a switch press or blink closure holds the
+   * highlight. `at` is the gesture's own time (eyebrow NEXT frame), logged as the change time.
+   */
+  const stepHighlight = useCallback((at?: number): string | null => {
     const s = stateRef.current;
     if (s.phase !== 'active' || !isManualNavMode(s.settings.accessMode)) return null;
     if (switchHeldRef.current || blinkPinRef.current !== null) return null;
-    return scanRef.current?.next() ?? null;
+    return scanRef.current?.next(at) ?? null;
   }, []);
 
   useEffect(() => {
@@ -320,7 +348,9 @@ export function useStillHere(): StillHereRuntime {
             highlightLogRef.current, e.at, (id) => armingRef.current.get(id) ?? true, ATTRIBUTION_TIMING,
             { onRecentChange: isManualNavMode(s.settings.accessMode) ? 'discard' : 'previous' },
           );
-          if (!a.ok) return refused;
+          // Refused: the engine voids this closure; if it was deliberate the person is told the
+          // highlight just moved (never a silent no-op).
+          if (!a.ok) return a.reason === 'no-target' ? refused : { ...refused, refusal: 'highlight-moved' };
           blinkSnapRef.current = { targetId: a.targetId, surfaceRevision: a.surfaceRevision, cycleId: newId(), at: e.at };
           freeze(a.targetId);
           return { applied: true, targetId: a.targetId };
@@ -331,25 +361,41 @@ export function useStillHere(): StillHereRuntime {
         case 'accept': {
           if (e.command === 'NAV_NEXT') {
             if (!usable) return refused;
-            const id = stepHighlight();
-            return id ? { applied: true, targetId: id } : refused;
+            const before = scanRef.current?.current ?? null;
+            const id = stepHighlight(e.at); // logged at the gesture's own frame time
+            // "Next" only when the highlight actually moved (a one-target surface does not).
+            return id && id !== before ? { applied: true, targetId: id } : refused;
           }
           // SELECT: the arbiter sends accept BEFORE unfreeze; commit the closure-onset snapshot.
           const snap = blinkSnapRef.current;
           unfreeze();
           if (!snap || !usable) return refused;
-          if (snap.surfaceRevision !== s.surfaceRevision) return refused; // a new screen opened mid-closure
+          if (snap.surfaceRevision !== s.surfaceRevision) return { ...refused, refusal: 'highlight-moved' }; // a new screen opened mid-closure
           if (lastSwitchActivateRef.current >= snap.at) return refused; // another input already acted
-          dispatch({
+          const action: Action = {
             type: 'ACTIVATE', targetId: snap.targetId, eventId: newId(), cycleId: snap.cycleId,
             surfaceRevision: snap.surfaceRevision, sessionEpoch: s.sessionEpoch, source: 'blink', at: now(),
-          });
-          return { applied: true, targetId: snap.targetId };
+          };
+          // "Selected" only if the reducer will actually consume this cycle (it refuses stale
+          // revisions, disabled / unarmed targets and repeats). The reducer is pure, so the same
+          // check it runs on dispatch can be evaluated here first.
+          const consumed = reducer(s, action).consumedCycles.includes(snap.cycleId);
+          dispatch(action);
+          return consumed ? { applied: true, targetId: snap.targetId } : refused;
         }
-        case 'face-lost':
+        case 'face-lost': {
+          // Face lost, or tracking interrupted (tab hidden, rotation, camera stall: e.cause).
           unfreeze();
-          if (usable) dispatch({ type: 'SAFETY_PAUSE', at: now() });
+          if (!usable) return refused;
+          if (currentSurface(s).kind === 'speaking') {
+            // Never cut off the confirmed sentence because the person looked at their partner:
+            // gestures are already cancelled; pause after speech ends if tracking is still lost.
+            pendingPauseRef.current = e.cause ? 'interrupted' : 'face-lost';
+            return refused;
+          }
+          dispatch({ type: 'SAFETY_PAUSE', at: now() });
           return refused;
+        }
       }
     };
     blinkEngine.setCommandHandler(onCommand);
@@ -370,6 +416,21 @@ export function useStillHere(): StillHereRuntime {
     blinkPinRef.current = null;
     blinkEngine.resetGestures();
   }, [blinkEngine, surfaceKey]);
+
+  // A face loss / tracking interruption during speech was deferred (see 'face-lost' above). When
+  // the speaking surface ends: pause if tracking is still lost (an interruption always pauses,
+  // since gestures could not be observed); a face that came back needs no pause.
+  const surfaceKind = currentSurface(state).kind;
+  const blinkStatus = blink.status;
+  useEffect(() => {
+    const pending = pendingPauseRef.current;
+    if (!pending || surfaceKind === 'speaking') return;
+    pendingPauseRef.current = null;
+    const s = stateRef.current;
+    if (!blinkUsableRef.current || s.phase !== 'active' || !isFaceMode(s.settings.accessMode)) return;
+    const lost = blinkStatus === 'face-lost' || blinkStatus === 'no-face' || blinkStatus === 'multiple-faces';
+    if (pending === 'interrupted' || lost) dispatch({ type: 'SAFETY_PAUSE', at: now() });
+  }, [surfaceKind, blinkStatus]);
 
   // ---- Session, voice test, partner ----
   const blinkStartCamera = blink.startCamera;
@@ -428,7 +489,7 @@ export function useStillHere(): StillHereRuntime {
     accessStore.set(v);
   }, []);
 
-  const audio = useAudio({ getState: () => stateRef.current, dispatch, serverStatus, accessCode });
+  const audio = useAudio({ getState: () => stateRef.current, dispatch, serverStatus, accessCode, statusAccessCode });
   const canRecord = recordingApis && !!serverStatus?.transcription.configured && state.settings.cloudConsent;
 
   const partner = useMemo(

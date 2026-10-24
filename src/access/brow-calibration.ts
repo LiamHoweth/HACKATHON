@@ -9,6 +9,9 @@
 //   plus the relaxed frames between them). Distinct raises are counted as episodes that reach
 //   the proposed raised threshold after dropping to the release threshold. If the caller has
 //   segmented raises itself (e.g. passes one peak per raise), pass opts.raiseCount instead.
+// - When the caller has the prompt windows, it should pass opts.raisedLevel from
+//   heldRaiseLevel(): the level the brows were actually HELD at in each window. A p75 over all
+//   window samples is dominated by the relaxed frames before a late (2–3 s) reaction.
 import type { BrowCalibration } from '@/runtime/contract';
 import { median, quantile } from './blink-calibration';
 
@@ -17,7 +20,7 @@ export const BROW_CALIBRATION_KEY = 'still-here:brow-calibration:v1';
 export const BROW_CALIBRATION_MINIMUMS = {
   neutralSamples: 15,
   raises: 2,
-  /** raisedPeak (p75 of raise samples) must exceed the neutral p90 by at least this much. */
+  /** raisedPeak (held-stretch level, else p75 of raise samples) must exceed the neutral p90 by at least this much. */
   minSeparation: 0.15,
   /** Separation below this works but is marginal: warn. */
   warnSeparation: 0.25,
@@ -33,6 +36,62 @@ export type BrowCalibrationResult =
   | { ok: false; reason: string };
 
 const round3 = (x: number) => Math.round(x * 1000) / 1000;
+
+/** One time-stamped brow score (monotonic ms, 0..1). */
+export type BrowScoreSample = { t: number; score: number };
+
+export const HELD_RAISE = {
+  /** A held stretch is a run of samples above neutral p90 + this margin. */
+  provisionalMargin: 0.15,
+  /** Runs shorter than this are flickers, not held raises, and are ignored. */
+  minRunMs: 250,
+  /** A frame gap longer than this breaks a run. */
+  maxGapMs: 700,
+} as const;
+
+/**
+ * Raised level from the prompt windows: in each window, the longest continuous run of samples
+ * above the provisional threshold (neutral p90 + margin) is that window's held stretch; its median
+ * is the window's level. Returns the median over windows that had a held stretch, or null when no
+ * window did (the caller then fails honestly). Independent of how long the person took to react.
+ */
+export function heldRaiseLevel(
+  windows: readonly (readonly BrowScoreSample[])[],
+  neutralP90: number,
+  margin: number = HELD_RAISE.provisionalMargin,
+): number | null {
+  const threshold = neutralP90 + margin;
+  const levels: number[] = [];
+  for (const w of windows) {
+    let best: number[] = [];
+    let bestMs = -1;
+    let run: number[] = [];
+    let runStart = 0;
+    let lastT: number | null = null;
+    const close = (endT: number) => {
+      const ms = endT - runStart;
+      if (run.length && ms > bestMs) {
+        best = run;
+        bestMs = ms;
+      }
+      run = [];
+    };
+    for (const s of w) {
+      if (!isNum(s?.t) || !isNum(s?.score)) continue;
+      if (lastT !== null && s.t - lastT > HELD_RAISE.maxGapMs && run.length) close(lastT);
+      if (s.score > threshold) {
+        if (!run.length) runStart = s.t;
+        run.push(Math.min(1, Math.max(0, s.score)));
+      } else if (run.length) {
+        close(lastT ?? s.t);
+      }
+      lastT = s.t;
+    }
+    if (run.length && lastT !== null) close(lastT);
+    if (best.length && bestMs >= HELD_RAISE.minRunMs) levels.push(median(best));
+  }
+  return levels.length ? median(levels) : null;
+}
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const clean = (xs: readonly number[]) => xs.filter(isNum).map((x) => Math.min(1, Math.max(0, x)));
 
@@ -55,7 +114,7 @@ export function countRaiseEpisodes(samples: readonly number[], raised: number, r
 export function computeBrowCalibration(
   neutralSamples: number[],
   raiseSamples: number[],
-  opts: { raiseCount?: number } = {},
+  opts: { raiseCount?: number; raisedLevel?: number | null } = {},
 ): BrowCalibrationResult {
   const m = BROW_CALIBRATION_MINIMUMS;
   const neutral = clean(neutralSamples);
@@ -69,7 +128,8 @@ export function computeBrowCalibration(
 
   const neutralMedian = median(neutral);
   const neutralP90 = quantile(neutral, 0.9);
-  const raisedPeak = quantile(raise, 0.75);
+  // Prefer the held-stretch level (heldRaiseLevel) when the caller has prompt windows.
+  const raisedPeak = isNum(opts.raisedLevel) ? opts.raisedLevel : quantile(raise, 0.75);
   const separation = raisedPeak - neutralP90;
   if (!(separation >= m.minSeparation)) {
     return {

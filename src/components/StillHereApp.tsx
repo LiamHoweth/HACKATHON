@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { StillHereRuntime } from '@/runtime/contract';
 import { currentSurface } from '@/core/state';
 import type { Surface } from '@/core/state';
@@ -15,6 +15,22 @@ import { PartnerPanel } from './PartnerPanel';
 import { CameraPreview } from './CameraPreview';
 import { GestureFeedback } from './GestureFeedback';
 import { isFaceMode } from './BlinkStatus';
+
+const FINE_POINTER_QUERY = '(hover: hover) and (pointer: fine)';
+function subscribeFinePointer(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {};
+  const mql = window.matchMedia(FINE_POINTER_QUERY);
+  mql.addEventListener('change', onChange);
+  return () => mql.removeEventListener('change', onChange);
+}
+/** True on mouse/trackpad devices (likely a hardware keyboard); false on touch and during SSR. */
+function useFinePointer(): boolean {
+  return useSyncExternalStore(
+    subscribeFinePointer,
+    () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(FINE_POINTER_QUERY).matches,
+    () => false,
+  );
+}
 
 export function StillHereApp({ runtime }: { runtime: StillHereRuntime }) {
   if (runtime.state.phase === 'setup') return <SetupFlow runtime={runtime} />;
@@ -43,6 +59,7 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
   const paused = surface.kind === 'paused';
 
   const face = isFaceMode(state.settings.accessMode);
+  const finePointer = useFinePointer();
 
   // iPad landscape: two independent columns. Left: header, notice, communication surface (the
   // only scrolling region for cards). Right (slim): camera self-view + gesture/speech feedback at
@@ -63,9 +80,13 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
               type="button"
               className="btn btn-safety"
               disabled={paused}
+              aria-keyshortcuts="Escape"
+              title={finePointer ? 'Pause (Esc)' : undefined}
               onClick={() => dispatch({ type: 'SAFETY_PAUSE', at: performance.now() })}
             >
-              Pause (Esc)
+              Pause
+              {/* Esc hint only where a hardware keyboard + fine pointer is likely (not iPad touch). */}
+              {finePointer && <span aria-hidden="true"> (Esc)</span>}
             </button>
             {speaking && (
               <button

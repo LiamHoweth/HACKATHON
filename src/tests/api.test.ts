@@ -242,3 +242,43 @@ describe('validation and prompt payload', () => {
     expect(second.candidates.some((c) => firstTexts.has(c.text))).toBe(false);
   });
 });
+
+describe('/api/status in production', () => {
+  const statusReq = (headers: Record<string, string> = {}) =>
+    new Request('https://still-here.example.com/api/status', { headers: { host: 'still-here.example.com', 'x-real-ip': '10.9.9.9', ...headers } });
+  const configureAll = () => {
+    configureLive();
+    process.env.TRANSCRIPTION_PROVIDER = 'openai';
+    process.env.TRANSCRIPTION_API_KEY = 'test-transcribe-key-not-real';
+    process.env.TRANSCRIPTION_MODEL = 'test-transcribe-model';
+    process.env.APP_ACCESS_TOKEN = 'status-test-token-24char';
+  };
+
+  it('SYS-12 hides providers and models without a valid access code', async () => {
+    configureAll();
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const { GET } = await import('@/app/api/status/route');
+      for (const headers of [{}, { 'x-still-here-access': 'wrong' }] as Record<string, string>[]) {
+        const body = await (await GET(statusReq(headers))).json();
+        expect(body.replies).toEqual({ configured: true, provider: null, model: null });
+        expect(body.transcription).toEqual({ configured: true, provider: null });
+        expect(body.speech.provider).toBeNull();
+        expect(body.speech.model).toBeNull();
+      }
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('SYS-12 shows providers with a valid access code', async () => {
+    configureAll();
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const { GET } = await import('@/app/api/status/route');
+      const body = await (await GET(statusReq({ 'x-still-here-access': 'status-test-token-24char' }))).json();
+      expect(body.accessCodeValid).toBe(true);
+      expect(body.replies).toEqual({ configured: true, provider: 'anthropic', model: 'claude-opus-5-5' });
+      expect(body.transcription).toEqual({ configured: true, provider: 'openai' });
+      expect(JSON.stringify(body)).not.toContain('not-real');
+    } finally { vi.unstubAllEnvs(); }
+  });
+});

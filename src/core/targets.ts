@@ -41,10 +41,16 @@ function boardTargets(s: State): Target[] {
   const ws = activeWorkspace(s);
   const t: Target[] = [];
   const waiting = s.staged.length + parkedWorkspaces(s).length;
-  if (s.lastFailedSpeech) {
-    t.push({ id: 'speak-basic', label: 'Say it with the basic device voice', detail: 'The natural voice did not play. You will review it again first.', enabled: true, command: { type: 'review-basic-voice' }, region: 'primary' });
+  // Voice-problem recovery comes AFTER the candidates and "None of these" so that those keep a
+  // fixed scan position whether or not a speech failure is showing.
+  const recovery = (): void => {
+    if (!s.lastFailedSpeech) return;
+    const detail = s.lastFailedSpeech.delivery === 'uncertain'
+      ? 'The natural voice may have partly played. You will review it again first.'
+      : 'The natural voice did not play. You will review it again first.';
+    t.push({ id: 'speak-basic', label: 'Say it with the basic device voice', detail, enabled: true, command: { type: 'review-basic-voice' }, region: 'primary' });
     t.push({ id: 'dismiss-failed', label: 'Dismiss voice problem', enabled: true, command: { type: 'dismiss-failed-speech' }, region: 'primary', tone: 'quiet' });
-  }
+  };
   if (ws && !ws.closed) {
     if (ws.status === 'choosing' && ws.batch) {
       ws.batch.candidates.forEach((c, i) => t.push({
@@ -65,16 +71,19 @@ function boardTargets(s: State): Target[] {
     } else if (ws.status === 'idle' && s.settings.aiMode !== 'local-only') {
       t.push({ id: 'refresh', label: 'Get suggestions', enabled: true, command: { type: 'refresh' }, region: 'primary' });
     }
+    recovery();
     t.push(open('guide', 'Guide my response', { kind: 'guide', page: 'root' }, { enabled: s.settings.aiMode !== 'local-only' }));
     t.push(open('quick', 'Quick phrases', { kind: 'quick', page: 0 }));
     t.push(open('my-words', 'My words', { kind: 'compose', purpose: 'message', group: null, seedFor: null }));
   } else {
+    recovery();
     t.push(open('start', 'Start a conversation', { kind: 'initiate' }, { region: 'primary' }));
     t.push(open('quick', 'Quick phrases', { kind: 'quick', page: 0 }));
     t.push(open('my-words', 'My words', { kind: 'compose', purpose: 'message', group: null, seedFor: null }));
   }
-  if (waiting > 0) t.push(open('waiting', `Waiting: ${waiting}`, { kind: 'history' }));
-  t.push(open('more', 'More tools', { kind: 'tools' }));
+  // Waiting items are reached through More tools → History and waiting; the count rides on
+  // More tools as detail so the action row keeps a fixed length.
+  t.push(open('more', 'More tools', { kind: 'tools' }, waiting > 0 ? { detail: `${waiting} waiting` } : {}));
   return t;
 }
 
@@ -205,27 +214,34 @@ function initiateTopicTargets(s: State, mode: 'interest' | 'earlier'): Target[] 
 function toolsTargets(s: State): Target[] {
   const ws = activeWorkspace(s);
   const waiting = s.staged.length + parkedWorkspaces(s).length;
+  // Pause first: the safety action is one step away from the tools menu.
   return [
+    { id: 't-pause', label: 'Pause', enabled: true, command: { type: 'pause' }, region: 'menu' },
     open('t-start', 'Start a conversation', { kind: 'initiate' }, { region: 'menu' }),
-    { id: 't-park', label: 'Keep this question for later', enabled: !!ws && !ws.closed, command: { type: 'park-active' }, region: 'menu' },
+    open('t-controls', 'Controls', { kind: 'controls' }, { region: 'menu' }),
     open('t-history', `History and waiting (${waiting})`, { kind: 'history' }, { region: 'menu' }),
     open('t-prefs', s.proposals.some((p) => p.status === 'pending') ? 'Preferences · suggestion available' : 'Preferences and memory', { kind: 'preferences' }, { region: 'menu' }),
-    open('t-controls', 'Controls', { kind: 'controls' }, { region: 'menu' }),
+    { id: 't-park', label: 'Keep this question for later', enabled: !!ws && !ws.closed, command: { type: 'park-active' }, region: 'menu' },
     back(),
   ];
 }
 
 function historyTargets(s: State): Target[] {
   const t: Target[] = [];
+  // Labels are shortened for scanning; the full text is always in detail when it was cut, so
+  // two similar questions are never ambiguous.
+  const full = (text: string) => (short(text) !== text ? { detail: text } : {});
   for (const id of s.staged) {
-    const text = short(partnerText(s, id));
-    t.push({ id: `h-answer-${id}`, label: `Answer: ${text}`, enabled: true, command: { type: 'history-answer', turnId: id }, region: 'menu' });
-    t.push({ id: `h-dismiss-${id}`, label: `Dismiss from pending: ${text}`, enabled: true, command: { type: 'history-dismiss-staged', turnId: id }, region: 'menu', tone: 'quiet' });
+    const whole = partnerText(s, id);
+    const text = short(whole);
+    t.push({ id: `h-answer-${id}`, label: `Answer: ${text}`, ...full(whole), enabled: true, command: { type: 'history-answer', turnId: id }, region: 'menu' });
+    t.push({ id: `h-dismiss-${id}`, label: `Dismiss from pending: ${text}`, ...full(whole), enabled: true, command: { type: 'history-dismiss-staged', turnId: id }, region: 'menu', tone: 'quiet' });
   }
   for (const ws of parkedWorkspaces(s)) {
-    const label = short(anchorLabel(s, ws));
-    t.push({ id: `h-return-${ws.id}`, label: `Return to: ${label}`, enabled: true, command: { type: 'history-return', workspaceId: ws.id }, region: 'menu' });
-    t.push({ id: `h-drop-${ws.id}`, label: `Dismiss from pending: ${label}`, enabled: true, command: { type: 'history-dismiss-workspace', workspaceId: ws.id }, region: 'menu', tone: 'quiet' });
+    const whole = anchorLabel(s, ws);
+    const label = short(whole);
+    t.push({ id: `h-return-${ws.id}`, label: `Return to: ${label}`, ...full(whole), enabled: true, command: { type: 'history-return', workspaceId: ws.id }, region: 'menu' });
+    t.push({ id: `h-drop-${ws.id}`, label: `Dismiss from pending: ${label}`, ...full(whole), enabled: true, command: { type: 'history-dismiss-workspace', workspaceId: ws.id }, region: 'menu', tone: 'quiet' });
   }
   t.push(back());
   return t;
@@ -322,21 +338,26 @@ function memoryTargets(s: State): Target[] {
 function controlsTargets(s: State): Target[] {
   const iv = s.settings.scanIntervalMs;
   const rec = s.recording.status;
+  // Scan speed only matters for timed scanning (blink / switch). Brow-blink, keyboard and pointer
+  // users step manually, so the targets would only lengthen their path.
+  const timedScan = s.settings.accessMode === 'blink' || s.settings.accessMode === 'switch';
   return [
     { id: 'ct-pause', label: 'Pause', enabled: true, command: { type: 'pause' }, region: 'menu' },
     rec === 'recording'
       ? { id: 'ct-rec', label: 'Finish recording', enabled: true, command: { type: 'record-finish' }, region: 'menu' }
       : { id: 'ct-rec', label: 'Record partner speech', detail: s.settings.cloudConsent ? 'Sends audio for transcription' : 'Needs cloud consent at setup',
           enabled: s.settings.cloudConsent && rec !== 'transcribing' && rec !== 'requesting' && !s.speech, command: { type: 'record-start' }, region: 'menu' },
-    { id: 'ct-slower', label: `Scan slower (now ${(iv / 1000).toFixed(2)}s)`, enabled: iv < SCAN_DEFAULTS.maxIntervalMs, command: { type: 'scan-speed', deltaMs: SCAN_DEFAULTS.stepMs }, region: 'menu' },
-    { id: 'ct-faster', label: 'Scan faster', enabled: iv > SCAN_DEFAULTS.minIntervalMs, command: { type: 'scan-speed', deltaMs: -SCAN_DEFAULTS.stepMs }, region: 'menu' },
+    ...(timedScan ? [
+      { id: 'ct-slower', label: `Scan slower (now ${(iv / 1000).toFixed(2)}s)`, enabled: iv < SCAN_DEFAULTS.maxIntervalMs, command: { type: 'scan-speed', deltaMs: SCAN_DEFAULTS.stepMs }, region: 'menu' },
+      { id: 'ct-faster', label: 'Scan faster', enabled: iv > SCAN_DEFAULTS.minIntervalMs, command: { type: 'scan-speed', deltaMs: -SCAN_DEFAULTS.stepMs }, region: 'menu' },
+    ] satisfies Target[] : []),
     open('ct-scope', `Who/where: ${describeScope(s.settings.scope)}`, { kind: 'scope' }, { region: 'menu' }),
     s.settings.speechProvider === 'elevenlabs'
       ? { id: 'ct-voice', label: 'Voice: natural (ElevenLabs)', detail: 'Switch to the basic device voice', enabled: true, command: { type: 'set-speech-provider', provider: 'browser' }, region: 'menu' }
       : { id: 'ct-voice', label: 'Voice: basic device voice', detail: 'Switch to the natural voice', enabled: true, command: { type: 'set-speech-provider', provider: 'elevenlabs' }, region: 'menu' },
+    open('ct-end', 'End session…', { kind: 'end-confirm' }, { region: 'menu', tone: 'quiet' }),
     { id: 'ct-measure', label: `Measurement mode: ${s.settings.measurement ? 'on' : 'off'}`, enabled: true, command: { type: 'toggle-flag', flag: 'measurement' }, region: 'menu' },
     open('ct-metrics', 'View measurements', { kind: 'metrics' }, { region: 'menu' }),
-    open('ct-end', 'End session…', { kind: 'end-confirm' }, { region: 'menu', tone: 'quiet' }),
     back(),
   ];
 }

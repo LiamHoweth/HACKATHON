@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BlinkRuntime, GestureFeedbackKind, StillHereRuntime } from '@/runtime/contract';
+import { currentSurface } from '@/core/state';
 import { BLINK_STATUS_LABELS } from './labels';
 import type { BlinkTone } from './labels';
 import { GestureBar, ProgressRing, isFaceMode } from './BlinkStatus';
@@ -145,9 +146,12 @@ export function GestureFeedback({ runtime }: { runtime: StillHereRuntime }) {
   const ack = useAcceptedAck(runtime.blink);
   const g = face ? gestureLine(runtime, ack) : null;
   const sp = speechLine(runtime);
+  // While the Speaking surface is open it announces delivery itself (role=status), so the speech
+  // state is left out of this region to avoid announcing it twice.
+  const speakingSurface = currentSurface(runtime.state).kind === 'speaking';
   const announce = [
     g ? (g.coarse === 'ready' ? 'Eye gestures ready.' : g.coarse) : '',
-    sp && sp.tone !== 'work' ? sp.text.replace(' — tap Enable audio', '') + '.' : '',
+    sp && sp.tone !== 'work' && !speakingSurface ? sp.text.replace(' — tap Enable audio', '') + '.' : '',
   ].filter(Boolean).join(' ');
 
   return (

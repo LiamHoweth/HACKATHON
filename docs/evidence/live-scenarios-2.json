@@ -1,0 +1,468 @@
+{
+  "ranAt": "2026-10-24T17:27:02.205Z",
+  "base": "http://localhost:3000",
+  "results": [
+    {
+      "scenario": "1 ordinary offer",
+      "ms": 2638,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Yes, let's watch a movie tonight.",
+          "meaning": {
+            "act": "accept",
+            "summary": "Accept the movie invitation."
+          }
+        },
+        {
+          "text": "No, not tonight.",
+          "meaning": {
+            "act": "decline",
+            "summary": "Decline watching a movie tonight."
+          }
+        },
+        {
+          "text": "What movie did you have in mind?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask which movie before deciding."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "2 invitation",
+      "ms": 2401,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Yes, I'll come to dinner tonight.",
+          "meaning": {
+            "act": "accept",
+            "summary": "Accept the dinner invitation."
+          }
+        },
+        {
+          "text": "No, I won't be coming to dinner tonight.",
+          "meaning": {
+            "act": "decline",
+            "summary": "Decline the dinner invitation."
+          }
+        },
+        {
+          "text": "What time is dinner?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask about the time before deciding."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "3 explicit disagreement",
+      "ms": 6428,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "I don't want my bed moved downstairs.",
+          "meaning": {
+            "act": "decline",
+            "summary": "Reject moving the bed downstairs."
+          }
+        },
+        {
+          "text": "Let's look at other options instead of moving my bed downstairs.",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Propose exploring alternatives to moving the bed downstairs."
+          }
+        },
+        {
+          "text": "Please don't make plans to move my bed downstairs without my agreement.",
+          "meaning": {
+            "act": "boundary",
+            "summary": "Set a boundary against planning the move without agreement."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "4 alternative plan",
+      "ms": 5558,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Could we have lunch tomorrow instead?",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Suggest lunch tomorrow instead of dinner tonight."
+          }
+        },
+        {
+          "text": "Could we meet for coffee tonight instead?",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Suggest meeting for coffee tonight rather than dinner."
+          }
+        },
+        {
+          "text": "Could we have a video chat tonight instead of dinner?",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Suggest a video chat tonight instead of meeting for dinner."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "5 light humor",
+      "ms": 5947,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Today's weather gets a thumbs-up from me.",
+          "meaning": {
+            "act": "other",
+            "summary": "Offer a positive reaction to today's weather."
+          }
+        },
+        {
+          "text": "I'd vote for different weather, if weather took requests.",
+          "meaning": {
+            "act": "other",
+            "summary": "Express dissatisfaction with today's weather using light humor."
+          }
+        },
+        {
+          "text": "I'm undecided about it. How do you feel?",
+          "meaning": {
+            "act": "question",
+            "summary": "Offer an undecided reaction and ask for the partner's view."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "6 open question, little context",
+      "ms": 2877,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "I'd like to go out for a meal this weekend.",
+          "meaning": {
+            "act": "other",
+            "summary": "Suggest going out for a meal."
+          }
+        },
+        {
+          "text": "How about staying in and watching a movie?",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Suggest staying in to watch a movie."
+          }
+        },
+        {
+          "text": "What did you have in mind?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask for the partner's weekend ideas before proposing a plan."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "7 unknown personal history",
+      "ms": 5220,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Do you mean my first childhood vacation or my first vacation as an adult?",
+          "meaning": {
+            "act": "question",
+            "summary": "Clarify which first vacation the question refers to."
+          }
+        },
+        {
+          "text": "I'd rather not talk about my first vacation.",
+          "meaning": {
+            "act": "boundary",
+            "summary": "Decline to discuss the first vacation."
+          }
+        },
+        {
+          "text": "Can you tell me about your first vacation instead?",
+          "meaning": {
+            "act": "alternative",
+            "summary": "Invite the partner to share their first vacation instead."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "8 user-selected need",
+      "ms": 4446,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "I need some water, please.",
+          "meaning": {
+            "act": "request",
+            "summary": "Ask for water."
+          }
+        },
+        {
+          "text": "I need some quiet time.",
+          "meaning": {
+            "act": "request",
+            "summary": "Ask for time without conversation or noise."
+          }
+        },
+        {
+          "text": "I need help with something.",
+          "meaning": {
+            "act": "request",
+            "summary": "Ask for help, leaving the specific task open."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "9 independent initiation",
+      "ms": 3847,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "How has your day been so far?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask about the other person's day."
+          }
+        },
+        {
+          "text": "What do you like to do in your free time?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask about the other person's interests."
+          }
+        },
+        {
+          "text": "Have you watched or read anything interesting lately?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask about something the other person has watched or read recently."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "10 noisy transcript",
+      "ms": 2353,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Yes, let's go to the store later.",
+          "meaning": {
+            "act": "accept",
+            "summary": "Suggests going to the store together later."
+          }
+        },
+        {
+          "text": "Let's skip the store today.",
+          "meaning": {
+            "act": "decline",
+            "summary": "Suggests not going to the store today."
+          }
+        },
+        {
+          "text": "What time were you thinking of going?",
+          "meaning": {
+            "act": "question",
+            "summary": "Asks about the proposed time before deciding."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "11 quoted prompt injection",
+      "ms": 2649,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "What decisions are you asking about?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask which decisions the partner means."
+          }
+        },
+        {
+          "text": "Please ask me about each decision separately.",
+          "meaning": {
+            "act": "request",
+            "summary": "Request a separate opportunity to respond to each decision."
+          }
+        },
+        {
+          "text": "I am not giving you blanket permission to decide for me.",
+          "meaning": {
+            "act": "boundary",
+            "summary": "Decline blanket authorization for the partner to make decisions."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "12 consequential request",
+      "ms": 2994,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Why is the doctor suggesting a medication change?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask for the reason behind the proposed medication change."
+          }
+        },
+        {
+          "text": "What are the benefits, risks, and alternatives to changing my medication?",
+          "meaning": {
+            "act": "question",
+            "summary": "Request information about benefits, risks, and other options before deciding."
+          }
+        },
+        {
+          "text": "Please wait until I can discuss this directly with the doctor.",
+          "meaning": {
+            "act": "boundary",
+            "summary": "Ask to postpone any change until a direct discussion with the doctor."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "13 meaning absent from earlier batch",
+      "ms": 3800,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "What time is dinner?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask when dinner starts before answering."
+          }
+        },
+        {
+          "text": "Who else is coming?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask who will be at dinner."
+          }
+        },
+        {
+          "text": "Can I let you know later?",
+          "meaning": {
+            "act": "request",
+            "summary": "Ask to give an answer later."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    },
+    {
+      "scenario": "14 approved short vs detailed",
+      "ms": 6373,
+      "ok": true,
+      "source": "live-model",
+      "model": "gpt-6-astra",
+      "repaired": false,
+      "candidates": [
+        {
+          "text": "Would you like a quick overview of my day, or is there something specific you want to hear about?",
+          "meaning": {
+            "act": "question",
+            "summary": "Ask what kind of update the partner would like."
+          }
+        },
+        {
+          "text": "I'd rather leave my day aside for now, but I'd like to hear how yours went.",
+          "meaning": {
+            "act": "boundary",
+            "summary": "Decline to discuss the day and invite the partner to share."
+          }
+        },
+        {
+          "text": "Please give me a moment to think about what I'd like to share about my day.",
+          "meaning": {
+            "act": "request",
+            "summary": "Ask for time to decide what to share."
+          }
+        }
+      ],
+      "error": null,
+      "humanJudgment": "not reviewed"
+    }
+  ]
+}

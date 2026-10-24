@@ -14,6 +14,7 @@
 // Raw detector events still reach `subscribe` listeners (calibration / practice screens).
 // No camera frame, image, or recording is stored or sent anywhere.
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { getSharedGestureMetrics } from '@/metrics/gesture-metrics';
 import type { AccessMode } from '@/core/types';
 import { newId } from '@/core/reducer';
 import type {
@@ -25,7 +26,7 @@ import {
   CALIBRATION_TIMING, ClosureSegmenter, computeBlinkCalibration, loadCalibration, provisionalThresholds, quantile, saveCalibration,
 } from '@/access/blink-calibration';
 import { BrowGesture, DEFAULT_BROW_CALIBRATION, type BrowEvent } from '@/access/brow-gesture';
-import { computeBrowCalibration, loadBrowCalibration, saveBrowCalibration } from '@/access/brow-calibration';
+import { computeBrowCalibration, heldRaiseLevel, loadBrowCalibration, saveBrowCalibration } from '@/access/brow-calibration';
 import {
   blinkProgressFeedback, browProgressFeedback, GestureArbiter, type ArbiterOutput,
 } from '@/access/gesture-arbiter';
@@ -108,15 +109,29 @@ export type BlinkEngineSnapshot = {
   cal: CalibratorView;
 };
 
+/** Why tracking was interrupted (tab hidden, device rotated, camera image stopped / ended). */
+export type TrackingInterruptReason = 'hidden' | 'orientation' | 'stall' | 'camera';
+
 /** Events the engine sends to the single command handler (useStillHere). */
 export type FaceCommandEvent =
   | { type: 'freeze'; at: number }   // blink closure onset: freeze the highlight now
   | { type: 'unfreeze'; at: number }
   | { type: 'accept'; command: GestureCommand; at: number; cycleId: string }
-  | { type: 'face-lost'; at: number };
+  // Face lost (cause undefined) or tracking interrupted (cause set: tab hidden, rotation, camera
+  // stall / ended). Pending gestures are already discarded; the handler pauses either way, so a
+  // deliberate resume is required. (One event type so every handler treats both the same.)
+  | { type: 'face-lost'; at: number; cause?: TrackingInterruptReason };
 
-/** Handler result for 'accept': applied=false means the command was refused (no "Next"/"Selected"). */
-export type FaceCommandResult = { applied: boolean; targetId: string | null };
+/**
+ * Handler result. applied=false means refused (no "Next"/"Selected"). A refused 'freeze' voids
+ * the closure in the engine (its SELECT can never be accepted). refusal 'highlight-moved' (the
+ * highlight or screen changed too close to the closure onset) shows HIGHLIGHT_MOVED_FEEDBACK
+ * when that closure would have selected, instead of failing silently.
+ */
+export type FaceCommandResult = { applied: boolean; targetId: string | null; refusal?: 'highlight-moved' };
+
+/** Shown when a deliberate closure was voided because the highlight moved just before it. */
+export const HIGHLIGHT_MOVED_FEEDBACK: GestureFeedback = { kind: 'ambiguous', label: 'Highlight just moved — nothing selected. Blink again.' };
 export type FaceCommandHandler = (e: FaceCommandEvent) => FaceCommandResult | void;
 
 const STATUS_MESSAGES: Record<BlinkStatus, string> = {
@@ -244,11 +259,14 @@ export function proposeBrowCalibration(
   neutral: readonly number[], windows: readonly (readonly ScoreSample[])[],
 ): { ok: true; calibration: BrowCalibration; warnings: string[] } | { ok: false; reason: string } {
   const raise = windows.flatMap((w) => w.map((s) => s.score));
-  const first = computeBrowCalibration([...neutral], raise, { raiseCount: windows.length });
+  // Raised level from each window's held stretch, not a p75 of all samples (late reactions).
+  const cleanNeutral = neutral.filter((x) => Number.isFinite(x));
+  const raisedLevel = cleanNeutral.length ? heldRaiseLevel(windows, quantile(cleanNeutral.map((x) => Math.min(1, Math.max(0, x))), 0.9)) : null;
+  const first = computeBrowCalibration([...neutral], raise, { raiseCount: windows.length, raisedLevel });
   if (!first.ok) return { ok: false, reason: `${first.reason} ${BROW_FALLBACK_ADVICE}` };
   const c = first.calibration;
   const held = countHeldRaises(windows, c.raisedThreshold, c.releaseThreshold, c.holdMs);
-  const r = computeBrowCalibration([...neutral], raise, { raiseCount: held });
+  const r = computeBrowCalibration([...neutral], raise, { raiseCount: held, raisedLevel });
   if (!r.ok) {
     return {
       ok: false,
@@ -345,6 +363,8 @@ export class BlinkEngine {
   private transient: { feedback: GestureFeedback; until: number } | null = null;
   private lastAccepted: AcceptedGesture | null = null;
   private lastAcceptApplied = false;
+  /** The current closure's freeze was refused: its SELECT is void (set at freeze, cleared at unfreeze). */
+  private closureVoid: { feedback: boolean } | null = null;
 
   // ---- Calibration ----
   private calibration: BlinkCalibration | null;
@@ -476,8 +496,10 @@ export class BlinkEngine {
         : browOn ? this.brow.progress(this.lastT) : 0;
     const now = this.nowMs();
     const transient = this.transient && now < this.transient.until ? this.transient.feedback : null;
-    const closureProgress = running ? q(g.closureProgress, 0.05) : 0;
-    const qBrowProgress = q(clamp01(browProgress), 0.05);
+    // In a session progress moves in 10 steps (fewer app re-renders); calibration keeps 20.
+    const progressStep = calibrating ? 0.05 : 0.1;
+    const closureProgress = running ? q(g.closureProgress, progressStep) : 0;
+    const qBrowProgress = q(clamp01(browProgress), progressStep);
     const nextFeedback = composeFeedback({
       hard: this.hardStatus, stalled: this.stalled, status, mode, browStatus, browProgress: qBrowProgress,
       closureProgress, transient, calibrated: this.requiredCalibrated() || calibrating,
@@ -546,8 +568,12 @@ export class BlinkEngine {
       || next.cal.proposedBrow !== prev.cal.proposedBrow || next.cal.browRaiseCount !== prev.cal.browRaiseCount || next.feedback.kind !== prev.feedback.kind || next.feedback.label !== prev.feedback.label;
     if (!force && !structural) {
       if (now - this.lastPublish < PUBLISH_MS) return;
-      const same = next.closureProgress === prev.closureProgress && next.eyeScore === prev.eyeScore && next.fps === prev.fps
-        && next.cal.progress === prev.cal.progress && next.browProgress === prev.browProgress && next.browScore === prev.browScore
+      // Raw meters (eye/brow score, fps) only drive a publish during calibration, where they are
+      // shown; in a session only status / feedback / progress changes re-render the app.
+      const meters = !CALIBRATING_STAGES.has(next.cal.stage)
+        || (next.eyeScore === prev.eyeScore && next.fps === prev.fps && next.browScore === prev.browScore);
+      const same = meters && next.closureProgress === prev.closureProgress
+        && next.cal.progress === prev.cal.progress && next.browProgress === prev.browProgress
         && next.feedback === prev.feedback && next.cal.browNeutralSamples === prev.cal.browNeutralSamples
         && next.cal.browRaiseSamples === prev.cal.browRaiseSamples;
       if (same) return;
@@ -588,6 +614,7 @@ export class BlinkEngine {
   private routeBlink(events: BlinkGestureEvent[]) {
     for (const e of events) {
       this.emitRaw(e);
+      if (this.liveMetrics()) getSharedGestureMetrics().recordGesture(e);
       this.apply(this.arbiter.onBlink(e));
       if (e.type === 'face-lost') this.send({ type: 'face-lost', at: e.at });
     }
@@ -596,8 +623,14 @@ export class BlinkEngine {
   private routeBrow(events: BrowEvent[]) {
     for (const e of events) {
       this.emitRaw(e);
+      if (this.liveMetrics()) getSharedGestureMetrics().recordGesture(e);
       this.apply(this.arbiter.onBrow(e));
     }
+  }
+
+  /** Measurement records real-session gestures only (never calibration or practice). */
+  private liveMetrics(): boolean {
+    return !CALIBRATING_STAGES.has(this.stage) && !PRACTICE_STAGES.has(this.stage);
   }
 
   private flash(feedback: GestureFeedback) {
@@ -607,9 +640,18 @@ export class BlinkEngine {
   private apply(outputs: ArbiterOutput[]) {
     for (const o of outputs) {
       switch (o.type) {
-        case 'freeze':
+        case 'freeze': {
+          this.closureVoid = null;
+          if (CALIBRATING_STAGES.has(this.stage)) break;
+          const r = this.send({ type: 'freeze', at: o.at });
+          // Refused (no attributable target, highlight just moved, another input owns the cycle):
+          // this closure can never select. Say so only if it turns into a deliberate select.
+          if (!r.applied) this.closureVoid = { feedback: r.refusal === 'highlight-moved' };
+          break;
+        }
         case 'unfreeze':
-          if (!CALIBRATING_STAGES.has(this.stage)) this.send({ type: o.type, at: o.at });
+          this.closureVoid = null;
+          if (!CALIBRATING_STAGES.has(this.stage)) this.send({ type: 'unfreeze', at: o.at });
           break;
         case 'cancel-brow':
           // The arbiter has already cleared its pending raise; the brow machine re-arms.
@@ -623,9 +665,14 @@ export class BlinkEngine {
             if (o.command === 'NAV_NEXT' && this.stage === 'brow-practice') this.browPracticeCount += 1;
           } else if (CALIBRATING_STAGES.has(this.stage)) {
             r = { applied: false, targetId: null }; // sampling stages: gestures do nothing
+          } else if (o.command === 'SELECT' && this.closureVoid) {
+            // The freeze was refused: never forward this closure's SELECT.
+            r = { applied: false, targetId: null, refusal: this.closureVoid.feedback ? 'highlight-moved' : undefined };
           } else {
             r = this.send({ type: 'accept', command: o.command, at: o.at, cycleId: o.cycleId });
+            getSharedGestureMetrics().record({ kind: 'gesture-accept', t: o.at, command: o.command, applied: r.applied });
           }
+          if (!r.applied && r.refusal === 'highlight-moved') this.flash(HIGHLIGHT_MOVED_FEEDBACK);
           this.lastAcceptApplied = r.applied;
           if (r.applied) this.lastAccepted = { command: o.command, at: o.at, targetId: r.targetId };
           break;
@@ -661,6 +708,7 @@ export class BlinkEngine {
       stream = await navigator.mediaDevices.getUserMedia(CAMERA_CONSTRAINTS);
     } catch (e) {
       if (gen !== this.gen) return;
+      this.releaseWakeLock(); // no camera session: do not keep the screen awake
       const name = (e as { name?: string } | null)?.name;
       if (name === 'NotAllowedError' || name === 'SecurityError') this.setHard('permission-denied', null);
       else this.setHard('unsupported', name === 'NotFoundError' || name === 'OverconstrainedError'
@@ -830,11 +878,16 @@ export class BlinkEngine {
     this.publish(true);
   }
 
-  /** Tab hidden, stall, orientation change: cancel pending gestures; nothing completes across. */
-  private interruptAll() {
+  /**
+   * Tab hidden, stall, orientation change, camera muted / ended: cancel pending gestures (nothing
+   * completes across) and tell the handler, which pauses like face-lost (deliberate resume).
+   */
+  private interruptAll(reason: TrackingInterruptReason) {
     const ev = interruptGestures(this.gesture, this.brow, this.lastT);
     this.routeBlink(ev.blink);
     this.routeBrow(ev.brow);
+    this.closureVoid = null;
+    if (!CALIBRATING_STAGES.has(this.stage)) this.send({ type: 'face-lost', at: this.lastT, cause: reason });
     this.smoothed = null;
     this.browSmoothed = null;
     this.segmenter?.reset();
@@ -849,7 +902,7 @@ export class BlinkEngine {
     if (document.hidden) {
       // Hidden tab: stop processing; a pending closure / raise is discarded and can never commit.
       this.detector.pause();
-      this.interruptAll();
+      this.interruptAll('hidden');
       this.publish(true);
     } else {
       this.lastFrameAt = performance.now();
@@ -868,7 +921,9 @@ export class BlinkEngine {
     if (typeof document !== 'undefined' && document.hidden) return;
     const gen = this.gen;
     navigator.wakeLock.request('screen').then((sentinel) => {
-      if (gen !== this.gen && !this.stream) {
+      // Resolved after the camera failed / stopped (or after a newer start superseded it with no
+      // stream yet): release it rather than keeping the screen awake with no camera session.
+      if ((gen !== this.gen || this.hardStatus !== 'starting') && !this.stream) {
         void sentinel.release().catch(() => {});
         return;
       }
@@ -896,7 +951,7 @@ export class BlinkEngine {
       track.onmute = () => {
         if (this.stream !== stream) return;
         // No new frames are coming: anything pending is stale. The watchdog holds input.
-        this.interruptAll();
+        this.interruptAll('stall');
         this.publish(true);
       };
       track.onunmute = () => {
@@ -906,7 +961,7 @@ export class BlinkEngine {
       };
       track.onended = () => {
         if (this.stream !== stream) return;
-        this.interruptAll();
+        this.interruptAll('camera');
         if (typeof document !== 'undefined' && document.hidden) this.trackEndedWhileHidden = true;
         else void this.reacquire();
         this.publish(true);
@@ -958,7 +1013,7 @@ export class BlinkEngine {
     if (!this.detector) return;
     // The face moves in the frame: pending gestures are stale; the brow machine needs a fresh
     // neutral frame before another raise can start.
-    this.interruptAll();
+    this.interruptAll('orientation');
     this.brow.reset();
     this.publish(true);
   };
@@ -968,7 +1023,7 @@ export class BlinkEngine {
     const stalled = performance.now() - this.lastFrameAt > STALL_MS;
     if (stalled && !this.stalled) {
       this.stalled = true;
-      this.interruptAll();
+      this.interruptAll('stall');
       this.publish(true);
     }
     if (stalled) {

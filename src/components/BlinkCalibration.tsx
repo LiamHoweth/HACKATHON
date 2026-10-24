@@ -9,6 +9,8 @@ import type { AccessMode } from '@/core/types';
 import { BlinkStatus, ClosureBar } from './BlinkStatus';
 import { BLINK_ARMED, BROW_STATUS_LABELS } from './labels';
 import { CALIBRATION_WARNING_TEXT, calibrationWarnings } from '@/access/blink-calibration';
+import { ATTRIBUTION_TIMING } from '@/access/scan-controller';
+import { HIGHLIGHT_MOVED_FEEDBACK } from '@/runtime/useBlink';
 import css from './setup.module.css';
 
 /** Face-input modes that use this calibration screen. */
@@ -124,7 +126,8 @@ export function BlinkCalibration({ runtime, mode, scanIntervalMs, onComplete, on
         {cal.stage !== 'consent' && cal.stage !== 'done' && (
           <button type="button" className="btn btn-quiet" onClick={() => cal.restart(mode)}>Start calibration over</button>
         )}
-        <Alternatives mode={mode} cameraUsable={!cameraBlocked} onFallback={onFallback} />
+        {/* When the camera is blocked, the problem card already offers these (one set only). */}
+        {!cameraBlocked && <Alternatives mode={mode} cameraUsable onFallback={onFallback} />}
       </div>
     </main>
   );
@@ -146,16 +149,44 @@ function Alternatives({ mode, cameraUsable, onFallback, primary = false }: {
   );
 }
 
+type CameraProblemKind = 'insecure' | 'denied' | 'no-camera' | 'other';
+
+/** Why the camera is blocked, so the copy names the real cause (not "needs https" on an https page). */
+function cameraProblemKind(blink: BlinkRuntime): CameraProblemKind {
+  if (typeof window !== 'undefined' && !window.isSecureContext) return 'insecure';
+  if (blink.status === 'permission-denied') return 'denied';
+  // The runtime reports NotFoundError / OverconstrainedError only through its message text.
+  if (blink.message && /no usable camera/i.test(blink.message)) return 'no-camera';
+  return 'other';
+}
+
+const CAMERA_PROBLEM_COPY: Record<CameraProblemKind, { title: string; body: string }> = {
+  insecure: {
+    title: 'This page needs a secure (https) connection',
+    body: 'Browsers only allow the camera on secure pages. Open Still Here from its https:// address (or localhost on this computer), then try again.',
+  },
+  denied: {
+    title: 'Camera permission was not given',
+    body: 'Face control needs the camera. A helper can allow it — Safari on iPad: tap “aA” in the address bar → Website Settings → Camera → Allow. Chrome: tap the icon left of the address → Permissions (or Site settings) → Camera → Allow. Then try the camera again.',
+  },
+  'no-camera': {
+    title: 'No camera was found on this device',
+    body: 'Face control needs a front camera. If one is connected or built in, check that no other app is using it, then try again.',
+  },
+  other: {
+    title: 'The camera could not be used here',
+    body: 'This browser or device could not start the camera or face detection.',
+  },
+};
+
 function CameraProblem({ blink, onFallback }: { blink: BlinkRuntime; onFallback: (m: AccessMode) => void }) {
+  const kind = cameraProblemKind(blink);
+  const copy = CAMERA_PROBLEM_COPY[kind];
   return (
     <div className="cal-body">
-      <h2>{blink.status === 'permission-denied' ? 'Camera permission was not given' : 'The camera is not available here'}</h2>
-      <p>
-        {blink.status === 'permission-denied'
-          ? 'Face control needs the camera. A helper can allow it in the browser’s site settings (on iPad: the “aA” menu → Website Settings → Camera), then try again.'
-          : 'This browser, device, or connection cannot run face detection (it needs a camera and a secure https page).'}
-      </p>
-      {blink.message && <p className="muted">{blink.message}</p>}
+      <h2>{copy.title}</h2>
+      <p>{copy.body}</p>
+      {kind === 'other' && blink.message && <p className="muted">{blink.message}</p>}
       <p className="muted">Keyboard, switch and touch work the same way, with the same review and separate confirmation.</p>
       <div className="cal-row">
         <button type="button" className="btn btn-primary btn-large" onClick={() => onFallback('switch')}>Use keyboard / switch</button>
@@ -507,7 +538,12 @@ function BrowBlinkPractice({ blink, onComplete }: { blink: BlinkRuntime; onCompl
   const [feedback, setFeedback] = useState('');
   const [finished, setFinished] = useState(false);
   // A closure must START during the current step before its SELECT can count (fresh gesture).
-  const [closureInStep, setClosureInStep] = useState(false);
+  // 'void': it started within recentChangeMs of a highlight move, so (as in the app) it can
+  // never select — the practice teaches the real timing.
+  const [closureInStep, setClosureInStep] = useState<'none' | 'fresh' | 'void'>('none');
+  const [movedAt, setMovedAt] = useState<number | null>(null);
+  // Latest highlight-move time on the gesture clock, readable from the event listener.
+  const lastMoveRef = useRef<number | null>(null);
 
   const items = step === 'select' ? PRACTICE_SELECT : PRACTICE_CONFIRM;
 
@@ -516,9 +552,13 @@ function BrowBlinkPractice({ blink, onComplete }: { blink: BlinkRuntime; onCompl
     if (!finished) {
       if (acc.command === 'NAV_NEXT') {
         setIndex((index + 1) % items.length);
+        setMovedAt(acc.at);
         setFeedback('Eyebrow raise detected — Next');
-      } else if (acc.command === 'SELECT' && closureInStep) {
-        setClosureInStep(false);
+      } else if (acc.command === 'SELECT' && closureInStep === 'void') {
+        setClosureInStep('none');
+        setFeedback(HIGHLIGHT_MOVED_FEEDBACK.label);
+      } else if (acc.command === 'SELECT' && closureInStep === 'fresh') {
+        setClosureInStep('none');
         const picked = items[index];
         if (step === 'select') {
           setChosen(picked);
@@ -535,21 +575,32 @@ function BrowBlinkPractice({ blink, onComplete }: { blink: BlinkRuntime; onCompl
     }
   }
 
+  useEffect(() => {
+    if (movedAt !== null && (lastMoveRef.current === null || movedAt > lastMoveRef.current)) lastMoveRef.current = movedAt;
+  }, [movedAt]);
+
   // Raw detector events only drive "fresh closure" bookkeeping and honest discard feedback.
-  useEffect(() => blink.subscribe((e: BlinkGestureEvent) => {
-    if (e.type === 'closure-start') setClosureInStep(true);
-    else if (e.type === 'discard') {
-      setClosureInStep(false);
+  const subscribe = blink.subscribe;
+  useEffect(() => subscribe((e: BlinkGestureEvent) => {
+    if (e.type === 'brow-next') {
+      // Proposed move (the accepted one may render a moment later): count it for the timing
+      // rule right away, so a closure on the very next frames is judged correctly.
+      if (lastMoveRef.current === null || e.at > lastMoveRef.current) lastMoveRef.current = e.at;
+    } else if (e.type === 'closure-start') {
+      const moved = lastMoveRef.current;
+      setClosureInStep(moved !== null && e.at - moved < ATTRIBUTION_TIMING.recentChangeMs ? 'void' : 'fresh');
+    } else if (e.type === 'discard') {
+      setClosureInStep('none');
       setFeedback(
         e.reason === 'too-short' ? 'That was an ordinary blink — nothing selected.'
           : e.reason === 'too-long' ? 'Eyes were closed too long — nothing selected.'
             : 'Tracking was interrupted — nothing selected.',
       );
     } else if (e.type === 'face-lost') {
-      setClosureInStep(false);
+      setClosureInStep('none');
       setFeedback('Face lost — look at the camera to continue.');
     }
-  }), [blink]);
+  }), [subscribe]);
 
   // Keep the calibrator's stage in step with the practice (external store; not React state).
   const { advance, finishPractice, stage } = cal;
