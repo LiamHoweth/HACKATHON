@@ -1,0 +1,702 @@
+{
+  "label": "End-to-end latency, measured from a Mac against the deployed server; synthetic speech (macOS say); excludes the person's gesture/reading time; NOT iPad-measured.",
+  "base": "https://api-production-18038.up.railway.app",
+  "startedAt": "2026-10-24T18:54:15.333Z",
+  "finishedAt": "2026-10-24T18:55:17.512Z",
+  "passes": 2,
+  "questions": [
+    "Are you coming to dinner tonight?",
+    "How are you feeling today?",
+    "Do you want some water?",
+    "What did you think of the game?",
+    "Should we leave at six?"
+  ],
+  "apiCalls": 40,
+  "model": {
+    "transcribe": "deployed /api/transcribe",
+    "replies": [
+      "gpt-6-astra"
+    ],
+    "repliesSource": [
+      "live-model"
+    ]
+  },
+  "summary": {
+    "endSilenceMs": 650,
+    "t1_transcribe": {
+      "n": 10,
+      "median": 647,
+      "p90": 734,
+      "min": 434,
+      "max": 892
+    },
+    "t2_replies": {
+      "n": 10,
+      "median": 2547,
+      "p90": 4403,
+      "min": 2215,
+      "max": 5288
+    },
+    "t3_speechFullMp3_firstSuggestion_all": {
+      "n": 10,
+      "median": 629,
+      "p90": 720,
+      "min": 573,
+      "max": 877
+    },
+    "t3_speechTtfb_firstSuggestion_all": {
+      "n": 10,
+      "median": 604,
+      "p90": 715,
+      "min": 564,
+      "max": 837
+    },
+    "t3_speechFull_single": {
+      "n": 5,
+      "median": 633,
+      "p90": 877,
+      "min": 573,
+      "max": 877
+    },
+    "t3_speechFull_parallel3_first": {
+      "n": 5,
+      "median": 625,
+      "p90": 720,
+      "min": 601,
+      "max": 720
+    },
+    "t3_speechFull_parallel3_slowestOfThree": {
+      "n": 5,
+      "median": 863,
+      "p90": 891,
+      "min": 666,
+      "max": 891
+    },
+    "partnerStops_to_suggestionsOnScreen": {
+      "n": 10,
+      "median": 3846,
+      "p90": 5751,
+      "min": 3374,
+      "max": 6672
+    },
+    "blink_to_voice_with_prefetch_ms": 0,
+    "blink_to_voice_without_prefetch": {
+      "n": 10,
+      "median": 629,
+      "p90": 720,
+      "min": 573,
+      "max": 877
+    },
+    "partnerStops_to_audioReady_if_person_blinked_instantly_no_prefetch": {
+      "n": 10,
+      "median": 4466,
+      "p90": 6471,
+      "min": 3999,
+      "max": 7549
+    }
+  },
+  "runs": [
+    {
+      "pass": 1,
+      "question": "Are you coming to dinner tonight?",
+      "startedAt": "2026-10-24T18:54:19.155Z",
+      "t1Ms": 892,
+      "transcript": "Are you coming to dinner tonight?",
+      "t1Retried": false,
+      "t2Ms": 2586,
+      "suggestions": [
+        "Yeah, I'm coming tonight.",
+        "I'm going to pass tonight.",
+        "What time is dinner?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:22.643Z",
+      "speech": [
+        {
+          "ttfbMs": 599,
+          "fullMs": 633,
+          "bytes": 30137
+        }
+      ],
+      "speechMode": "single",
+      "speechRetried": false
+    },
+    {
+      "pass": 1,
+      "question": "How are you feeling today?",
+      "startedAt": "2026-10-24T18:54:24.778Z",
+      "t1Ms": 734,
+      "transcript": "How are you feeling today?",
+      "t1Retried": false,
+      "t2Ms": 5288,
+      "suggestions": [
+        "I'm feeling pretty good today.",
+        "I'm not feeling great today.",
+        "I'm not sure how I'm feeling yet."
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:30.801Z",
+      "speech": [
+        {
+          "ttfbMs": 837,
+          "fullMs": 877,
+          "bytes": 30137
+        }
+      ],
+      "speechMode": "single",
+      "speechRetried": false
+    },
+    {
+      "pass": 1,
+      "question": "Do you want some water?",
+      "startedAt": "2026-10-24T18:54:33.181Z",
+      "t1Ms": 434,
+      "transcript": "Do you want some water?",
+      "t1Retried": false,
+      "t2Ms": 2476,
+      "suggestions": [
+        "Yeah, I'd like some water.",
+        "No thanks, I'm good.",
+        "Could I have some in a little bit?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:36.093Z",
+      "speech": [
+        {
+          "ttfbMs": 630,
+          "fullMs": 649,
+          "bytes": 32644
+        }
+      ],
+      "speechMode": "single",
+      "speechRetried": false
+    },
+    {
+      "pass": 1,
+      "question": "What did you think of the game?",
+      "startedAt": "2026-10-24T18:54:38.242Z",
+      "t1Ms": 653,
+      "transcript": "What did you think of the game?",
+      "t1Retried": false,
+      "t2Ms": 2761,
+      "suggestions": [
+        "I thought it was pretty good.",
+        "Honestly, I wasn't that into it.",
+        "I'm not sure yet. What did you think?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:41.656Z",
+      "speech": [
+        {
+          "ttfbMs": 580,
+          "fullMs": 590,
+          "bytes": 28883
+        }
+      ],
+      "speechMode": "single",
+      "speechRetried": false
+    },
+    {
+      "pass": 1,
+      "question": "Should we leave at six?",
+      "startedAt": "2026-10-24T18:54:43.748Z",
+      "t1Ms": 469,
+      "transcript": "Should we leave at six?",
+      "t1Retried": false,
+      "t2Ms": 2508,
+      "suggestions": [
+        "Yeah, six works for me.",
+        "I'd rather leave a little later.",
+        "What time do we need to get there?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:46.726Z",
+      "speech": [
+        {
+          "ttfbMs": 564,
+          "fullMs": 573,
+          "bytes": 31390
+        }
+      ],
+      "speechMode": "single",
+      "speechRetried": false
+    },
+    {
+      "pass": 2,
+      "question": "Are you coming to dinner tonight?",
+      "startedAt": "2026-10-24T18:54:48.800Z",
+      "t1Ms": 641,
+      "transcript": "Are you coming to dinner tonight?",
+      "t1Retried": false,
+      "t2Ms": 2323,
+      "suggestions": [
+        "Yeah, I'm coming tonight.",
+        "I'm not coming tonight.",
+        "What time is dinner?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:51.766Z",
+      "speech": [
+        {
+          "ttfbMs": 601,
+          "fullMs": 604,
+          "bytes": 27629
+        },
+        {
+          "ttfbMs": 624,
+          "fullMs": 666,
+          "bytes": 26375
+        },
+        {
+          "ttfbMs": 606,
+          "fullMs": 639,
+          "bytes": 23867
+        }
+      ],
+      "speechMode": "parallel-3",
+      "speechRetried": false
+    },
+    {
+      "pass": 2,
+      "question": "How are you feeling today?",
+      "startedAt": "2026-10-24T18:54:53.935Z",
+      "t1Ms": 698,
+      "transcript": "How are you feeling today?",
+      "t1Retried": false,
+      "t2Ms": 4403,
+      "suggestions": [
+        "I'm feeling pretty good today.",
+        "I'm not feeling great today.",
+        "I'd rather not talk about it right now."
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:54:59.038Z",
+      "speech": [
+        {
+          "ttfbMs": 679,
+          "fullMs": 720,
+          "bytes": 33898
+        },
+        {
+          "ttfbMs": 731,
+          "fullMs": 776,
+          "bytes": 33898
+        },
+        {
+          "ttfbMs": 847,
+          "fullMs": 891,
+          "bytes": 37660
+        }
+      ],
+      "speechMode": "parallel-3",
+      "speechRetried": false
+    },
+    {
+      "pass": 2,
+      "question": "Do you want some water?",
+      "startedAt": "2026-10-24T18:55:01.431Z",
+      "t1Ms": 509,
+      "transcript": "Do you want some water?",
+      "t1Retried": false,
+      "t2Ms": 2215,
+      "suggestions": [
+        "Yeah, I'd like some water.",
+        "No thanks, I'm good.",
+        "Could I have some in a little while?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:55:04.156Z",
+      "speech": [
+        {
+          "ttfbMs": 606,
+          "fullMs": 625,
+          "bytes": 31390
+        },
+        {
+          "ttfbMs": 851,
+          "fullMs": 891,
+          "bytes": 27629
+        },
+        {
+          "ttfbMs": 812,
+          "fullMs": 855,
+          "bytes": 33898
+        }
+      ],
+      "speechMode": "parallel-3",
+      "speechRetried": false
+    },
+    {
+      "pass": 2,
+      "question": "What did you think of the game?",
+      "startedAt": "2026-10-24T18:55:06.548Z",
+      "t1Ms": 708,
+      "transcript": "What did you think of the game?",
+      "t1Retried": false,
+      "t2Ms": 2708,
+      "suggestions": [
+        "I thought it was pretty good.",
+        "Honestly, I wasn't that into it.",
+        "I'm not sure what to think yet."
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:55:09.966Z",
+      "speech": [
+        {
+          "ttfbMs": 589,
+          "fullMs": 601,
+          "bytes": 31390
+        },
+        {
+          "ttfbMs": 817,
+          "fullMs": 863,
+          "bytes": 41421
+        },
+        {
+          "ttfbMs": 709,
+          "fullMs": 750,
+          "bytes": 33898
+        }
+      ],
+      "speechMode": "parallel-3",
+      "speechRetried": false
+    },
+    {
+      "pass": 2,
+      "question": "Should we leave at six?",
+      "startedAt": "2026-10-24T18:55:12.331Z",
+      "t1Ms": 478,
+      "transcript": "Should we leave at six?",
+      "t1Retried": false,
+      "t2Ms": 2434,
+      "suggestions": [
+        "Yeah, six works for me.",
+        "I'd rather leave a little later.",
+        "What time do we need to get there?"
+      ],
+      "repliesSource": "live-model",
+      "repliesModel": "gpt-6-astra",
+      "t2Retried": false,
+      "suggestionsAt": "2026-10-24T18:55:15.244Z",
+      "speech": [
+        {
+          "ttfbMs": 715,
+          "fullMs": 716,
+          "bytes": 31390
+        },
+        {
+          "ttfbMs": 715,
+          "fullMs": 756,
+          "bytes": 31390
+        },
+        {
+          "ttfbMs": 716,
+          "fullMs": 756,
+          "bytes": 28883
+        }
+      ],
+      "speechMode": "parallel-3",
+      "speechRetried": false
+    }
+  ],
+  "callLog": [
+    {
+      "label": "transcribe q1 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:19.155Z",
+      "status": 200,
+      "ms": 892
+    },
+    {
+      "label": "replies q1 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:20.058Z",
+      "status": 200,
+      "ms": 2586
+    },
+    {
+      "label": "speech q1 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:22.644Z",
+      "status": 200,
+      "ms": 633
+    },
+    {
+      "label": "transcribe q2 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:24.778Z",
+      "status": 200,
+      "ms": 734
+    },
+    {
+      "label": "replies q2 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:25.513Z",
+      "status": 200,
+      "ms": 5288
+    },
+    {
+      "label": "speech q2 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:30.801Z",
+      "status": 200,
+      "ms": 877
+    },
+    {
+      "label": "transcribe q3 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:33.181Z",
+      "status": 200,
+      "ms": 434
+    },
+    {
+      "label": "replies q3 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:33.616Z",
+      "status": 200,
+      "ms": 2476
+    },
+    {
+      "label": "speech q3 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:36.093Z",
+      "status": 200,
+      "ms": 649
+    },
+    {
+      "label": "transcribe q4 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:38.242Z",
+      "status": 200,
+      "ms": 653
+    },
+    {
+      "label": "replies q4 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:38.895Z",
+      "status": 200,
+      "ms": 2761
+    },
+    {
+      "label": "speech q4 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:41.656Z",
+      "status": 200,
+      "ms": 590
+    },
+    {
+      "label": "transcribe q5 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:43.748Z",
+      "status": 200,
+      "ms": 469
+    },
+    {
+      "label": "replies q5 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:44.218Z",
+      "status": 200,
+      "ms": 2508
+    },
+    {
+      "label": "speech q5 p1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:46.726Z",
+      "status": 200,
+      "ms": 573
+    },
+    {
+      "label": "transcribe q1 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:48.800Z",
+      "status": 200,
+      "ms": 641
+    },
+    {
+      "label": "replies q1 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:49.443Z",
+      "status": 200,
+      "ms": 2323
+    },
+    {
+      "label": "speech q1 p2 s1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:51.766Z",
+      "status": 200,
+      "ms": 604
+    },
+    {
+      "label": "speech q1 p2 s3",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:51.767Z",
+      "status": 200,
+      "ms": 639
+    },
+    {
+      "label": "speech q1 p2 s2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:51.767Z",
+      "status": 200,
+      "ms": 666
+    },
+    {
+      "label": "transcribe q2 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:53.935Z",
+      "status": 200,
+      "ms": 698
+    },
+    {
+      "label": "replies q2 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:54.635Z",
+      "status": 200,
+      "ms": 4403
+    },
+    {
+      "label": "speech q2 p2 s1",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:59.038Z",
+      "status": 200,
+      "ms": 720
+    },
+    {
+      "label": "speech q2 p2 s2",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:59.038Z",
+      "status": 200,
+      "ms": 776
+    },
+    {
+      "label": "speech q2 p2 s3",
+      "attempt": 1,
+      "at": "2026-10-24T18:54:59.038Z",
+      "status": 200,
+      "ms": 891
+    },
+    {
+      "label": "transcribe q3 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:01.431Z",
+      "status": 200,
+      "ms": 509
+    },
+    {
+      "label": "replies q3 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:01.941Z",
+      "status": 200,
+      "ms": 2215
+    },
+    {
+      "label": "speech q3 p2 s1",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:04.156Z",
+      "status": 200,
+      "ms": 625
+    },
+    {
+      "label": "speech q3 p2 s3",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:04.156Z",
+      "status": 200,
+      "ms": 855
+    },
+    {
+      "label": "speech q3 p2 s2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:04.156Z",
+      "status": 200,
+      "ms": 891
+    },
+    {
+      "label": "transcribe q4 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:06.548Z",
+      "status": 200,
+      "ms": 708
+    },
+    {
+      "label": "replies q4 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:07.257Z",
+      "status": 200,
+      "ms": 2708
+    },
+    {
+      "label": "speech q4 p2 s1",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:09.966Z",
+      "status": 200,
+      "ms": 601
+    },
+    {
+      "label": "speech q4 p2 s3",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:09.967Z",
+      "status": 200,
+      "ms": 750
+    },
+    {
+      "label": "speech q4 p2 s2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:09.966Z",
+      "status": 200,
+      "ms": 863
+    },
+    {
+      "label": "transcribe q5 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:12.331Z",
+      "status": 200,
+      "ms": 478
+    },
+    {
+      "label": "replies q5 p2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:12.811Z",
+      "status": 200,
+      "ms": 2434
+    },
+    {
+      "label": "speech q5 p2 s1",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:15.245Z",
+      "status": 200,
+      "ms": 716
+    },
+    {
+      "label": "speech q5 p2 s2",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:15.245Z",
+      "status": 200,
+      "ms": 756
+    },
+    {
+      "label": "speech q5 p2 s3",
+      "attempt": 1,
+      "at": "2026-10-24T18:55:15.246Z",
+      "status": 200,
+      "ms": 756
+    }
+  ]
+}
