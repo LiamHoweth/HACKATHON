@@ -31,6 +31,39 @@ export function CameraPreview({ runtime }: { runtime: StillHereRuntime }) {
   }, [attachPreview]);
 
   const cameraOn = !['off', 'unsupported', 'permission-denied'].includes(blink.status);
+
+  // Keep the self-view live. iPadOS can pause this <video> when the app plays audio (the voice)
+  // even though the hidden detection video keeps running, so the preview froze while gestures
+  // still worked. Resume on pause, and if frames stop advancing, re-attach the same stream.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !cameraOn) return;
+    const resume = () => { void el.play().catch(() => {}); };
+    el.addEventListener('pause', resume);
+    let lastTime = -1;
+    let stuck = 0;
+    const timer = setInterval(() => {
+      if (!el.srcObject) return;
+      if (el.paused) resume();
+      if (el.currentTime === lastTime) {
+        stuck += 1;
+        if (stuck >= 2) {
+          const stream = el.srcObject;
+          el.srcObject = null;
+          el.srcObject = stream;
+          resume();
+          stuck = 0;
+        }
+      } else {
+        stuck = 0;
+      }
+      lastTime = el.currentTime;
+    }, 1000);
+    return () => {
+      el.removeEventListener('pause', resume);
+      clearInterval(timer);
+    };
+  }, [cameraOn]);
   const tone = feedbackTone(blink);
   const statusText = BLINK_STATUS_LABELS[blink.status]?.text ?? blink.status;
 
