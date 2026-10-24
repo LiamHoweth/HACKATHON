@@ -12,6 +12,14 @@ Still Here
 2. Hands-free replies for people who can't speak or type
 3. A reply ready before the conversation moves on
 
+## Team
+
+Liam Howeth and Richard Ognefijiro.
+
+## Elevator pitch (Devpost, 200 characters or fewer)
+
+Still Here lets people who can't speak or use their hands keep up with a real conversation. AI offers replies; they choose with an eyebrow raise and a blink, and it speaks.
+
 ## Inspiration
 
 People with ALS, locked-in syndrome, severe cerebral palsy, or spinal cord injuries can have plenty to say and no way to say it aloud or with their hands. Most communication tools build a sentence letter by letter. The faster ones usually need eye-gaze hardware that costs thousands of dollars.
