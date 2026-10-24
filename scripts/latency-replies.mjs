@@ -3,7 +3,8 @@
 // generateLive() (prompt + provider + validation + repair) directly, bypassing the HTTP route, and wraps
 // fetch to record each upstream OpenAI call's time and token usage. Costs money; keep runs small.
 //   node --import ./scripts/ts-register.mjs --env-file=.env.local scripts/latency-replies.mjs \
-//        [--label baseline] [--reps 1] [--only 1,2,3] [--out path.json]
+//        [--label baseline] [--reps 1] [--only 1,2,3] [--out path.json] [--branching] [--path 'Label|Summary']
+// --branching asks for 2 replies + 3-5 paths; --path sends a pathHint (3 replies in that direction).
 // Environment overrides (REPLY_MODEL, REPLY_REASONING_EFFORT, REPLY_MAX_OUTPUT_TOKENS, ...) take precedence over the env file.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -14,6 +15,9 @@ const label = arg('--label', 'run');
 const reps = Number(arg('--reps', '1'));
 const only = arg('--only', '') ? arg('--only', '').split(',').map(Number) : null;
 const out = arg('--out', null);
+const branching = process.argv.includes('--branching');
+const pathArg = arg('--path', null);
+const pathHint = pathArg ? { label: pathArg.split('|')[0], summary: pathArg.split('|')[1] ?? pathArg } : null;
 
 const { serverConfig } = await import('../src/server/config.ts');
 const { generateLive } = await import('../src/server/provider.ts');
@@ -42,13 +46,13 @@ for (let r = 0; r < reps; r++) {
     if (only && !only.includes(n)) continue;
     upstream.length = 0;
     const started = performance.now();
-    const res = await generateLive({ ...body, identity: { ...body.identity, requestId: `lat-${n}-${r}` } }, cfg, new AbortController().signal);
+    const res = await generateLive({ ...body, identity: { ...body.identity, requestId: `lat-${n}-${r}` }, ...(branching ? { branching: true } : {}), ...(pathHint ? { pathHint } : {}) }, cfg, new AbortController().signal);
     const ms = Math.round(performance.now() - started);
     rows.push({
       scenario: name, rep: r, ms, ok: res.ok, repaired: res.ok ? res.data.repaired : null, calls: [...upstream],
-      candidates: res.ok ? res.data.candidates : null, error: res.ok ? null : res.error,
+      candidates: res.ok ? res.data.candidates : null, paths: res.ok ? res.data.paths ?? null : null, error: res.ok ? null : res.error,
     });
-    console.log(`${name} [${ms} ms${res.ok && res.data.repaired ? ', repaired' : ''}] ${res.ok ? res.data.candidates.map((c) => c.text).join(' | ') : res.error.code}${upstream.find((u) => u.error) ? ' UPSTREAM: ' + upstream.find((u) => u.error).error : ''}`);
+    console.log(`${name} [${ms} ms${res.ok && res.data.repaired ? ', repaired' : ''}] ${res.ok ? res.data.candidates.map((c) => c.text).join(' | ') + (res.data.paths ? ` || paths: ${res.data.paths.map((p) => `${p.label} (${p.summary})`).join('; ')}` : '') : res.error.code}${upstream.find((u) => u.error) ? ' UPSTREAM: ' + upstream.find((u) => u.error).error : ''}`);
   }
 }
 const okMs = rows.filter((x) => x.ok).map((x) => x.ms);

@@ -1,10 +1,11 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { StillHereRuntime } from '@/runtime/contract';
-import type { PendingChange, State, Surface } from '@/core/state';
+import type { PendingChange, State, Surface, Target } from '@/core/state';
 import { activeWorkspace, anchorLabel } from '@/core/targets';
 import { describeScope, describeSetting } from '@/adaptation/preference-policy';
-import { TargetList } from './TargetButton';
+import { TargetButton, TargetList } from './TargetButton';
 import { SurfaceTitle } from './SurfaceTitle';
 import {
   DELIVERY_LABELS, MESSAGE_SOURCE_LABELS, PARTNER_SOURCE_LABELS, formatTime, metricsSummary,
@@ -13,23 +14,24 @@ import {
 type MenuKind = Exclude<Surface['kind'], 'board' | 'review' | 'compose' | 'speaking' | 'paused'>;
 
 const HEADINGS: Record<MenuKind, { title: string; sub: string }> = {
-  guide: { title: 'Guide my response', sub: 'Choose a direction or wording. New suggestions follow your guidance; you still choose and review.' },
+  guide: { title: 'Guide my response', sub: 'Pick a direction or wording. You still choose and review.' },
   quick: { title: 'Quick phrases', sub: 'Choose a phrase to say it.' },
-  initiate: { title: 'Start a conversation', sub: 'No question needed. Pick a kind of opener, or write your own.' },
-  'initiate-topics': { title: 'Choose a topic', sub: 'Only approved interests and things actually said this session are listed.' },
+  initiate: { title: 'Start a conversation', sub: 'Pick a kind of opener, or write your own.' },
+  'initiate-topics': { title: 'Choose a topic', sub: 'Only approved interests and things said this session.' },
   tools: { title: 'More tools', sub: 'Conversation history, preferences, and session controls.' },
-  history: { title: 'History and waiting', sub: 'The full conversation in order. Dismissing a waiting item does not erase anything that was said.' },
+  history: { title: 'History and waiting', sub: 'The whole conversation, in order. Dismissing a waiting item doesn’t erase what was said.' },
   preferences: { title: 'Preferences and memory', sub: 'Nothing is saved without your approval.' },
-  'style-edit': { title: 'My style preferences', sub: 'Saved preferences shape suggestions. Wording chosen for one response always takes priority.' },
-  scope: { title: 'Who and where', sub: 'Preferences can apply to everyone, or to a specific person type or setting.' },
-  memory: { title: 'What is saved', sub: 'Everything Still Here is using about you. Turn items off or delete them.' },
-  proposal: { title: 'Preference suggestion', sub: 'Still Here noticed a possible pattern during this session.' },
+  'style-edit': { title: 'My style preferences', sub: 'Saved preferences shape suggestions. A choice for one reply always wins.' },
+  scope: { title: 'Who and where', sub: 'Apply preferences to everyone, or to certain people or places.' },
+  memory: { title: 'What is saved', sub: 'What Still Here is using about you. Turn things off or delete them.' },
+  proposal: { title: 'Preference suggestion', sub: 'Still Here noticed a possible pattern this session.' },
   'confirm-change': { title: 'Please confirm', sub: 'Review exactly what will change.' },
   controls: { title: 'Controls', sub: 'Pause, recording, scan speed, measurement, and ending the session.' },
   metrics: { title: 'Measurements', sub: 'Counts and timings from this session. No message text is included.' },
-  'change-wording': { title: 'Change wording', sub: 'Ask for a reworded version or edit it yourself. You will review the new text before anything is spoken.' },
-  'compose-clear': { title: 'Clear all text?', sub: 'This removes everything you have typed in this draft.' },
-  'end-confirm': { title: 'End this session?', sub: 'The conversation and temporary session learning are cleared. Items you approved to remember on this device stay saved.' },
+  'change-wording': { title: 'Change wording', sub: 'Ask for new wording or edit it yourself. You’ll review it before it’s spoken.' },
+  'compose-clear': { title: 'Clear all text?', sub: 'This removes everything you typed in this draft.' },
+  'end-confirm': { title: 'End this session?', sub: 'This clears the conversation and anything learned this session. Things you chose to remember stay saved.' },
+  paths: { title: 'Other ways to answer', sub: 'Pick a direction to see replies that go that way.' },
 };
 
 export function MenuSurface({ runtime, surface }: { runtime: StillHereRuntime; surface: Surface }) {
@@ -43,12 +45,50 @@ export function MenuSurface({ runtime, surface }: { runtime: StillHereRuntime; s
   if (surface.kind === 'style-edit' && surface.key) title = `Style: ${surface.key}`;
 
   const decisionLayout = targets.length > 0 && targets.every((t) => t.region === 'review');
+  // Branching: keep the partner's question visible while choosing a direction.
+  const sub = surface.kind === 'paths' ? pathsSub(state) ?? heading.sub : heading.sub;
+  const listClass = decisionLayout ? 'decision-actions' : surface.kind === 'paths' ? 'menu-targets path-targets' : 'menu-targets';
 
   return (
     <div className={`menu menu-${surface.kind}`}>
-      <SurfaceTitle sub={heading.sub}>{title}</SurfaceTitle>
+      <SurfaceTitle sub={sub}>{title}</SurfaceTitle>
       <MenuDetail state={state} surface={surface} />
-      <TargetList targets={targets} runtime={runtime} layout={decisionLayout ? 'row' : 'stack'} label={title} className={decisionLayout ? 'decision-actions' : 'menu-targets'} />
+      {surface.kind === 'paths'
+        ? <PathTargets targets={targets} runtime={runtime} label={title} className={listClass} />
+        : <TargetList targets={targets} runtime={runtime} layout={decisionLayout ? 'row' : 'stack'} label={title} className={listClass} />}
+    </div>
+  );
+}
+
+function pathsSub(state: State): ReactNode | null {
+  const ws = activeWorkspace(state);
+  if (!ws || ws.closed) return null;
+  const lead = ws.anchor.mode === 'reply' ? 'Partner asked:' : 'Starting a conversation:';
+  return <><span className="meta-label">{lead}</span> <span className="paths-question">{anchorLabel(state, ws)}</span></>;
+}
+
+/** Indexes of paths whose replies were prefetched for the current batch (subtle "ready" dot). */
+function readyPathIndexes(state: State): Set<number> {
+  const ready = new Set<number>();
+  const ws = activeWorkspace(state);
+  const pf = ws?.pathPrefetch;
+  const paths = ws?.batch?.paths;
+  if (!ws?.batch || !pf || !paths || pf.batchId !== ws.batch.id || pf.entries.length !== paths.length) return ready;
+  pf.entries.forEach((e, i) => { if (e.status === 'ready') ready.add(i); });
+  return ready;
+}
+
+/** Paths surface list: same registry order as TargetList, plus the optional ready marker. */
+function PathTargets({ targets, runtime, label, className }: { targets: Target[]; runtime: StillHereRuntime; label: string; className: string }) {
+  if (targets.length === 0) return null;
+  const ready = readyPathIndexes(runtime.state);
+  return (
+    <div className={`target-list layout-stack ${className}`} role="group" aria-label={label}>
+      {targets.map((t) => {
+        const m = /^path-(\d+)$/.exec(t.id);
+        const isReady = !!m && ready.has(Number(m[1]));
+        return <TargetButton key={t.id} target={t} runtime={runtime} className={isReady ? 'is-path-ready' : undefined} />;
+      })}
     </div>
   );
 }

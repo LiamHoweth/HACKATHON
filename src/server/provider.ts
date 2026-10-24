@@ -3,7 +3,7 @@ import 'server-only';
 // validation loop with exactly one bounded repair attempt inside one time budget.
 import Anthropic from '@anthropic-ai/sdk';
 import type { ApiError, ReplyRequest, ReplyResponseData } from '@/core/types';
-import { modelOutputJsonSchema } from '@/core/schemas';
+import { outputFormatFor, replyModeOf } from '@/core/schemas';
 import { buildReplyPayload, REPLY_SYSTEM_PROMPT } from './reply-prompt';
 import { checkModelOutput } from './validation';
 import type { ServerConfig } from './config';
@@ -16,13 +16,17 @@ type CallOutcome =
   | { kind: 'refusal' }
   | { kind: 'truncated' }
   | { kind: 'error'; result: ProviderResult };
-type ModelCall = (content: string, signal: AbortSignal, timeoutMs: number) => Promise<CallOutcome>;
+// The structured-output format is chosen per request mode (normal/path → 3 candidates; branching → 2 + paths).
+type OutputFormat = ReturnType<typeof outputFormatFor>;
+type ModelCall = (content: string, signal: AbortSignal, timeoutMs: number, format: OutputFormat) => Promise<CallOutcome>;
 
 const err = (code: ApiError['code'], message: string, recoverable = true): ProviderResult => ({ ok: false, error: { code, message, recoverable } });
 
 async function runWithRepair(request: ReplyRequest, cfg: ServerConfig, signal: AbortSignal, call: ModelCall): Promise<ProviderResult> {
   const deadline = Date.now() + cfg.generationTimeoutMs;
   const payload = JSON.stringify(buildReplyPayload(request));
+  // Same mode (and schema) for the first attempt and the repair.
+  const format = outputFormatFor(replyModeOf(request));
   let problems: string[] | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     const remaining = deadline - Date.now();
@@ -30,7 +34,7 @@ async function runWithRepair(request: ReplyRequest, cfg: ServerConfig, signal: A
     const content = problems
       ? `${payload}\n\nThe previous output was rejected by validation: ${JSON.stringify(problems)}. Return a corrected object.`
       : payload;
-    const outcome = await call(content, signal, remaining);
+    const outcome = await call(content, signal, remaining, format);
     if (outcome.kind === 'error') return outcome.result;
     if (outcome.kind === 'refusal') return err('PROVIDER_REFUSAL', 'The suggestion service declined this request. Your own words and phrases still work.');
     if (outcome.kind === 'truncated') { problems = ['Output was cut off.']; continue; }
@@ -38,7 +42,14 @@ async function runWithRepair(request: ReplyRequest, cfg: ServerConfig, signal: A
     try { raw = JSON.parse(outcome.text); } catch { problems = ['Output was not valid JSON.']; continue; }
     const checked = checkModelOutput(raw, request);
     if (checked.ok) {
-      return { ok: true, data: { candidates: checked.output.candidates, source: 'live-model', model: outcome.model, repaired: attempt > 0 } };
+      return {
+        ok: true,
+        data: {
+          candidates: checked.output.candidates,
+          ...(checked.output.paths ? { paths: checked.output.paths } : {}),
+          source: 'live-model', model: outcome.model, repaired: attempt > 0,
+        },
+      };
     }
     problems = checked.problems;
   }
@@ -60,7 +71,7 @@ function mapAnthropicError(e: unknown): ProviderResult {
 function anthropicCall(cfg: ServerConfig): ModelCall {
   // maxRetries 0: the application owns the single retry budget.
   const client = new Anthropic({ apiKey: cfg.anthropicKey, maxRetries: 0, timeout: cfg.generationTimeoutMs });
-  return async (content, signal, timeoutMs) => {
+  return async (content, signal, timeoutMs, format) => {
     try {
       const response = await client.beta.messages.create(
         {
@@ -68,7 +79,7 @@ function anthropicCall(cfg: ServerConfig): ModelCall {
           max_tokens: 4000,
           system: REPLY_SYSTEM_PROMPT,
           messages: [{ role: 'user', content }],
-          output_config: { effort: 'low', format: { type: 'json_schema', schema: modelOutputJsonSchema as unknown as Record<string, unknown> } },
+          output_config: { effort: 'low', format: { type: 'json_schema', schema: format.schema as unknown as Record<string, unknown> } },
           ...(cfg.replyFallbacks ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
         },
         { signal, timeout: timeoutMs },
@@ -92,7 +103,7 @@ type OpenAIResponse = {
 
 // OpenAI Responses API via fetch: strict json_schema output, store disabled, no tools.
 function openaiCall(cfg: ServerConfig): ModelCall {
-  return async (content, signal, timeoutMs) => {
+  return async (content, signal, timeoutMs, format) => {
     const timeout = AbortSignal.timeout(timeoutMs);
     let res: Response;
     try {
@@ -105,7 +116,7 @@ function openaiCall(cfg: ServerConfig): ModelCall {
           input: content,
           store: false,
           max_output_tokens: cfg.replyMaxOutputTokens,
-          text: { format: { type: 'json_schema', name: 'aac_candidates', schema: modelOutputJsonSchema, strict: true } },
+          text: { format: { type: 'json_schema', name: format.name, schema: format.schema, strict: true } },
           ...(cfg.replyReasoningEffort ? { reasoning: { effort: cfg.replyReasoningEffort } } : {}),
           ...(cfg.replyServiceTier ? { service_tier: cfg.replyServiceTier } : {}),
         }),

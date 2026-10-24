@@ -30,9 +30,9 @@ export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
             </p>
           )}
           {(delivery === 'failed' || runtime.audio?.state === 'failed') && (
-            <p className="warning">The natural voice did not play. Show this text to your conversation partner. After this screen, “Say it with the basic device voice” is offered on the main screen; you review it again before anything is spoken.</p>
+            <p className="warning">The natural voice didn’t play. Show this text to your partner. Next, you can say it with the basic device voice. You’ll review it again first.</p>
           )}
-          {!runtime.speechAvailable && <p className="warning">Speech output is unavailable here. Show this text to your conversation partner.</p>}
+          {!runtime.speechAvailable && <p className="warning">This device can’t speak right now. Show this text to your partner.</p>}
         </>
       ) : (
         <p className="muted">Nothing is being spoken.</p>
@@ -63,7 +63,7 @@ export function PausedPanel({ runtime }: { runtime: StillHereRuntime }) {
         <p className="paused-guidance">{pausedGuidance(blink.status, blink.message)}</p>
       </div>
       <TargetList targets={runtime.targets} runtime={runtime} layout="row" label="Paused controls" className="safety-targets" />
-      <p className="hint">Resume needs a new long blink after tracking is stable again. A helper can also tap Resume or press Enter.</p>
+      <p className="hint">Once tracking is steady, a new long blink resumes. A helper can also tap Resume or press Enter.</p>
     </div>
   );
 }
@@ -71,12 +71,12 @@ export function PausedPanel({ runtime }: { runtime: StillHereRuntime }) {
 function pausedGuidance(status: StillHereRuntime['blink']['status'], message: string): string {
   switch (status) {
     case 'face-lost':
-    case 'no-face': return 'Face not found. Sit facing the screen with your whole face in view.';
-    case 'multiple-faces': return 'Two faces are visible. Selection is held until only one person is in view.';
-    case 'permission-denied': return 'The camera is blocked. A helper can allow it in the browser’s address bar, or use keyboard / switch.';
+    case 'no-face': return 'Can’t see your face. Face the screen with your whole face in view.';
+    case 'multiple-faces': return 'Two faces are in view. Nothing is selected until there’s just one.';
+    case 'permission-denied': return 'The camera is blocked. A helper can allow it in the address bar, or use keyboard or switch.';
     case 'unsupported': return 'The camera is not available. A helper can use keyboard or switch to Resume.';
     case 'off':
     case 'starting': return 'The camera is starting.';
-    default: return message || 'Tracking is stable. Resume is highlighted; make a long blink to continue.';
+    default: return message || 'Tracking is steady. Resume is highlighted. Long blink to continue.';
   }
 }

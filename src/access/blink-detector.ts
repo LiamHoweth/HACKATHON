@@ -25,6 +25,8 @@ export type RawBlinkFrame = {
   faces: number;
   score: number | null;
   brow: number | null;
+  /** jawOpen blendshape 0..1 (jaw-drop BACK); null/absent when unavailable (legacy callers). */
+  jaw?: number | null;
   /** Faces actually visible in the camera frame (display only). Defaults to `faces`. */
   faceCount?: number;
   /** The followed face changed to a different person on this frame: drop any in-progress gesture. */
@@ -85,13 +87,21 @@ export function browRaiseFromCategories(cats: readonly Category[]): number | nul
   return finite01(Math.max(inner, (outerL + outerR) / 2));
 }
 
-/** Face count plus eye-closure and brow-raise scores for the face at `index` (default: the first). */
-export function faceSignalsFromResult(result: FaceLandmarkerResult, index = 0): { faces: number; score: number | null; brow: number | null } {
+/** Jaw-drop score from blendshapes: the `jawOpen` coefficient (0 closed … 1 wide open), or null. */
+export function jawOpenFromCategories(cats: readonly Category[]): number | null {
+  for (const c of cats) if (c.categoryName === 'jawOpen') return finite01(c.score);
+  return null;
+}
+
+/** Face count plus eye-closure, brow-raise and jaw-open scores for the face at `index` (default: the first). */
+export function faceSignalsFromResult(
+  result: FaceLandmarkerResult, index = 0,
+): { faces: number; score: number | null; brow: number | null; jaw: number | null } {
   const faces = result.faceLandmarks?.length ?? 0;
-  if (faces === 0) return { faces, score: null, brow: null };
+  if (faces === 0) return { faces, score: null, brow: null, jaw: null };
   const cats = result.faceBlendshapes?.[index]?.categories;
-  if (!cats || cats.length === 0) return { faces, score: null, brow: null };
-  return { faces, score: eyeClosureFromCategories(cats), brow: browRaiseFromCategories(cats) };
+  if (!cats || cats.length === 0) return { faces, score: null, brow: null, jaw: null };
+  return { faces, score: eyeClosureFromCategories(cats), brow: browRaiseFromCategories(cats), jaw: jawOpenFromCategories(cats) };
 }
 
 /**
@@ -100,9 +110,9 @@ export function faceSignalsFromResult(result: FaceLandmarkerResult, index = 0): 
  * No followed face (none visible, or the locked face briefly missing) reports `faces: 0`.
  */
 export function selectedFaceFrame(result: FaceLandmarkerResult, selection: FaceSelection): Omit<RawBlinkFrame, 't'> {
-  if (selection.index === null) return { faces: 0, score: null, brow: null, faceCount: selection.count, switched: selection.switched };
-  const { score, brow } = faceSignalsFromResult(result, selection.index);
-  return { faces: 1, score, brow, faceCount: selection.count, switched: selection.switched };
+  if (selection.index === null) return { faces: 0, score: null, brow: null, jaw: null, faceCount: selection.count, switched: selection.switched };
+  const { score, brow, jaw } = faceSignalsFromResult(result, selection.index);
+  return { faces: 1, score, brow, jaw, faceCount: selection.count, switched: selection.switched };
 }
 
 /** Eye-closure score for the first face (kept for existing callers). */

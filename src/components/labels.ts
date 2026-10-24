@@ -43,9 +43,9 @@ export const SPEECH_STATE_LABELS: Record<SpeechPlaybackState, { text: string; to
   playing: { text: 'Speaking', tone: 'work' },
   completed: { text: 'Finished speaking', tone: 'ok' },
   interrupted: { text: 'Stopped before finishing', tone: 'warn' },
-  failed: { text: 'Voice unavailable — shown as text', tone: 'stop' },
+  failed: { text: 'No voice. Shown as text', tone: 'stop' },
   uncertain: { text: 'Playback status uncertain', tone: 'warn' },
-  blocked: { text: 'Audio blocked — tap Enable audio', tone: 'stop' },
+  blocked: { text: 'Audio blocked. Tap Enable audio', tone: 'stop' },
 };
 
 /** One status line for the setup audio panel and status areas. */
@@ -53,19 +53,19 @@ export function audioStatusLabel(audio: Pick<AudioRuntime, 'unlocked' | 'state'>
   if (!audio) return { text: 'Audio setup not available yet', tone: 'off' };
   if (audio.state === 'blocked') return SPEECH_STATE_LABELS.blocked;
   if (!audio.unlocked && (audio.state === 'idle' || audio.state === 'completed')) {
-    return { text: 'Audio setup needed — tap Enable audio', tone: 'warn' };
+    return { text: 'Audio setup needed. Tap Enable audio', tone: 'warn' };
   }
-  if (audio.state === 'requesting') return { text: 'ElevenLabs generating…', tone: 'work' };
+  if (audio.state === 'requesting') return { text: 'ElevenLabs is making the voice…', tone: 'work' };
   return SPEECH_STATE_LABELS[audio.state];
 }
 
 /** Eyebrow NEXT state in plain words (progress only; never a confidence value). */
 export const BROW_STATUS_LABELS: Record<BrowStatus, string> = {
   disabled: 'Eyebrow control off',
-  neutral: 'Eyebrows relaxed — ready',
-  rising: 'Eyebrows raised — keep holding',
-  latched: 'Next accepted — relax your eyebrows',
-  rearming: 'Relaxed — getting ready again',
+  neutral: 'Eyebrows relaxed. Ready',
+  rising: 'Eyebrows up. Keep holding',
+  latched: 'Moving. Relax to stop',
+  rearming: 'Relaxed. One moment',
 };
 
 export const AI_MODE_LABELS: Record<AiMode, string> = {
@@ -97,7 +97,7 @@ export const DELIVERY_LABELS: Record<Delivery, string> = {
   speaking: 'Speaking now',
   completed: 'Spoken',
   interrupted: 'Stopped before finishing',
-  failed: 'Speech failed — shown here as text',
+  failed: 'Speech failed. Shown here as text',
   uncertain: 'Playback status uncertain',
 };
 
@@ -117,12 +117,12 @@ export const BLINK_STATUS_LABELS: Record<BlinkStatus, { text: string; tone: Blin
   'permission-denied': { text: 'Camera blocked', tone: 'stop', icon: '⊘' },
   starting: { text: 'Starting camera…', tone: 'work', icon: '◌' },
   'no-face': { text: 'Position face', tone: 'warn', icon: '◌' },
-  'multiple-faces': { text: 'Two faces — held', tone: 'warn', icon: '◎' },
+  'multiple-faces': { text: 'Two faces. On hold', tone: 'warn', icon: '◎' },
   ready: { text: 'Ready', tone: 'ok', icon: '◉' },
   closing: { text: 'Keep eyes closed…', tone: 'work', icon: '◐' },
   selected: { text: 'Selected', tone: 'ok', icon: '✓' },
   cooldown: { text: 'One moment', tone: 'work', icon: '◔' },
-  'face-lost': { text: 'Face lost — paused', tone: 'stop', icon: '◌' },
+  'face-lost': { text: 'Face lost. Paused', tone: 'stop', icon: '◌' },
 };
 
 /** Statuses in which the detector is tracking one face and gestures can count. */

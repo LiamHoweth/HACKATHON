@@ -13,13 +13,23 @@
 //   the same raise to have been seen since the last reset, and a select needs the closure-start
 //   of the same closure. reset() (new surface / session) invalidates both.
 // - "Eyebrow raise detected — Next" / "Blink detected — Selected" are emitted only after accept.
+// - Hold to keep moving: repeat brow-next proposals (repeat ≥ 1) of a raise whose first NEXT was
+//   accepted are accepted too, until a closure onset, a jaw drop, face loss, reset() or a new
+//   raise. A closure onset also tells the brow machine to stop repeating (cancel-brow).
+// - Jaw drop = BACK (NAV_PREV, brow-blink mode only): accepted only for a drop whose jaw-start
+//   was seen, with no closure in progress and no eyebrow raise held at any point of it. Eyebrows
+//   up together with a dropped jaw (surprise) is ambiguous: neither moves.
 import type { BlinkGestureEvent, GestureCommand, GestureFeedback } from '@/runtime/contract';
 import type { BrowEvent } from './brow-gesture';
+import type { JawEvent } from './jaw-gesture';
+
+/** Accepted face commands: the contract's GestureCommand plus the jaw-drop BACK step. */
+export type FaceCommand = GestureCommand | 'NAV_PREV';
 
 export type ArbiterOutput =
   | { type: 'freeze'; at: number }                         // blink closure began: freeze highlight now
   | { type: 'unfreeze'; at: number }
-  | { type: 'accept'; command: GestureCommand; at: number; cycleId: string }
+  | { type: 'accept'; command: FaceCommand; at: number; cycleId: string }
   | { type: 'cancel-brow'; reason: 'blink-preempted' | 'ambiguous' }  // runtime must call brow.cancel()
   | { type: 'feedback'; feedback: GestureFeedback };
 
@@ -32,6 +42,8 @@ export const GESTURE_FEEDBACK = {
   idle: { kind: 'face-detected', label: 'Raise eyebrows to move' },
   browTooShort: { kind: 'face-detected', label: 'Not held long enough — no move' },
   browAccepted: { kind: 'brow-accepted', label: 'Eyebrow raise detected — Next' },
+  jawAccepted: { kind: 'brow-accepted', label: 'Jaw drop detected — Back' },
+  jawTooLong: { kind: 'face-detected', label: 'Mouth open too long — no move' },
   blinkAccepted: { kind: 'blink-accepted', label: 'Blink detected — Selected' },
   ambiguous: { kind: 'ambiguous', label: 'Not sure which gesture — nothing happened. Try again.' },
   trackingPaused: { kind: 'tracking-paused', label: 'Tracking lost — Paused' },
@@ -60,6 +72,12 @@ export class GestureArbiter {
   private closureAmbiguous = false;
   /** Onset of the brow raise in progress (seen since last reset), or null. */
   private browStartAt: number | null = null;
+  /** The raise whose first NEXT was accepted is still the current one: its repeats may move. */
+  private browRepeatArmed = false;
+  /** Onset of the jaw drop in progress (seen since last reset), or null. */
+  private jawStartAt: number | null = null;
+  /** The current jaw drop overlapped a closure or a brow raise: it can never go back. */
+  private jawAmbiguous = false;
 
   constructor(opts: { newId: () => string; browEnabled: () => boolean }) {
     this.newId = opts.newId;
@@ -75,6 +93,9 @@ export class GestureArbiter {
     this.closureAt = null;
     this.closureAmbiguous = false;
     this.browStartAt = null;
+    this.browRepeatArmed = false;
+    this.jawStartAt = null;
+    this.jawAmbiguous = false;
   }
 
   onBlink(e: BlinkGestureEvent): ArbiterOutput[] {
@@ -92,6 +113,9 @@ export class GestureArbiter {
       case 'face-lost': {
         const out = this.endClosure(e.at);
         this.browStartAt = null;
+        this.browRepeatArmed = false;
+        this.jawStartAt = null;
+        this.jawAmbiguous = false;
         out.push(fb(GESTURE_FEEDBACK.trackingPaused));
         return out;
       }
@@ -103,7 +127,14 @@ export class GestureArbiter {
   onBrow(e: BrowEvent): ArbiterOutput[] {
     switch (e.type) {
       case 'brow-start': {
+        this.browRepeatArmed = false; // a new raise: the previous raise's repeats are over
         if (!this.browEnabled()) return [];
+        if (this.jawStartAt !== null) {
+          // Eyebrows up while the jaw is dropped (e.g. surprise): neither gesture counts.
+          this.jawAmbiguous = true;
+          this.browStartAt = null;
+          return [{ type: 'cancel-brow', reason: 'ambiguous' }];
+        }
         if (this.closureAt !== null) {
           // A raise beginning during a closure never counts. Right at closure onset it is
           // ambiguous (discard both); later the blink simply wins.
@@ -118,13 +149,27 @@ export class GestureArbiter {
         return [fb(browProgressFeedback(0))];
       }
       case 'brow-next': {
+        if ((e.repeat ?? 0) > 0) {
+          // Hold to keep moving: only the raise whose first NEXT was accepted, never during a
+          // closure or a jaw drop.
+          if (!this.browRepeatArmed || this.closureAt !== null || this.jawStartAt !== null || !this.browEnabled()) {
+            this.browRepeatArmed = false;
+            return [];
+          }
+          return [
+            { type: 'accept', command: 'NAV_NEXT', at: e.at, cycleId: this.newId() },
+            fb(GESTURE_FEEDBACK.browAccepted),
+          ];
+        }
         // Never move after closure onset; never accept a raise whose start was not seen since the
         // last reset/closure (old physical cycle); never accept when brow navigation is off.
-        if (this.closureAt !== null || this.browStartAt === null || !this.browEnabled()) {
+        if (this.closureAt !== null || this.browStartAt === null || this.jawStartAt !== null || !this.browEnabled()) {
           this.browStartAt = null;
+          this.browRepeatArmed = false;
           return [];
         }
         this.browStartAt = null;
+        this.browRepeatArmed = true;
         return [
           { type: 'accept', command: 'NAV_NEXT', at: e.at, cycleId: this.newId() },
           fb(GESTURE_FEEDBACK.browAccepted),
@@ -133,7 +178,46 @@ export class GestureArbiter {
       case 'brow-cancel': {
         const wasPending = this.browStartAt !== null;
         this.browStartAt = null;
+        this.browRepeatArmed = false;
         if (wasPending && e.reason === 'too-short' && this.closureAt === null) return [fb(GESTURE_FEEDBACK.browTooShort)];
+        return [];
+      }
+    }
+  }
+
+  /**
+   * Jaw drop proposals. `browRaised`: an eyebrow raise is currently held (rising, or latched and
+   * still up) — a jaw drop during it is ambiguous and never goes back.
+   */
+  onJaw(e: JawEvent, ctx: { browRaised: boolean }): ArbiterOutput[] {
+    switch (e.type) {
+      case 'jaw-start': {
+        if (!this.browEnabled()) return [];
+        this.jawStartAt = e.at;
+        this.jawAmbiguous = this.closureAt !== null || ctx.browRaised || this.browStartAt !== null;
+        if (this.browStartAt !== null || this.browRepeatArmed) {
+          // A raise in progress or repeating: prefer neither — stop the raise too.
+          this.browStartAt = null;
+          this.browRepeatArmed = false;
+          return [{ type: 'cancel-brow', reason: 'ambiguous' }];
+        }
+        return [];
+      }
+      case 'jaw-back': {
+        const ok = this.jawStartAt !== null && !this.jawAmbiguous && this.closureAt === null && !ctx.browRaised && this.browEnabled();
+        this.jawStartAt = null;
+        this.jawAmbiguous = false;
+        if (!ok) return [];
+        return [
+          { type: 'accept', command: 'NAV_PREV', at: e.at, cycleId: this.newId() },
+          fb(GESTURE_FEEDBACK.jawAccepted),
+        ];
+      }
+      case 'jaw-cancel': {
+        const wasPending = this.jawStartAt !== null && !this.jawAmbiguous;
+        this.jawStartAt = null;
+        this.jawAmbiguous = false;
+        if (wasPending && e.reason === 'too-long' && this.closureAt === null) return [fb(GESTURE_FEEDBACK.jawTooLong)];
         return [];
       }
     }
@@ -146,6 +230,8 @@ export class GestureArbiter {
     const out: ArbiterOutput[] = [{ type: 'freeze', at }];
     const browStart = this.browStartAt;
     this.browStartAt = null; // a raise in progress can never complete after closure onset
+    this.browRepeatArmed = false; // a held raise stops moving at closure onset
+    if (this.jawStartAt !== null) this.jawAmbiguous = true; // blink has priority over a jaw drop
     if (this.browEnabled()) {
       if (browStart !== null && Math.abs(at - browStart) <= AMBIGUITY_WINDOW_MS) {
         this.closureAmbiguous = true;

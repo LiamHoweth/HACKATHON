@@ -9,7 +9,7 @@ import type { ContinuousListening } from '@/runtime/useContinuousListening';
 const LISTEN_LABELS = {
   off: 'Not listening',
   starting: 'Starting the microphone…',
-  listening: 'Listening — just talk',
+  listening: 'Listening. Just talk.',
   hearing: 'Hearing you…',
   paused: 'Paused while Still Here speaks',
   error: 'Listening stopped',
@@ -114,7 +114,7 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
             <section className="partner-mic">
               {recording && (
                 <p className="recording-indicator" role="status">
-                  <span className="rec-dot" aria-hidden="true" /> RECORDING — microphone is on
+                  <span className="rec-dot" aria-hidden="true" /> RECORDING · mic is on
                 </p>
               )}
               {rec === 'requesting' && <p role="status">Asking for microphone permission…</p>}
@@ -137,10 +137,10 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
                       </button>
                     )}
                   </div>
-                  <p className="hint">Talk records your voice and sends the audio to the transcription service. You review the text before it is used.</p>
+                  <p className="hint">Talk sends your voice to a transcription service. You check the text before it’s used.</p>
                 </>
               ) : (
-                <p className="hint">Recording is unavailable: it needs cloud consent at setup, a configured transcription service, and a secure browser connection. Type instead.</p>
+                <p className="hint">Recording needs cloud consent at setup, a transcription service, and a secure connection. Type instead for now.</p>
               )}
 
               {partner.transcript.status === 'ready' && (
@@ -155,7 +155,7 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
               )}
               {partner.transcript.status === 'empty' && (
                 <div className="transcript">
-                  <p>No speech detected. Re-record or type instead.</p>
+                  <p>Didn’t catch any speech. Record again or type it.</p>
                   <div className="partner-actions">
                     <button type="button" className="btn" onClick={() => { partner.discardTranscript(); partner.startRecording(); }} disabled={!partner.canRecord}>Re-record</button>
                     <button type="button" className="btn btn-quiet" onClick={partner.discardTranscript}>Back</button>
@@ -195,7 +195,7 @@ function TranscriptReview({ initial, onUse, onRerecord, onBack, full }: {
         <button type="button" className="btn" onClick={onRerecord}>Re-record</button>
         <button type="button" className="btn btn-quiet" onClick={onBack}>Back</button>
       </div>
-      {full && <p className="warning">The waiting list is full. Keep this text until there is room.</p>}
+      {full && <p className="warning">The waiting list is full. Hold on to this text until there’s room.</p>}
     </div>
   );
 }

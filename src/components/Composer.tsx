@@ -43,7 +43,7 @@ export function Composer({ runtime, surface }: { runtime: StillHereRuntime; surf
         {draft.length === 0 && <span className="draft-placeholder">Nothing typed yet</span>}
       </div>
       <p className={`char-count${atLimit ? ' at-limit' : ''}`} aria-live="off">
-        {draft.length} / {limit} characters{atLimit ? ' — limit reached' : ''}
+        {draft.length} / {limit} characters{atLimit ? ' · limit reached' : ''}
       </p>
 
       <div className="field compose-field">

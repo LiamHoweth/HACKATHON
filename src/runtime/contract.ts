@@ -113,8 +113,9 @@ export type CalibrationStage =
 
 // ---------------------------------------------------------------------------
 // Eyebrow NEXT (primary navigation in 'brow-blink' mode). A continuous both-brow raise held
-// for >= browHoldMs proposes exactly one NAV_NEXT; holding longer never repeats; a stable
-// return to neutral plus cooldown re-arms. The gesture arbiter is the only emitter of accepted
+// for >= browHoldMs proposes one NAV_NEXT, and keeps proposing one every repeatMs while held
+// (hold to keep moving); a stable return to neutral plus cooldown re-arms. A deliberate jaw
+// drop (jaw-gesture.ts) proposes NAV_PREV (back). The gesture arbiter is the only emitter of accepted
 // commands: blink closure onset cancels a pending brow raise and freezes the target.
 
 export type GestureCommand = 'NAV_NEXT' | 'SELECT';

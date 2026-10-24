@@ -276,11 +276,13 @@ export function useStillHere(): StillHereRuntime {
    * One manual step (brow-blink). Refused while a switch press or blink closure holds the
    * highlight. `at` is the gesture's own time (eyebrow NEXT frame), logged as the change time.
    */
-  const stepHighlight = useCallback((at?: number): string | null => {
+  const stepHighlight = useCallback((at?: number, direction: 'next' | 'previous' = 'next'): string | null => {
     const s = stateRef.current;
     if (s.phase !== 'active' || !isManualNavMode(s.settings.accessMode)) return null;
     if (switchHeldRef.current || blinkPinRef.current !== null) return null;
-    return scanRef.current?.next(at) ?? null;
+    const scan = scanRef.current;
+    if (!scan) return null;
+    return (direction === 'previous' ? scan.previous(at) : scan.next(at)) ?? null;
   }, []);
 
   useEffect(() => {
@@ -359,10 +361,11 @@ export function useStillHere(): StillHereRuntime {
           unfreeze();
           return refused;
         case 'accept': {
-          if (e.command === 'NAV_NEXT') {
+          if (e.command === 'NAV_NEXT' || e.command === 'NAV_PREV') {
+            // Eyebrow NEXT (incl. hold-to-repeat) and jaw-drop BACK: the same guarded manual step.
             if (!usable) return refused;
             const before = scanRef.current?.current ?? null;
-            const id = stepHighlight(e.at); // logged at the gesture's own frame time
+            const id = stepHighlight(e.at, e.command === 'NAV_PREV' ? 'previous' : 'next'); // logged at the gesture's own frame time
             // "Next" only when the highlight actually moved (a one-target surface does not).
             return id && id !== before ? { applied: true, targetId: id } : refused;
           }

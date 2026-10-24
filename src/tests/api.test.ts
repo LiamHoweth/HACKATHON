@@ -124,6 +124,31 @@ describe('/api/replies', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('fixture mode supports branching (2 + paths) and pathHint (3, no paths)', async () => {
+    const { POST } = await import('@/app/api/replies/route');
+    const branch = await (await POST(post({ ...baseRequest(), branching: true }))).json();
+    expect(branch.ok).toBe(true);
+    expect(branch.data.source).toBe('demo-fixture');
+    expect(branch.data.candidates).toHaveLength(2);
+    expect(branch.data.paths.length).toBeGreaterThanOrEqual(3);
+    const hinted = await (await POST(post({ ...baseRequest(), branching: true, pathHint: branch.data.paths[0] }))).json();
+    expect(hinted.data.candidates).toHaveLength(3);
+    expect(hinted.data.paths).toBeUndefined();
+    const bad = await (await POST(post({ ...baseRequest(), pathHint: { label: '', summary: 'x' } }))).json();
+    expect(bad.error.code).toBe('INVALID_INPUT');
+  });
+
+  it('Anthropic adapter uses the branching schema in branching mode', async () => {
+    configureLive();
+    const { POST } = await import('@/app/api/replies/route');
+    const paths = [{ label: 'Running late', summary: 'Coming late' }, { label: 'Skip it', summary: 'Decline' }, { label: 'Ask who', summary: 'Ask who is coming' }];
+    create.mockResolvedValueOnce({ stop_reason: 'end_turn', model: 'claude-opus-5-5', content: [{ type: 'text', text: JSON.stringify({ candidates: GOOD.slice(0, 2), paths }) }] });
+    const body = await (await POST(post({ ...baseRequest({ mode: 'live' }), branching: true }))).json();
+    expect(body.ok).toBe(true);
+    expect(body.data.paths).toEqual(paths);
+    expect(create.mock.calls[0][0].output_config.format.schema.required).toEqual(['candidates', 'paths']);
+  });
+
   it('SYS-12 live calls from a non-local host require a configured access code', async () => {
     configureLive();
     const { POST } = await import('@/app/api/replies/route');

@@ -57,13 +57,13 @@ function gestureLine(runtime: StillHereRuntime, ack: ReturnType<typeof useAccept
   const status = blink.status;
 
   if (ack?.command === 'NAV_NEXT') {
-    return { icon: '↓', text: 'Eyebrow raise detected — Next', tone: 'ok', coarse: 'ready' };
+    return { icon: '↓', text: 'Eyebrows up · Next', tone: 'ok', coarse: 'ready' };
   }
   if (ack?.command === 'SELECT') {
-    return { icon: '✓', text: 'Blink detected — Selected', tone: 'ok', coarse: 'ready' };
+    return { icon: '✓', text: 'Blink · Selected', tone: 'ok', coarse: 'ready' };
   }
   if (status === 'face-lost' || fb?.kind === 'tracking-paused') {
-    return { icon: '⏸', text: 'Tracking lost — Paused', tone: 'stop', coarse: 'Tracking lost. Paused.' };
+    return { icon: '⏸', text: 'Lost your face · Paused', tone: 'stop', coarse: 'Tracking lost. Paused.' };
   }
   if (status === 'off') return { icon: '○', text: fb?.kind === 'camera-off' && fb.label ? fb.label : 'Camera off', tone: 'off', coarse: 'Camera off.' };
   if (status === 'unsupported' || status === 'permission-denied') {
@@ -74,27 +74,30 @@ function gestureLine(runtime: StillHereRuntime, ack: ReturnType<typeof useAccept
     return { icon: '◌', text: fb?.kind === 'acquiring' && fb.label ? fb.label : 'Position your face', tone: 'warn', coarse: 'Position your face.' };
   }
   if (status === 'multiple-faces') {
-    return { icon: '◎', text: 'Two faces visible — held', tone: 'warn', coarse: 'Two faces visible. Selection held.' };
+    return { icon: '◎', text: 'Two faces · On hold', tone: 'warn', coarse: 'Two faces visible. Selection held.' };
   }
   // Tracking one face from here on. Progress lines never say "Next" or "Selected".
   if (status === 'closing') {
-    return { icon: <ProgressRing value={blink.closureProgress} />, text: 'Long blink — keep eyes closed', tone: 'work', progress: blink.closureProgress, coarse: 'ready' };
+    return { icon: <ProgressRing value={blink.closureProgress} />, text: 'Long blink · Keep eyes closed', tone: 'work', progress: blink.closureProgress, coarse: 'ready' };
   }
   if (browMode && blink.browStatus === 'rising') {
-    return { icon: <ProgressRing value={blink.browProgress} />, text: 'Eyebrows up — keep holding', tone: 'work', progress: blink.browProgress, coarse: 'ready' };
+    return { icon: <ProgressRing value={blink.browProgress} />, text: 'Eyebrows up · Keep holding', tone: 'work', progress: blink.browProgress, coarse: 'ready' };
   }
   if (fb?.kind === 'ambiguous') {
-    return { icon: '?', text: fb.label || 'Unclear gesture — nothing happened', tone: 'warn', coarse: 'ready' };
+    return { icon: '?', text: fb.label || 'Not sure what that was. Nothing happened', tone: 'warn', coarse: 'ready' };
   }
-  if (browMode && (blink.browStatus === 'latched' || blink.browStatus === 'rearming')) {
-    return { icon: '◔', text: 'Relax your eyebrows', tone: 'work', coarse: 'ready' };
+  if (browMode && blink.browStatus === 'latched') {
+    return { icon: '◔', text: 'Moving · Relax to stop', tone: 'work', coarse: 'ready' };
+  }
+  if (browMode && blink.browStatus === 'rearming') {
+    return { icon: '◔', text: 'Relaxed · One moment', tone: 'work', coarse: 'ready' };
   }
   if (status === 'cooldown' || fb?.kind === 'cooldown') {
-    return { icon: '◔', text: 'Got it — one moment…', tone: 'work', coarse: 'ready' };
+    return { icon: '◔', text: 'Got it. One moment…', tone: 'work', coarse: 'ready' };
   }
   return {
     icon: '◉',
-    text: browMode ? 'Ready — raise eyebrows to move' : 'Ready — long blink selects',
+    text: browMode ? 'Ready · Raise eyebrows to move' : 'Ready · Long blink to choose',
     tone: 'ok',
     coarse: 'ready',
   };
@@ -112,12 +115,12 @@ export function speechLine(runtime: StillHereRuntime): SpeechLine | null {
     case 'buffering':
       return { icon: '◌', text: natural ? 'Generating natural voice…' : 'Preparing basic voice…', tone: 'work', enable: false };
     case 'playing': return { icon: '♪', text: 'Speaking', tone: 'ok', enable: false };
-    case 'blocked': return { icon: '⊘', text: 'Audio blocked — tap Enable audio', tone: 'stop', enable: true };
+    case 'blocked': return { icon: '⊘', text: 'Audio blocked. Tap Enable audio', tone: 'stop', enable: true };
     case 'failed': return { icon: '⊘', text: 'Voice unavailable', tone: 'stop', enable: false, detail: audio.message };
-    case 'uncertain': return { icon: '?', text: 'Playback uncertain — may not have played', tone: 'warn', enable: false };
+    case 'uncertain': return { icon: '?', text: 'Not sure it played', tone: 'warn', enable: false };
     case 'interrupted': return { icon: '■', text: 'Speech stopped', tone: 'off', enable: false };
     default:
-      return audio.unlocked ? null : { icon: '○', text: 'Audio setup needed — tap Enable audio', tone: 'warn', enable: true };
+      return audio.unlocked ? null : { icon: '○', text: 'Audio setup needed. Tap Enable audio', tone: 'warn', enable: true };
   }
 }
 
@@ -151,7 +154,7 @@ export function GestureFeedback({ runtime }: { runtime: StillHereRuntime }) {
   const speakingSurface = currentSurface(runtime.state).kind === 'speaking';
   const announce = [
     g ? (g.coarse === 'ready' ? 'Eye gestures ready.' : g.coarse) : '',
-    sp && sp.tone !== 'work' && !speakingSurface ? sp.text.replace(' — tap Enable audio', '') + '.' : '',
+    sp && sp.tone !== 'work' && !speakingSurface ? sp.text.replace('. Tap Enable audio', '') + '.' : '',
   ].filter(Boolean).join(' ');
 
   return (

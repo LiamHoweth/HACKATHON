@@ -28,6 +28,7 @@ import { newId, reducer } from '@/core/reducer';
 import { targetsFor } from '@/core/targets';
 import { currentSurface, initialState, type Action, type Effect, type State } from '@/core/state';
 import type { BlinkGestureEvent, GestureCommand } from '@/runtime/contract';
+import type { FaceCommand } from '@/access/gesture-arbiter';
 import {
   ALT_CANDIDATES, Driver, okResult, SPREAD_CANDIDATES,
   type ActivateAction, type FixtureCandidate, type GenEffect, type SpeakEffect,
@@ -45,7 +46,7 @@ const BROW_SMOOTHING_ALPHA = 0.5;
 type FaceCommandEvent =
   | { type: 'freeze'; at: number }
   | { type: 'unfreeze'; at: number }
-  | { type: 'accept'; command: GestureCommand; at: number; cycleId: string }
+  | { type: 'accept'; command: FaceCommand; at: number; cycleId: string }
   | { type: 'face-lost'; at: number };
 type FaceCommandResult = { applied: boolean; targetId: string | null };
 type SynthFrame = { faces?: number; blink?: number | null; brow?: number | null };
@@ -383,11 +384,12 @@ function toCandidates(h: HandsFreeHarness, candidates: FixtureCandidate[] = SPRE
 }
 
 describe('hands-free pipeline (SYNTHETIC frames, NOT hardware verification)', () => {
-  it.each([600, 2000])('GEST-08 acceptance: %i ms brow raise steps once, long blink selects, fresh long blink confirms, exactly one speak', (holdMs) => {
+  it.each([600, 1000])('GEST-08 acceptance: %i ms brow raise steps once, long blink selects, fresh long blink confirms, exactly one speak', (holdMs) => {
     const h = new HandsFreeHarness();
     toCandidates(h);
 
-    // Brow raise moves cand-0 → cand-1 exactly once, even when held for 2 s.
+    // Brow raise moves cand-0 → cand-1 exactly once when held under hold + repeatMs (~1.1 s);
+    // a longer hold keeps moving (hold to keep moving, covered in speed-features.test.ts).
     h.raise(holdMs);
     h.idle(1000);
     expect(h.accepted('NAV_NEXT')).toBe(1);

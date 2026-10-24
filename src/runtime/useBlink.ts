@@ -19,17 +19,20 @@ import type { AccessMode } from '@/core/types';
 import { newId } from '@/core/reducer';
 import type {
   AcceptedGesture, BlinkCalibration, BlinkGestureEvent, BlinkRuntime, BlinkStatus, BrowCalibration, BrowStatus,
-  CalibrationStage, GestureCommand, GestureFeedback,
+  CalibrationStage, GestureFeedback,
 } from './contract';
 import { BlinkGesture, DEFAULT_GESTURE_CONFIG, smoothScore, type BlinkFrame, type GestureConfig } from '@/access/blink-gesture';
 import {
   CALIBRATION_TIMING, ClosureSegmenter, computeBlinkCalibration, loadCalibration, provisionalThresholds, quantile, saveCalibration,
 } from '@/access/blink-calibration';
 import { BrowGesture, DEFAULT_BROW_CALIBRATION, type BrowEvent } from '@/access/brow-gesture';
-import { computeBrowCalibration, heldRaiseLevel, loadBrowCalibration, saveBrowCalibration } from '@/access/brow-calibration';
 import {
-  blinkProgressFeedback, browProgressFeedback, GestureArbiter, type ArbiterOutput,
+  computeBrowCalibration, heldRaiseLevel, loadBrowCalibration, PERSONAL_TIMING, saveBrowCalibration, withPersonalBrowTiming,
+} from '@/access/brow-calibration';
+import {
+  blinkProgressFeedback, browProgressFeedback, GestureArbiter, type ArbiterOutput, type FaceCommand,
 } from '@/access/gesture-arbiter';
+import { JawGesture, type JawEvent } from '@/access/jaw-gesture';
 import type { BlinkDetector, RawBlinkFrame } from '@/access/blink-detector';
 
 const PUBLISH_MS = 100;
@@ -116,7 +119,8 @@ export type TrackingInterruptReason = 'hidden' | 'orientation' | 'stall' | 'came
 export type FaceCommandEvent =
   | { type: 'freeze'; at: number }   // blink closure onset: freeze the highlight now
   | { type: 'unfreeze'; at: number }
-  | { type: 'accept'; command: GestureCommand; at: number; cycleId: string }
+  // NAV_PREV: jaw-drop BACK (brow-blink mode), routed through the same guarded manual step.
+  | { type: 'accept'; command: FaceCommand; at: number; cycleId: string }
   // Face lost (cause undefined) or tracking interrupted (cause set: tab hidden, rotation, camera
   // stall / ended). Pending gestures are already discarded; the handler pauses either way, so a
   // deliberate resume is required. (One event type so every handler treats both the same.)
@@ -172,7 +176,7 @@ function stageInstructions(stage: CalibrationStage, extra: {
     }
     case 'brow-practice': {
       const k = extra.browPracticeCount ?? 0;
-      const base = 'Practice: raise both eyebrows and hold until the bar fills. Each raise moves one step; holding longer does not repeat. Relax between raises.';
+      const base = 'Practice: raise both eyebrows and hold until the bar fills to move one step. Keep holding to keep moving; relax to stop.';
       const count = k > 0 ? ` Moves so far: ${k}.` : '';
       return `${base}${count}${extra.browWarning ? ` ${extra.browWarning}` : ''}`;
     }
@@ -190,7 +194,7 @@ function stageInstructions(stage: CalibrationStage, extra: {
       const blinkLine = `A selection needs the eyes closed for at least ${p.minClosureMs} ms. Shorter blinks are ignored.`;
       if (!brow) return blinkLine;
       return extra.proposedBrow
-        ? `Hold both eyebrows up for half a second to move one step. ${blinkLine}`
+        ? `Hold both eyebrows up for ${(extra.proposedBrow.holdMs / 1000).toFixed(2)} s to move one step; keep holding to keep moving. Drop your jaw briefly, then close it, to move back. ${blinkLine}`
         : blinkLine;
     }
     case 'practice-select':
@@ -273,7 +277,8 @@ export function proposeBrowCalibration(
       reason: `Eyebrow raises were not held for half a second at a level clearly above relaxed (${held} held). ${BROW_FALLBACK_ADVICE}`,
     };
   }
-  return r;
+  // Personal timing: a quick, decisive riser gets a shorter hold (350–500 ms); else 500 ms.
+  return { ...r, calibration: withPersonalBrowTiming(r.calibration, windows, r.warnings) };
 }
 
 export type FeedbackInput = {
@@ -353,6 +358,9 @@ export class BlinkEngine {
   private gesture: BlinkGesture;
   private brow: BrowGesture;
   private browRunning = false;
+  /** Jaw-drop BACK machine (brow-blink mode, outside calibration sampling). */
+  private jaw = new JawGesture();
+  private jawSmoothed: number | null = null;
   private arbiter: GestureArbiter;
   private smoothed: number | null = null;
   private browSmoothed: number | null = null;
@@ -439,6 +447,7 @@ export class BlinkEngine {
       // A calibration in progress keeps its own mode (begin(mode)); otherwise re-arm everything.
       this.calMode = mode;
       this.brow.reset();
+      this.jaw.reset();
       this.browRunning = false;
       this.arbiter.reset();
     }
@@ -457,6 +466,7 @@ export class BlinkEngine {
     if (this.gesture.snapshot().status === 'closing') this.routeBlink(this.gesture.interrupt());
     this.arbiter.reset();
     this.brow.reset();
+    this.jaw.reset();
     this.transient = null;
     this.publish(true);
   };
@@ -631,6 +641,18 @@ export class BlinkEngine {
     }
   }
 
+  /** Jaw events go only to the arbiter (they are not contract BlinkGestureEvents or metrics). */
+  private routeJaw(events: JawEvent[]) {
+    for (const e of events) this.apply(this.arbiter.onJaw(e, { browRaised: this.browRaisedNow() }));
+  }
+
+  /** An eyebrow raise is held right now (rising, or latched and still above the release level). */
+  private browRaisedNow(): boolean {
+    if (this.brow.status === 'rising') return true;
+    const s = this.browSmoothed;
+    return this.brow.status === 'latched' && s !== null && s > this.brow.calibration.releaseThreshold;
+  }
+
   /** Measurement records real-session gestures only (never calibration or practice). */
   private liveMetrics(): boolean {
     return !CALIBRATING_STAGES.has(this.stage) && !PRACTICE_STAGES.has(this.stage);
@@ -666,6 +688,7 @@ export class BlinkEngine {
             // Practice: acknowledged on screen (lastAccepted gets a new `at`), never forwarded.
             r = { applied: true, targetId: null };
             if (o.command === 'NAV_NEXT' && this.stage === 'brow-practice') this.browPracticeCount += 1;
+            if (o.command === 'NAV_PREV') r = { applied: false, targetId: null }; // practice counts Next only
           } else if (CALIBRATING_STAGES.has(this.stage)) {
             r = { applied: false, targetId: null }; // sampling stages: gestures do nothing
           } else if (o.command === 'SELECT' && this.closureVoid) {
@@ -673,11 +696,12 @@ export class BlinkEngine {
             r = { applied: false, targetId: null, refusal: this.closureVoid.feedback ? 'highlight-moved' : undefined };
           } else {
             r = this.send({ type: 'accept', command: o.command, at: o.at, cycleId: o.cycleId });
-            getSharedGestureMetrics().record({ kind: 'gesture-accept', t: o.at, command: o.command, applied: r.applied });
+            if (o.command !== 'NAV_PREV') getSharedGestureMetrics().record({ kind: 'gesture-accept', t: o.at, command: o.command, applied: r.applied });
           }
           if (!r.applied && r.refusal === 'highlight-moved') this.flash(HIGHLIGHT_MOVED_FEEDBACK);
           this.lastAcceptApplied = r.applied;
-          if (r.applied) this.lastAccepted = { command: o.command, at: o.at, targetId: r.targetId };
+          // NAV_PREV is acknowledged by its feedback line only (AcceptedGesture is NAV_NEXT/SELECT).
+          if (r.applied && o.command !== 'NAV_PREV') this.lastAccepted = { command: o.command, at: o.at, targetId: r.targetId };
           break;
         }
         case 'feedback': {
@@ -766,9 +790,11 @@ export class BlinkEngine {
     this.detector = detector;
     this.gesture.reset();
     this.brow.reset();
+    this.jaw.reset();
     this.arbiter.reset();
     this.smoothed = null;
     this.browSmoothed = null;
+    this.jawSmoothed = null;
     this.faceCount = 0;
     this.hardStatus = null;
     this.hardMessage = null;
@@ -790,6 +816,7 @@ export class BlinkEngine {
     this.releaseCamera();
     this.gesture.reset();
     this.brow.reset();
+    this.jaw.reset();
     this.arbiter.reset();
     this.transient = null;
     this.lastAccepted = null;
@@ -867,6 +894,7 @@ export class BlinkEngine {
     }
     this.smoothed = null;
     this.browSmoothed = null;
+    this.jawSmoothed = null;
     this.faceCount = 0;
     this.stalled = false;
     this.browRunning = false;
@@ -889,10 +917,12 @@ export class BlinkEngine {
     const ev = interruptGestures(this.gesture, this.brow, this.lastT);
     this.routeBlink(ev.blink);
     this.routeBrow(ev.brow);
+    this.routeJaw(this.jaw.cancel('stale', this.lastT));
     this.closureVoid = null;
     if (!CALIBRATING_STAGES.has(this.stage)) this.send({ type: 'face-lost', at: this.lastT, cause: reason });
     this.smoothed = null;
     this.browSmoothed = null;
+    this.jawSmoothed = null;
     this.segmenter?.reset();
     this.stageLastT = null;
     this.positionSince = null;
@@ -999,6 +1029,7 @@ export class BlinkEngine {
       this.releaseCamera();
       this.gesture.reset();
       this.brow.reset();
+      this.jaw.reset();
       this.arbiter.reset();
       this.setHard('off', 'The camera stopped. Turn the camera on again, or use keyboard or switch input.');
     } finally {
@@ -1018,6 +1049,7 @@ export class BlinkEngine {
     // neutral frame before another raise can start.
     this.interruptAll('orientation');
     this.brow.reset();
+    this.jaw.reset();
     this.publish(true);
   };
 
@@ -1039,6 +1071,7 @@ export class BlinkEngine {
       this.releaseCamera();
       this.gesture.reset();
       this.brow.reset();
+      this.jaw.reset();
       this.arbiter.reset();
       this.setHard('unsupported', 'Face detection stopped working in this browser. Use keyboard or switch input.');
     }
@@ -1067,6 +1100,8 @@ export class BlinkEngine {
     this.smoothed = single ? smoothScore(this.smoothed, raw.score as number) : null;
     const browSingle = raw.faces === 1 && raw.brow !== null && raw.brow !== undefined;
     this.browSmoothed = browSingle ? smoothScore(this.browSmoothed, raw.brow as number, BROW_SMOOTHING_ALPHA) : null;
+    const jawSingle = raw.faces === 1 && typeof raw.jaw === 'number';
+    this.jawSmoothed = jawSingle ? smoothScore(this.jawSmoothed, raw.jaw as number) : null;
     const frame: BlinkFrame = { t: raw.t, faces: raw.faces, score: single ? this.smoothed : null };
     this.calibrationFrame(frame, browSingle ? this.browSmoothed : null);
     // Blink first: a closure starting on this frame pre-empts a brow NEXT on the same frame.
@@ -1074,12 +1109,16 @@ export class BlinkEngine {
     const browWanted = this.effMode() === 'brow-blink' && !BROW_SAMPLING_STAGES.has(this.stage);
     if (browWanted) {
       if (!this.browRunning) {
-        this.brow.reset(); // needs a fresh neutral frame: no raise carried from sampling stages
+        this.brow.reset();
+        this.jaw.reset(); // needs a fresh neutral frame: no raise carried from sampling stages
         this.browRunning = true;
       }
       this.routeBrow(this.brow.push({ t: raw.t, faces: raw.faces, score: browSingle ? this.browSmoothed : null }));
+      // Jaw after brow: a raise starting on this frame makes a jaw drop on it ambiguous.
+      this.routeJaw(this.jaw.push({ t: raw.t, faces: raw.faces, score: jawSingle ? this.jawSmoothed : null }));
     } else if (this.browRunning) {
       this.routeBrow(this.brow.cancel('stale', raw.t));
+      this.routeJaw(this.jaw.cancel('stale', raw.t));
       this.browRunning = false;
     }
     this.publish();
@@ -1167,7 +1206,7 @@ export class BlinkEngine {
       naturalPeaks: this.naturalPeaks,
       deliberateDurationsMs: this.deliberateDurations,
       deliberatePeaks: this.deliberatePeaks,
-    }, Date.now());
+    }, Date.now(), PERSONAL_TIMING.blinkCooldownMs); // a new select still needs a full deliberate closure
     if (r.ok) {
       this.proposed = r.calibration;
       this.failureReason = null;

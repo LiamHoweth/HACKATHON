@@ -1,6 +1,7 @@
 // Explicit, deterministic demo fixtures. Only used when the client requests fixture mode,
 // and always labeled 'demo-fixture'. Never substituted for a failed live request.
-import type { CandidateAct, Intent, LengthPolicy, ReplyRequest, ReplyResponseData } from '@/core/types';
+import type { CandidateAct, Intent, LengthPolicy, ReplyPath, ReplyRequest, ReplyResponseData } from '@/core/types';
+import { replyModeOf } from '@/core/schemas';
 import { LENGTH_POLICIES, normalizeForDuplicate, wordCount } from '@/core/limits';
 
 type F = { text: string; act: CandidateAct; summary: string };
@@ -377,7 +378,7 @@ export const TOPIC_SETS: TopicSet[] = [
   },
   {
     id: 'wellbeing',
-    match: /\b(how are you|how're you|how are things|how you doing|how are you doing|how's it going|feeling|are you ok|are you okay|you alright|you all right|doing okay|doing ok|how do you feel)\b/,
+    match: /\b(how are you|how're you|how are things|how you doing|how are you doing|how's it going|how was your day|how's your day|how was today|feeling|are you ok|are you okay|you alright|you all right|doing okay|doing ok|how do you feel)\b/,
     replies: [
       t('I’m doing okay, thanks.', 'social', 'Say things are okay.',
         'I’m doing okay, thanks for asking. It has been a fairly ordinary day.'),
@@ -512,9 +513,168 @@ function refinePool(r: ReplyRequest): F[] {
   ];
 }
 
+// Branching flow ("Other ways to answer"): per-topic directions, each with three replies that
+// follow it. Labels never duplicate the two top candidates; the medication set stays
+// clarification/boundary only.
+type FixturePath = ReplyPath & { replies: F[] };
+const fp = (label: string, summary: string, replies: F[]): FixturePath => ({ label, summary, replies });
+
+const TOPIC_PATHS: Record<string, FixturePath[]> = {
+  medication: [
+    fp('Ask why', 'Ask why the change is happening', [
+      f('Why are they changing it?', 'question', 'Ask the reason for the change.'),
+      f('What’s wrong with the current one?', 'question', 'Ask what prompted the change.'),
+      f('Can someone explain why first?', 'request', 'Ask for an explanation first.'),
+    ]),
+    fp('Talk to doctor', 'Ask to speak with the doctor directly', [
+      f('I want to hear it from the doctor.', 'boundary', 'Ask to hear it from the doctor.'),
+      f('Can the doctor call me?', 'request', 'Ask the doctor to call.'),
+      f('Let’s ask the doctor together.', 'alternative', 'Propose asking the doctor together.'),
+    ]),
+    fp('Need time', 'Ask for time before deciding', [
+      f('I need some time to think.', 'request', 'Ask for time to think.'),
+      f('Can we decide this later?', 'alternative', 'Defer the decision.'),
+      f('Not deciding anything yet.', 'boundary', 'Hold off on deciding.'),
+    ]),
+  ],
+  food: [
+    fp('Running late', 'Say they will be there but late', [
+      f('Yeah, but I’m running a bit late.', 'conditional', 'Coming, but late.'),
+      f('Save me a plate, I’ll be late.', 'request', 'Ask them to save food.'),
+      f('Start without me, I’ll catch up.', 'other', 'Tell them to start without them.'),
+    ]),
+    fp('Can’t make it', 'Say they cannot come this time', [
+      f('Can’t make it tonight, sorry.', 'decline', 'Decline tonight.'),
+      f('I’m gonna skip tonight.', 'decline', 'Skip this one.'),
+      f('Not tonight, but next time for sure.', 'decline', 'Decline, open to next time.'),
+    ]),
+    fp('Ask who’s coming', 'Ask who else will be there', [
+      f('Who else is coming?', 'question', 'Ask who is coming.'),
+      f('Is it just us or a group?', 'question', 'Ask about group size.'),
+      f('Who’s gonna be there?', 'question', 'Ask who will be there.'),
+    ]),
+    fp('Suggest another time', 'Propose a different time or day', [
+      f('Could we do tomorrow instead?', 'alternative', 'Propose tomorrow.'),
+      f('How about later this week?', 'alternative', 'Propose later this week.'),
+      f('Can we push it a bit later?', 'alternative', 'Propose a later time.'),
+    ]),
+  ],
+  wellbeing: [
+    fp('It was great', 'Say the day went really well', [
+      f('Honestly, it was a great day.', 'social', 'Say the day was great.'),
+      f('Really good, actually.', 'social', 'Say it was really good.'),
+      f('Pretty awesome, not gonna lie.', 'social', 'Say it was awesome.'),
+    ]),
+    fp('Rough day', 'Say the day was hard', [
+      f('Kind of a rough one, honestly.', 'social', 'Say it was rough.'),
+      f('Not great, today was a lot.', 'social', 'Say today was a lot.'),
+      f('Rough day. I’m wiped.', 'social', 'Say it was rough and tiring.'),
+    ]),
+    fp('Pretty normal', 'Say it was an ordinary day', [
+      f('Pretty normal, nothing crazy.', 'social', 'Say it was ordinary.'),
+      f('Same old, honestly.', 'social', 'Say it was the usual.'),
+      f('Just a regular day.', 'social', 'Say it was regular.'),
+    ]),
+    fp('Ask about theirs', 'Turn the question back to them', [
+      f('How was yours?', 'question', 'Ask about their day.'),
+      f('Good. What about you?', 'question', 'Answer briefly and ask back.'),
+      f('Tell me about your day first.', 'topic-change', 'Ask them to share first.'),
+    ]),
+    fp('Not now', 'Say they would rather not get into it', [
+      f('Can we talk about it later?', 'alternative', 'Defer the conversation.'),
+      f('I don’t really wanna get into it.', 'boundary', 'Decline to go into it.'),
+      f('Ask me again in a bit.', 'request', 'Ask to be asked later.'),
+    ]),
+  ],
+  plans: [
+    fp('Got plans', 'Say they already have something going on', [
+      f('Yeah, I’ve got some stuff going on.', 'other', 'Say they have plans.'),
+      f('Kinda busy, actually.', 'other', 'Say they are busy.'),
+      f('I’ve got a couple things lined up.', 'other', 'Say things are lined up.'),
+    ]),
+    fp('Want to hang', 'Suggest doing something together', [
+      f('Wanna do something together?', 'question', 'Suggest hanging out.'),
+      f('We should hang out.', 'social', 'Propose hanging out.'),
+      f('I’m down to hang if you are.', 'accept', 'Offer to hang out.'),
+    ]),
+    fp('Just resting', 'Say they plan to take it easy', [
+      f('Just taking it easy, honestly.', 'other', 'Plan to rest.'),
+      f('Mostly resting.', 'other', 'Say they will rest.'),
+      f('Lazy weekend, probably.', 'other', 'Plan a lazy weekend.'),
+    ]),
+  ],
+};
+
+const DEFAULT_PATHS: FixturePath[] = [
+  fp('Maybe', 'Say it depends or they are unsure', [
+    f('Maybe, I’m not sure yet.', 'conditional', 'Unsure for now.'),
+    f('Possibly, it depends.', 'conditional', 'Say it depends.'),
+    f('Kinda, sort of.', 'other', 'Give a partial answer.'),
+  ]),
+  fp('Ask more', 'Ask a question before answering', [
+    f('Wait, what do you mean?', 'question', 'Ask what they mean.'),
+    f('Can you tell me more?', 'question', 'Ask for more detail.'),
+    f('Why do you ask?', 'question', 'Ask why they ask.'),
+  ]),
+  fp('Another time', 'Push it to later', [
+    f('Can we do this another time?', 'alternative', 'Propose another time.'),
+    f('Maybe later?', 'alternative', 'Suggest later.'),
+    f('Let’s come back to it.', 'alternative', 'Defer it.'),
+  ]),
+  fp('Change topic', 'Move the conversation elsewhere', [
+    f('Can we talk about something else?', 'topic-change', 'Change the subject.'),
+    f('Anyway, how are you?', 'topic-change', 'Redirect to them.'),
+    f('Different topic, real quick.', 'topic-change', 'Signal a topic change.'),
+  ]),
+];
+
+const pathsFor = (r: ReplyRequest): FixturePath[] => {
+  const topic = r.anchor.mode === 'reply' && !r.guidance.userTopicOrSeed ? matchTopic(r.activePartnerText) : null;
+  return (topic && TOPIC_PATHS[topic.id]) || DEFAULT_PATHS;
+};
+
+// pathHint fixture: the matching fixture path by label (any topic), else a generic fallback keyed off the label.
+function pathHintPool(r: ReplyRequest): F[] {
+  const hint = r.pathHint!;
+  const key = normalizeForDuplicate(hint.label);
+  const all = [...pathsFor(r), ...Object.values(TOPIC_PATHS).flat(), ...DEFAULT_PATHS];
+  const found = all.find((p) => normalizeForDuplicate(p.label) === key);
+  if (found) return found.replies;
+  const label = hint.label.toLowerCase();
+  const sum = hint.summary.slice(0, 120);
+  if (/\b(ask|who|what|why|how|when|where)\b/.test(label)) {
+    return [
+      f('Wait, can I ask something first?', 'question', sum),
+      f('What do you mean exactly?', 'question', sum),
+      f('Can you tell me a bit more?', 'question', sum),
+    ];
+  }
+  if (/\b(no|not|can’t|can't|cannot|skip|pass)\b/.test(label)) {
+    return [
+      f('Not this time, sorry.', 'decline', sum),
+      f('I’m gonna pass.', 'decline', sum),
+      f('Not really, no.', 'decline', sum),
+    ];
+  }
+  if (/\b(late|later|time|another|tomorrow)\b/.test(label)) {
+    return [
+      f('Can we do it a bit later?', 'alternative', sum),
+      f('How about another time?', 'alternative', sum),
+      f('Maybe tomorrow instead?', 'alternative', sum),
+    ];
+  }
+  return [
+    f('Honestly, kind of, yeah.', 'other', sum),
+    f('Let me think about that one.', 'other', sum),
+    f('Can we come back to this?', 'alternative', sum),
+  ];
+}
+
 export function fixtureReplies(r: ReplyRequest): ReplyResponseData {
+  const mode = replyModeOf(r);
   let pool: F[];
   if (r.refineTarget) pool = refinePool(r);
+  else if (mode === 'path') pool = pathHintPool(r);
   else if (r.guidance.userTopicOrSeed) pool = seedPool(r.guidance.userTopicOrSeed);
   else if (r.anchor.mode === 'initiate') {
     const c = r.anchor.category;
@@ -529,18 +689,20 @@ export function fixtureReplies(r: ReplyRequest): ReplyResponseData {
   const offered = new Set(r.rejected.flatMap((b) => b.candidates.map((c) => normalizeForDuplicate(c.text))));
   const fresh = pool.filter((p) => !offered.has(normalizeForDuplicate(p.text)));
   // Deterministic: fresh items in order, then wrap around the pool if fewer than three remain.
+  const count = mode === 'branching' ? 2 : 3;
   const picked: F[] = [];
   for (const p of [...fresh, ...pool]) {
-    if (picked.length === 3) break;
+    if (picked.length === count) break;
     if (!picked.some((x) => normalizeForDuplicate(x.text) === normalizeForDuplicate(p.text))) picked.push(p);
   }
   // Last resort only for tiny pools; the safe tail never accepts or consents.
   for (const p of SAFE_TAIL) {
-    if (picked.length === 3) break;
+    if (picked.length === count) break;
     if (!picked.some((x) => normalizeForDuplicate(x.text) === normalizeForDuplicate(p.text))) picked.push(p);
   }
   return {
     candidates: picked.map((p) => ({ text: p.text, meaning: { act: p.act, summary: p.summary } })),
+    ...(mode === 'branching' ? { paths: pathsFor(r).map(({ label, summary }) => ({ label, summary })) } : {}),
     source: 'demo-fixture',
     model: null,
     repaired: false,

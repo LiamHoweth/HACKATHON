@@ -6,7 +6,7 @@ import { targetsFor, activeWorkspace } from '@/core/targets';
 import { DEFAULT_SETTINGS, currentSurface } from '@/core/state';
 import type { Action, Effect, Settings, State, Surface, Target, Workspace } from '@/core/state';
 import { initialState } from '@/core/state';
-import type { CandidateAct, ReplyRequest, ReplyResponseData } from '@/core/types';
+import type { CandidateAct, ReplyPath, ReplyRequest, ReplyResponseData } from '@/core/types';
 
 let seq = 0;
 export const freshId = (prefix: string) => `${prefix}-${++seq}`;
@@ -21,6 +21,7 @@ export type ActivateOpts = {
 };
 
 export type GenEffect = Extract<Effect, { kind: 'generate' }>;
+export type PathGenEffect = Extract<Effect, { kind: 'generate-path' }>;
 export type SpeakEffect = Extract<Effect, { kind: 'speak' }>;
 export type ActivateAction = Extract<Action, { type: 'ACTIVATE' }>;
 
@@ -49,8 +50,16 @@ export const ALT_CANDIDATES: FixtureCandidate[] = [
   { text: 'Could we do something else instead, like a walk outside?', meaning: { act: 'alternative', summary: 'Suggests a walk.' } },
 ];
 
-export function okResult(identity: ReplyRequest['identity'], candidates: FixtureCandidate[] = SPREAD_CANDIDATES): Extract<Action, { type: 'GENERATION_RESULT' }> {
-  const data: ReplyResponseData = { candidates, source: 'demo-fixture', model: null, repaired: false };
+// Branching flow: 2 top replies + directions.
+export const BRANCH_CANDIDATES: FixtureCandidate[] = SPREAD_CANDIDATES.slice(0, 2);
+export const PATHS: ReplyPath[] = [
+  { label: 'Rough day', summary: 'Say the day was hard' },
+  { label: 'Ask back', summary: 'Ask how their day went' },
+  { label: 'Change topic', summary: 'Talk about dinner instead' },
+];
+
+export function okResult(identity: ReplyRequest['identity'], candidates: FixtureCandidate[] = SPREAD_CANDIDATES, paths?: ReplyPath[]): Extract<Action, { type: 'GENERATION_RESULT' }> {
+  const data: ReplyResponseData = { candidates, source: 'demo-fixture', model: null, repaired: false, ...(paths ? { paths } : {}) };
   return { type: 'GENERATION_RESULT', identity, result: { ok: true, requestId: identity.requestId, data }, at: 0 };
 }
 
@@ -120,6 +129,19 @@ export class Driver {
     const g = this.generates();
     expect(g.length, 'a generate effect is queued').toBeGreaterThan(0);
     return g[g.length - 1];
+  }
+
+  pathGenerates(): PathGenEffect[] { return this.s.effects.filter((e): e is PathGenEffect => e.kind === 'generate-path'); }
+
+  // Branching flow: delivers 2 replies + paths for the latest generate request.
+  resolveBranching(paths: ReplyPath[] = PATHS, candidates: FixtureCandidate[] = BRANCH_CANDIDATES): State {
+    return this.dispatch({ ...okResult(this.lastGenerate().request.identity, candidates, paths), at: this.tick() });
+  }
+
+  // Branching flow: delivers a prefetched path result.
+  resolvePath(effect: PathGenEffect, candidates: FixtureCandidate[] = ALT_CANDIDATES): State {
+    const r = okResult(effect.request.identity, candidates);
+    return this.dispatch({ type: 'PATH_RESULT', identity: r.identity, batchId: effect.batchId, pathIndex: effect.pathIndex, result: r.result, at: this.tick() });
   }
 
   // Delivers a successful result for the given (default: latest) generate request.

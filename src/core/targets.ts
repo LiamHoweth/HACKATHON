@@ -57,8 +57,15 @@ function boardTargets(s: State): Target[] {
         id: `cand-${i}`, label: c.text, enabled: true,
         command: { type: 'select-candidate', candidateId: c.id }, region: 'candidates',
       }));
+      // Branching flow: other directions sit between the replies and "None of these".
+      const paths = ws.batch.paths?.slice(0, LIMITS.maxPaths) ?? [];
+      if (paths.length) {
+        t.push(open('other-ways', 'Other ways to answer…', { kind: 'paths' }, {
+          detail: paths.map((p) => p.label).join(' · '), region: 'candidates',
+        }));
+      }
       t.push({
-        id: 'none', label: ws.batch.kind === 'refinement' ? 'None of these — back to new suggestions' : 'None of these — new suggestions',
+        id: 'none', label: ws.batch.kind === 'refinement' ? 'None of these. Back to new ideas' : 'None of these. New ideas',
         enabled: s.settings.aiMode !== 'local-only', command: { type: 'none-of-these' }, region: 'candidates', tone: 'quiet',
       });
       if (ws.failedBatches >= LIMITS.failedBatchesBeforeHelp) {
@@ -85,6 +92,21 @@ function boardTargets(s: State): Target[] {
   // More tools as detail so the action row keeps a fixed length.
   t.push(open('more', 'More tools', { kind: 'tools' }, waiting > 0 ? { detail: `${waiting} waiting` } : {}));
   return t;
+}
+
+// Branching flow: the current batch's directions, then fresh suggestions, then Back.
+function pathsTargets(s: State): Target[] {
+  const ws = activeWorkspace(s);
+  const paths = ws && !ws.closed && ws.status === 'choosing' ? ws.batch?.paths?.slice(0, LIMITS.maxPaths) ?? [] : [];
+  return [
+    ...paths.map((p, index): Target => ({
+      id: `path-${index}`, label: p.label, detail: p.summary, enabled: true,
+      command: { type: 'choose-path', index }, region: 'menu',
+    })),
+    { id: 'path-new', label: 'Something else. New ideas', enabled: !!ws?.batch && s.settings.aiMode !== 'local-only',
+      command: { type: 'none-of-these' }, region: 'menu', tone: 'quiet' },
+    { ...back(), id: 'path-back' },
+  ];
 }
 
 function guideTargets(s: State, page: 'root' | 'direction' | 'wording'): Target[] {
@@ -390,6 +412,7 @@ export function targetsFor(s: State): Target[] {
   switch (surface.kind) {
     case 'board': return boardTargets(s);
     case 'guide': return guideTargets(s, surface.page);
+    case 'paths': return pathsTargets(s);
     case 'quick': return quickTargets(s, surface.page);
     case 'compose': return composeTargets(s, surface);
     case 'compose-clear': return [

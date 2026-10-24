@@ -41,7 +41,7 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
 }
 
 function reviewSub(mode: AccessMode): string {
-  if (mode === 'brow-blink') return 'Nothing is spoken until you confirm Speak. The highlight starts on Cancel. Raise your eyebrows to move to Speak, then make a new long blink.';
-  if (mode === 'blink') return 'Nothing is spoken until you confirm Speak. The highlight starts on Cancel; a new long blink on Speak says it aloud.';
-  return 'Nothing is spoken until you select Speak.';
+  if (mode === 'brow-blink') return 'Nothing is said until you pick Speak. The highlight starts on Cancel. Raise your eyebrows to reach Speak, then blink long.';
+  if (mode === 'blink') return 'Nothing is said until you pick Speak. The highlight starts on Cancel. A long blink on Speak says it.';
+  return 'Nothing is said until you pick Speak.';
 }

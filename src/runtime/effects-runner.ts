@@ -88,6 +88,10 @@ export class EffectsRunner {
       case 'generate':
         void this.generate(e.request);
         return;
+      case 'generate-path':
+        // Branching flow prefetch: same endpoint, headers, timeout and abort handling as 'generate'.
+        void this.generatePath(e.request, e.batchId, e.pathIndex);
+        return;
       case 'abort-generation': {
         const g = this.generations.get(e.requestId);
         if (g) {
@@ -170,6 +174,19 @@ export class EffectsRunner {
   }
 
   private async generate(request: ReplyRequest): Promise<void> {
+    const result = await this.fetchReplies(request);
+    if (!result) return; // superseded; the reducer would also reject it
+    this.deps.dispatch({ type: 'GENERATION_RESULT', identity: request.identity, result, at: this.now() });
+  }
+
+  private async generatePath(request: ReplyRequest, batchId: Id, pathIndex: number): Promise<void> {
+    const result = await this.fetchReplies(request);
+    if (!result) return;
+    this.deps.dispatch({ type: 'PATH_RESULT', identity: request.identity, batchId, pathIndex, result, at: this.now() });
+  }
+
+  /** POST /api/replies. Resolves null when an abort-generation effect cancelled the request. */
+  private async fetchReplies(request: ReplyRequest): Promise<ApiResult<ReplyResponseData> | null> {
     const requestId = request.identity.requestId;
     const entry = { ctrl: new AbortController(), cancelledByEffect: false, timedOut: false };
     this.generations.get(requestId)?.ctrl.abort();
@@ -207,8 +224,8 @@ export class EffectsRunner {
       clearTimeout(timeout);
     }
     if (this.generations.get(requestId) === entry) this.generations.delete(requestId);
-    if (entry.cancelledByEffect) return; // superseded; the reducer would also reject it
-    this.deps.dispatch({ type: 'GENERATION_RESULT', identity: request.identity, result, at: this.now() });
+    if (entry.cancelledByEffect) return null;
+    return result;
   }
 
   /** Shared by the start-recording effect and the partner Talk button. */

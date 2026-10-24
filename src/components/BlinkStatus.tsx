@@ -100,13 +100,20 @@ export function BlinkHint({ runtime, action = 'select' }: { runtime: StillHereRu
   const brow = st.accessMode === 'brow-blink';
   let chips: GestureChipProps[];
   if (brow) {
+    // Personal eyebrow hold from calibration (350–500 ms); keep holding to keep moving.
+    const holdMs = runtime.blink.browCalibration?.holdMs ?? 500;
+    const hold = holdMs === 500 ? '½ s' : `${(holdMs / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
+    const holdSpoken = holdMs === 500 ? 'half a second' : `${(holdMs / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} seconds`;
+    const back: GestureChipProps = { icon: '↓', label: 'Jaw drop', result: 'Back', spoken: 'Drop your jaw briefly, then close it, to move back.' };
     chips = action === 'speak'
       ? [
         { icon: '↑', label: 'Eyebrows up', result: 'Move to Speak', spoken: 'Raise your eyebrows to move to Speak.' },
+        back,
         { icon: '◉', label: 'New long blink', result: 'Speak', spoken: 'A new long blink speaks it.' },
       ]
       : [
-        { icon: '↑', label: 'Eyebrows up ½ s', result: 'Next', spoken: 'Eyebrows up for half a second moves to Next.' },
+        { icon: '↑', label: `Eyebrows up ${hold}`, result: 'Next', spoken: `Eyebrows up for ${holdSpoken} moves to Next; keep holding to keep moving.` },
+        back,
         { icon: '◉', label: 'Long blink', result: 'Select', spoken: 'A long blink selects.' },
       ];
   } else {

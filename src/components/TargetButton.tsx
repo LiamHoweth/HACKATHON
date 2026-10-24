@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import type { Target } from '@/core/state';
 import type { StillHereRuntime } from '@/runtime/contract';
 import { ClosureBar, isFaceMode } from './BlinkStatus';
@@ -10,6 +11,10 @@ type Props = {
   target: Target;
   runtime: StillHereRuntime;
   className?: string;
+  /** Optional richer detail (e.g. preview chips) shown instead of the plain `target.detail` text. */
+  detailNode?: ReactNode;
+  /** Optional decorative trailing glyph (e.g. a doorway chevron). Hidden from assistive tech. */
+  trailing?: ReactNode;
 };
 
 /**
@@ -18,7 +23,7 @@ type Props = {
  * highlight is shown visually and with aria-current; it never moves DOM focus. In eyebrow mode
  * the highlight moves only on an accepted eyebrow NEXT, never on a timer (runtime-owned).
  */
-export function TargetButton({ target: t, runtime, className }: Props) {
+export function TargetButton({ target: t, runtime, className, detailNode, trailing }: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const highlighted = runtime.highlightedTargetId === t.id;
   const blinkMode = isFaceMode(runtime.state.settings.accessMode);
@@ -58,7 +63,8 @@ export function TargetButton({ target: t, runtime, className }: Props) {
         </span>
       )}
       <span className="target-label">{t.label}</span>
-      {t.detail ? <span className="target-detail">{t.detail}</span> : null}
+      {detailNode ?? (t.detail ? <span className="target-detail">{t.detail}</span> : null)}
+      {trailing ? <span className="target-trailing" aria-hidden="true">{trailing}</span> : null}
       {blinkMode && held && <ClosureBar value={runtime.blink.closureProgress} />}
     </button>
   );

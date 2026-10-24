@@ -269,7 +269,9 @@ describe('Brow calibration windows', () => {
       expect(r.calibration.raisedThreshold).toBeGreaterThan(r.calibration.releaseThreshold);
       expect(r.calibration.releaseThreshold).toBeGreaterThan(0.09);
       expect(r.calibration.raisedThreshold).toBeLessThan(0.75);
-      expect(r.calibration.holdMs).toBe(500);
+      // Personal timing: these synthetic raises rise within one frame (decisive), so the hold is
+      // shortened to the 350 ms floor; the default 500 ms hold still had to be met to get here.
+      expect(r.calibration.holdMs).toBe(350);
     }
   });
 
@@ -340,7 +342,7 @@ describe('faceInputActive', () => {
 
 // ---- Engine wiring with synthetic frames (node: no camera, no storage) ----
 
-type Frame = { eye: number; brow: number; faces?: number };
+type Frame = { eye: number; brow: number; faces?: number; jaw?: number };
 function engineSetup(mode: AccessMode = 'brow-blink') {
   const engine = new BlinkEngine(mode);
   // Simulate a running camera (node has none): status comes from the gesture machines.
@@ -353,23 +355,61 @@ function engineSetup(mode: AccessMode = 'brow-blink') {
   let t = 1000;
   const run = (ms: number, f: Frame) => {
     const end = t + ms;
-    for (; t < end; t += 50) engine.onFrame({ t, faces: f.faces ?? 1, score: f.eye, brow: f.brow });
+    for (; t < end; t += 50) engine.onFrame({ t, faces: f.faces ?? 1, score: f.eye, brow: f.brow, jaw: f.jaw ?? 0.05 });
   };
   return { engine, events, run, accepts: () => events.filter((e) => e.type === 'accept').map((e) => (e as { command: string }).command) };
 }
 
 describe('Engine: detector → gestures → ONE arbiter → command handler', () => {
-  it('a 500 ms eyebrow raise yields exactly one NAV_NEXT even when held 2 s', () => {
+  it('a 500 ms eyebrow raise yields one NAV_NEXT; held 2 s it keeps moving every 600 ms', () => {
     const { engine, run, accepts } = engineSetup();
     run(1000, { eye: 0.05, brow: 0.05 }); // face acquired, neutral seen
     run(2000, { eye: 0.05, brow: 0.8 });
-    expect(accepts()).toEqual(['NAV_NEXT']);
+    expect(accepts()).toEqual(['NAV_NEXT', 'NAV_NEXT', 'NAV_NEXT']); // ~500, ~1100, ~1700 ms
     const snap = engine.getSnapshot();
     expect(snap.lastAccepted).toMatchObject({ command: 'NAV_NEXT', targetId: 'target' });
     run(400, { eye: 0.05, brow: 0.05 }); // release + cooldown
     run(800, { eye: 0.05, brow: 0.05 });
     run(700, { eye: 0.05, brow: 0.8 });
-    expect(accepts()).toEqual(['NAV_NEXT', 'NAV_NEXT']);
+    expect(accepts()).toEqual(['NAV_NEXT', 'NAV_NEXT', 'NAV_NEXT', 'NAV_NEXT']);
+  });
+
+  it('jaw drop held ~0.6 s then closed → one NAV_PREV; talking-length opens and yawns do nothing', () => {
+    const { engine, run, accepts } = engineSetup();
+    run(1000, { eye: 0.05, brow: 0.05 });
+    for (let i = 0; i < 4; i++) {
+      run(200, { eye: 0.05, brow: 0.05, jaw: 0.7 }); // talking: short opens
+      run(200, { eye: 0.05, brow: 0.05, jaw: 0.05 });
+    }
+    expect(accepts()).toEqual([]);
+    run(600, { eye: 0.05, brow: 0.05, jaw: 0.8 });
+    expect(accepts()).toEqual([]); // proposed on closing, never while open
+    run(300, { eye: 0.05, brow: 0.05, jaw: 0.05 });
+    expect(accepts()).toEqual(['NAV_PREV']);
+    expect(engine.getSnapshot().feedback.label).toBe('Jaw drop detected — Back');
+    run(1000, { eye: 0.05, brow: 0.05 });
+    run(2500, { eye: 0.05, brow: 0.05, jaw: 0.9 }); // yawn
+    run(1000, { eye: 0.05, brow: 0.05 });
+    expect(accepts()).toEqual(['NAV_PREV']);
+  });
+
+  it('jaw drop together with an eyebrow raise (surprise) moves neither way', () => {
+    const { run, accepts } = engineSetup();
+    run(1000, { eye: 0.05, brow: 0.05 });
+    run(700, { eye: 0.05, brow: 0.8, jaw: 0.8 });
+    run(1000, { eye: 0.05, brow: 0.05, jaw: 0.05 });
+    expect(accepts()).toEqual([]);
+  });
+
+  it('a blink closure during a jaw drop wins: no NAV_PREV', () => {
+    const { run, accepts, events } = engineSetup();
+    run(1000, { eye: 0.05, brow: 0.05 });
+    run(200, { eye: 0.05, brow: 0.05, jaw: 0.8 });
+    run(300, { eye: 0.9, brow: 0.05, jaw: 0.8 }); // closure onset mid-drop (short: no select)
+    run(200, { eye: 0.05, brow: 0.05, jaw: 0.8 });
+    run(300, { eye: 0.05, brow: 0.05, jaw: 0.05 });
+    expect(events.some((e) => e.type === 'freeze')).toBe(true);
+    expect(accepts()).toEqual([]);
   });
 
   it('a short raise gives progress but no command', () => {

@@ -46,6 +46,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const [sessionLearning, setSessionLearning] = useState(false);
   // Fast, conversational mode: one selection speaks at once. On by default for the demo.
   const [speakOnSelect, setSpeakOnSelect] = useState(true);
+  const [branching, setBranching] = useState(true);
   const [persistChoice, setPersistChoice] = useState<boolean | null>(null);
   const [measurement, setMeasurement] = useState(false);
   const [relationship, setRelationship] = useState<Relationship | ''>('');
@@ -167,6 +168,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
     scope: { relationship: relationship || null, setting: place || null },
     demoProfile: isDemoProfile,
     speakOnSelect,
+    branching,
   });
 
   const enterSession = (mode: AccessMode) => {
@@ -234,7 +236,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
         <h1 id={`${uid}-title`}>Set up this session</h1>
         <p className="tagline">Your words. Your choice.</p>
         <p className="principle">AI offers possible words. The person decides what to say.</p>
-        <p className="muted">A helper sets this up by touch, once. Then the partner just talks, and the person answers with eyebrows and blinks.</p>
+        <p className="muted">A helper sets this up once, by touch. Then the partner just talks, and the person answers with eyebrows and blinks.</p>
       </header>
 
       <form className={`setup-form ${css.setupForm}`} onSubmit={start} noValidate>
@@ -243,11 +245,11 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
           <label className={`choice choice-hero${choice === 'brow-blink' ? ' is-chosen' : ''}`}>
             <input type="radio" name="access" value="brow-blink" checked={choice === 'brow-blink'} onChange={() => setChoice('brow-blink')} />
             <span>
-              <strong className="choice-hero-title">Use eyebrows + blinks <span className="tag">Recommended</span></strong>
-              <span className="hint-strong">Raise both eyebrows and hold for half a second to move to the next option. Close your eyes in a long, deliberate blink to select.</span>
-              <span className="hint">Ordinary blinks are ignored. Holding your eyebrows up longer still moves only one step.</span>
-              <span className="hint">The camera image stays on this device. It detects eyebrow and eye movement only — not who you are, where you look, or emotions. Nothing is recorded.</span>
-              <span className="hint">The browser will ask for camera permission; a helper may need to tap Allow. Next comes a short guided calibration and practice.</span>
+              <strong className="choice-hero-title">Use eyebrows + blinks</strong>
+              <span className="hint-strong">Raise your eyebrows to move. Keep them up to keep moving. Drop your jaw briefly to go back. A long, slow blink picks.</span>
+              <span className="hint">Normal blinks are ignored.</span>
+              <span className="hint">The camera stays on this device and only watches eyebrows and eyes. It doesn’t know who you are, where you look, or how you feel. Nothing is recorded.</span>
+              <span className="hint">A helper may need to tap Allow for the camera. Then there’s a short calibration and practice.</span>
             </span>
           </label>
           {isFaceMode(accessMode) && savedReady && savedCalibration && (
@@ -266,7 +268,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <input type="radio" name="access" value="blink" checked={choice === 'blink'} onChange={() => setChoice('blink')} />
               <span>
                 <strong>Auto-scan with blink</strong>
-                <span className="hint">The highlight moves by itself; a long, deliberate blink selects. Uses the camera, no eyebrow movement needed.</span>
+                <span className="hint">The highlight moves by itself. A long blink chooses. No eyebrows needed.</span>
               </span>
             </label>
             <label className={`choice${choice === 'key-switch' ? ` ${css.altChosen}` : ''}`}>
@@ -280,15 +282,15 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <input type="radio" name="access" value="pointer" checked={choice === 'pointer'} onChange={() => setChoice('pointer')} />
               <span>
                 <strong>Touch</strong>
-                <span className="hint">Tap choices directly (also mouse, trackpad, or head pointer). No camera.</span>
+                <span className="hint">Tap choices directly, or use a mouse or head pointer. No camera.</span>
               </span>
             </label>
           </div>
           {choice === 'key-switch' && (
             <div className={css.subRow} role="radiogroup" aria-label="Keyboard or switch">
               {([
-                ['switch', 'Switch scanning — targets highlight in turn; press Space/Enter or a mapped switch'],
-                ['keyboard', 'Keyboard — Tab to a control, then Enter or Space'],
+                ['switch', 'Switch scanning: choices light up in turn, press Space, Enter, or a switch'],
+                ['keyboard', 'Keyboard: Tab to a choice, then Enter or Space'],
               ] as const).map(([value, label]) => (
                 <label key={value}>
                   <input type="radio" name="access-keyswitch" value={value} checked={keySwitchMode === value} onChange={() => setKeySwitchMode(value)} />
@@ -297,7 +299,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               ))}
             </div>
           )}
-          <p className="hint">Every method uses the same full-text review and a separate confirmation before anything is spoken.</p>
+          <p className="hint">Every method shows the full text and asks once more before speaking.</p>
           </details>
           {usesScan && (
             <div className="field">
@@ -310,7 +312,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                 aria-describedby={`${uid}-scan-hint`} aria-invalid={!scanValid}
               />
               <p id={`${uid}-scan-hint`} className="hint">
-                How long the highlight stays on each item. Between {SCAN_DEFAULTS.minIntervalMs / 1000} and {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. New screens add a short reading pause. You can change this later in Controls.
+                How long each item stays lit, {SCAN_DEFAULTS.minIntervalMs / 1000} to {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. You can change it later in Controls.
               </p>
             </div>
           )}
@@ -324,7 +326,14 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <input type="checkbox" checked={speakOnSelect} onChange={(e) => setSpeakOnSelect(e.target.checked)} />
               <span>
                 <strong>Speak as soon as I choose (fastest)</strong>
-                <span className="hint">One long blink on a suggestion speaks it right away. The top suggestion is highlighted first. Turn off to review and confirm each message with a second blink.</span>
+                <span className="hint">One long blink on a suggestion says it right away. Turn off to confirm each message with a second blink.</span>
+              </span>
+            </label>
+            <label className="choice">
+              <input type="checkbox" checked={branching} onChange={(e) => setBranching(e.target.checked)} />
+              <span>
+                <strong>Show other ways to answer</strong>
+                <span className="hint">Two best replies, plus a card with other directions. Turn off to see three replies.</span>
               </span>
             </label>
           </fieldset>
@@ -335,22 +344,22 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <h2>{SPEECH_PROVIDER_LABELS.elevenlabs}</h2>
               <p className={css.providerLine} role="status">
                 {elevenConfigured
-                  ? 'Configured on this server.'
+                  ? 'Ready on this server.'
                   : serverStatus || audio
-                    ? 'Not configured on this server — the basic device voice will be used, and it will be labeled.'
+                    ? 'Not set up on this server. The basic device voice will be used, and labeled.'
                     : 'Checking the server…'}
               </p>
               <p className="hint">
                 {speakOnSelect
-                  ? 'In fast mode, suggested sentences are sent to ElevenLabs ahead of time so the chosen one plays instantly. It is AI-generated speech. Camera images never leave this device.'
-                  : 'The exact sentence you confirm is sent to ElevenLabs to create the audio; it is AI-generated speech. Nothing is sent before you confirm. Camera images never leave this device.'}
+                  ? 'In fast mode, suggestions are sent to ElevenLabs ahead of time so the one you pick plays instantly. The voice is AI-generated. Camera images never leave this device.'
+                  : 'Only the sentence you confirm is sent to ElevenLabs, after you confirm. The voice is AI-generated. Camera images never leave this device.'}
               </p>
               {elevenConfigured && (
                 <label className="choice">
                   <input type="checkbox" checked={preferBasicVoice} onChange={(e) => setPreferBasicVoice(e.target.checked)} />
                   <span>
                     <strong>Use the basic device voice instead</strong>
-                    <span className="hint">Keeps message text on this device’s speech engine. It sounds more robotic.</span>
+                    <span className="hint">Keeps messages on this device. It sounds more robotic.</span>
                   </span>
                 </label>
               )}
@@ -360,7 +369,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                   <select id={`${uid}-nvoice`} value={voiceChoiceId} onChange={(e) => setVoiceChoiceId(e.target.value)}>
                     <option value="">Server default voice</option>
                     {naturalVoices.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}{v.description ? ` — ${v.description}` : ''}</option>
+                      <option key={v.id} value={v.id}>{v.name}{v.description ? ` · ${v.description}` : ''}</option>
                     ))}
                   </select>
                 </div>
@@ -371,7 +380,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               >
                 {audioBusy ? 'Enabling audio…' : 'Enable audio & test voice'}
               </button>
-              <p className="hint">On iPad, sound needs one real tap first — a helper may tap this. Camera gestures cannot unlock audio.</p>
+              <p className="hint">iPad needs one real tap to turn on sound. A helper can tap it. Blinks can’t.</p>
               <p className={`${css.audioStatus} ${css[`tone-${audioLabel.tone}`] ?? ''}`} role="status" aria-live="polite">
                 {audioLabel.text}
               </p>
@@ -394,7 +403,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                     </option>
                   ))}
                 </select>
-                <p className="hint">“Local” voices are processed on this device. “Network” voices may send text to the browser vendor’s speech service.</p>
+                <p className="hint">“Local” voices stay on this device. “Network” voices may send text to the browser maker.</p>
               </div>
               <div className="field">
                 <label htmlFor={`${uid}-rate`}>Speaking rate: {rate.toFixed(1)}×</label>
@@ -416,7 +425,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                 <span className="hint">
                   {liveAvailable
                     ? `Sends conversation text to ${providerDisplayName(serverStatus?.replies.provider)}${serverStatus?.replies.model ? ` (model: ${serverStatus.replies.model})` : ''}.`
-                    : serverStatus ? 'Not configured on this server.' : 'Checking the server…'}
+                    : serverStatus ? 'Not set up on this server.' : 'Checking the server…'}
                 </span>
               </span>
             </label>
@@ -424,14 +433,14 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <input type="radio" name="ai" value="fixture" checked={aiMode === 'fixture'} disabled={!fixtureAvailable} onChange={() => setChosenAiMode('fixture')} />
               <span>
                 <strong>Fixture demo (labeled scripted suggestions)</strong>
-                <span className="hint">{fixtureAvailable ? 'Pre-written examples, always labeled “Fixture demo”. Nothing is sent to an AI service.' : 'Fixtures are turned off on this server.'}</span>
+                <span className="hint">{fixtureAvailable ? 'Pre-written examples, always labeled “Fixture demo”. Nothing goes to an AI service.' : 'Fixtures are turned off on this server.'}</span>
               </span>
             </label>
             <label className="choice">
               <input type="radio" name="ai" value="local-only" checked={aiMode === 'local-only'} onChange={() => setChosenAiMode('local-only')} />
               <span>
                 <strong>Local only (phrases and my own words)</strong>
-                <span className="hint">No suggestions. Saved phrases and the keyboard always work.</span>
+                <span className="hint">No suggestions. Saved phrases and typing still work.</span>
               </span>
             </label>
             {serverStatus?.accessRequired && aiMode === 'live' && (
@@ -441,8 +450,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                 <p className="hint" role="status">
                   {needsCode ? 'Kept for this browser tab only.'
                     : serverStatus?.accessCodeValid === true ? '✓ Access code accepted.'
-                      : serverStatus?.accessCodeValid === false ? 'This access code was not accepted. Check it, or choose Fixture demo or Local only.'
-                        : 'Checking the code… (we also check it when you start).'}
+                      : serverStatus?.accessCodeValid === false ? 'That code didn’t work. Check it, or pick Fixture demo or Local only.'
+                        : 'Checking the code…'}
                 </p>
               </div>
             )}
@@ -456,22 +465,22 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
               <span>
                 <strong>I consent to sending conversation text (and recorded partner audio, if used) to the configured cloud AI service</strong>
-                <span className="hint">Required for Live AI and for recording partner speech. During a session the microphone listens for the partner; the app pauses listening while it speaks.</span>
+                <span className="hint">Needed for Live AI and for partner speech, which is sent for transcription. The mic listens for the partner and pauses while the app speaks.</span>
               </span>
             </label>
-            {needsConsent && <p className="warning" role="status">Live AI needs this consent. Choose another source or give consent.</p>}
+            {needsConsent && <p className="warning" role="status">Live AI needs this OK. Check the box, or pick another source.</p>}
             <label className="choice">
               <input type="checkbox" checked={sessionLearning} onChange={(e) => setSessionLearning(e.target.checked)} />
               <span>
                 <strong>Learn wording tendencies during this session (temporary)</strong>
-                <span className="hint">Notices patterns such as choosing shorter replies. Nothing is saved without your approval. Cleared when the session ends.</span>
+                <span className="hint">Notices things like a liking for shorter replies. Nothing is saved without your OK, and it clears when the session ends.</span>
               </span>
             </label>
             <label className="choice">
               <input type="checkbox" checked={persist} onChange={(e) => setPersistChoice(e.target.checked)} />
               <span>
                 <strong>Remember approved preferences on this device</strong>
-                <span className="hint">Stores only what you approve, in this browser. You can review or delete it any time in Preferences → Memory.</span>
+                <span className="hint">Only what you approve, in this browser. Review or delete it any time in Preferences → Memory.</span>
               </span>
             </label>
             {state.storageStatus === 'loaded' && (
@@ -482,16 +491,16 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               </p>
             )}
             {state.storageStatus === 'corrupt' && (
-              <p className="warning">Saved data on this device could not be read and was not used. Starting with nothing saved; you can delete it from Memory.</p>
+              <p className="warning">Saved data on this device couldn’t be read, so it wasn’t used. You can delete it from Memory.</p>
             )}
             {state.storageStatus === 'unavailable' && (
-              <p className="warning">This browser is not allowing device storage. Everything will last for this session only.</p>
+              <p className="warning">This browser won’t allow storage, so everything lasts for this session only.</p>
             )}
             <label className="choice">
               <input type="checkbox" checked={measurement} onChange={(e) => setMeasurement(e.target.checked)} />
               <span>
                 <strong>Measurement mode</strong>
-                <span className="hint">Records timings and counts for evaluation. No message text is included.</span>
+                <span className="hint">Records timings and counts. No message text.</span>
               </span>
             </label>
           </fieldset>
@@ -518,7 +527,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
 
           <fieldset>
             <legend>Profile draft (optional, helper-entered)</legend>
-            <p className="draft-note">Draft — the user approves it later in Preferences → Memory. It is not used for suggestions until approved.</p>
+            <p className="draft-note">A draft. The person approves it later in Preferences → Memory. It isn’t used until then.</p>
             <div className="field">
               <label htmlFor={`${uid}-name`}>Preferred name</label>
               <input id={`${uid}-name`} type="text" autoComplete="off" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
@@ -529,7 +538,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             </div>
             <button type="button" className="btn btn-quiet" onClick={useDemo}>Use fictional demo profile</button>
             {isDemoProfile && (
-              <p className="hint">Fictional demo profile filled in. It does not turn on learning or saving.</p>
+              <p className="hint">Fictional demo profile filled in. It doesn’t turn on learning or saving.</p>
             )}
           </fieldset>
           </details>

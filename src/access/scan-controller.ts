@@ -26,6 +26,13 @@ export function stepIndex(index: number, length: number): number {
   return (index + 1) % length;
 }
 
+/** One manual step backwards (jaw-drop BACK): previous index, wrapping to the last. -1 stays -1. */
+export function stepIndexBack(index: number, length: number): number {
+  if (length <= 0) return -1;
+  if (!Number.isInteger(index) || index < 0 || index >= length) return 0;
+  return (index - 1 + length) % length;
+}
+
 type Clock = {
   now: () => number;
   setTimeout: (fn: () => void, ms: number) => unknown;
@@ -145,10 +152,19 @@ export class ScanController {
    * highlight log is on the same clock as blink-closure onsets.
    */
   next(at?: number): string | null {
+    return this.step(stepIndex, at);
+  }
+
+  /** Manual mode only: one step backwards (wrapping to the last). Same refusals as next(). */
+  previous(at?: number): string | null {
+    return this.step(stepIndexBack, at);
+  }
+
+  private step(fn: (index: number, length: number) => number, at?: number): string | null {
     const cfg = this.cfg;
     if (!cfg || !cfg.active || !cfg.manual || cfg.held || cfg.hidden || cfg.ids.length === 0) return null;
     const cur = this.highlighted ? cfg.ids.indexOf(this.highlighted) : -1;
-    this.index = stepIndex(cur >= 0 ? cur : this.index, cfg.ids.length);
+    this.index = fn(cur >= 0 ? cur : this.index, cfg.ids.length);
     this.set(cfg.ids[this.index], false, at); // a one-target surface logs nothing new (same id)
     return cfg.ids[this.index];
   }

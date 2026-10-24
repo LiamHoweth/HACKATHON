@@ -230,19 +230,19 @@ describe('Pipeline — real detectors + arbiter (GEST-05/06)', () => {
   }
   const OPEN = 0.1, CLOSED = 0.9, REST = 0.1, UP = 0.7;
 
-  it('brow raise ≥500 ms → one NAV_NEXT; long blink → one SELECT', () => {
+  it('brow raise ≥500 ms → NAV_NEXT (held: repeats every 600 ms); long blink → one SELECT', () => {
     const frames = [
       ...seg(0, 1200, OPEN, REST),        // acquire face + arm both machines
-      ...seg(1200, 2000, OPEN, UP),       // 2 s raise → one next
+      ...seg(1200, 2000, OPEN, UP),       // 2 s raise → next at 500 ms, then hold-to-repeat at +600, +1200
       ...seg(3200, 1200, OPEN, REST),     // release + cooldown
       ...seg(4400, 800, CLOSED, REST),    // deliberate closure
       ...seg(5200, 1000, OPEN, REST),
     ];
     const acc = run(frames);
-    expect(acc.map((x) => x.command)).toEqual(['NAV_NEXT', 'SELECT']);
+    expect(acc.map((x) => x.command)).toEqual(['NAV_NEXT', 'NAV_NEXT', 'NAV_NEXT', 'SELECT']);
     // NEXT moves an unfrozen highlight; SELECT is accepted while the closure-onset target is
     // still frozen (accept precedes unfreeze), so the runtime commits the snapshotted target.
-    expect(acc.map((x) => x.frozen)).toEqual([false, true]);
+    expect(acc.map((x) => x.frozen)).toEqual([false, false, false, true]);
   });
 
   it('GEST-06: eyes close while brows are rising → no NAV_NEXT ever; the blink selects', () => {

@@ -5,8 +5,11 @@
 // of accepted commands (a blink closure onset pre-empts a pending raise).
 //
 // States: NEUTRAL → (score ≥ raisedThreshold) RISING → held continuously ≥ holdMs → one
-// 'brow-next' → LATCHED (further raised frames ignored; a long hold never repeats) → stable
-// score ≤ releaseThreshold for releaseMs → REARMING for cooldownMs → NEUTRAL.
+// 'brow-next' → LATCHED → stable score ≤ releaseThreshold for releaseMs → REARMING for
+// cooldownMs → NEUTRAL. Hold to keep moving: while LATCHED and the raise is still held
+// (score > releaseThreshold on every trustworthy frame), one more 'brow-next' (repeat ≥ 1) is
+// proposed every BROW_TIMING.repeatMs. The first released frame, an untrustworthy frame, reset()
+// or cancel() (blink closure onset) stops the repeats for this raise; only a new raise restarts.
 // While RISING, a frame counts as "still raised" while score > releaseThreshold (hysteresis band).
 // After construction, reset(), or any non-'too-short' cancel, a neutral frame (score ≤
 // releaseThreshold) must be seen before a new raise can start, so a raise held across a surface
@@ -22,7 +25,8 @@ export type BrowFrame = { t: number; faces: number; score: number | null }; // t
 
 export type BrowEvent =
   | { type: 'brow-start'; at: number }
-  | { type: 'brow-next'; at: number; heldMs: number }      // proposed NAV_NEXT, exactly once per raise
+  // Proposed NAV_NEXT: repeat 0 at holdMs, then repeat 1, 2, … every repeatMs while still held.
+  | { type: 'brow-next'; at: number; heldMs: number; repeat?: number }
   | { type: 'brow-cancel'; at: number; heldMs: number; reason: 'too-short' | 'blink-preempted' | 'face-lost' | 'ambiguous' | 'stale' };
 
 // Compile-time guarantee that BrowEvent stays a subset of the contract's BlinkGestureEvent.
@@ -50,6 +54,8 @@ export const BROW_TIMING = {
   staleGapMs: 700,
   /** Exactly one face (with a score) for this long before a raise may start (same as blink). */
   stableFaceMs: 500,
+  /** Hold to keep moving: after the first NEXT, one more NEXT every repeatMs while still raised. */
+  repeatMs: 600,
 } as const;
 
 type Phase = Exclude<BrowStatus, 'disabled'>;
@@ -65,10 +71,23 @@ export class BrowGesture {
   private onset: number | null = null;
   private releaseSince: number | null = null;
   private rearmUntil = 0;
+  /** Latched raise still held: time of the next repeat NEXT (null: no repeats for this raise). */
+  private repeatAt: number | null = null;
+  private repeatCount = 0;
+  /** Onset of the latched raise (for heldMs on repeats). */
+  private holdOnset = 0;
+  private repeatMs: number;
   private cal: BrowCalibration;
 
-  constructor(cal: BrowCalibration = DEFAULT_BROW_CALIBRATION) {
+  constructor(cal: BrowCalibration = DEFAULT_BROW_CALIBRATION, opts: { repeatMs?: number } = {}) {
     this.cal = copyCal(cal);
+    const r = opts.repeatMs;
+    this.repeatMs = typeof r === 'number' && Number.isFinite(r) && r >= 300 ? r : BROW_TIMING.repeatMs;
+  }
+
+  /** True while a latched raise is still held and will propose repeat NEXTs. */
+  get repeating(): boolean {
+    return this.phase === 'latched' && this.repeatAt !== null;
   }
 
   get calibration(): BrowCalibration {
@@ -106,12 +125,14 @@ export class BrowGesture {
     this.onset = null;
     this.releaseSince = null;
     this.rearmUntil = 0;
+    this.stopRepeat();
   }
 
   /** Cancel any in-progress raise (e.g. blink closure onset). Latched/rearming state is kept. */
   cancel(reason: Exclude<BrowCancelReason, 'too-short'>, at: number): BrowEvent[] {
     const ev: BrowEvent[] = [];
     this.cancelRising(ev, at, reason);
+    this.stopRepeat(); // a held raise never keeps moving after a cancel (e.g. blink closure onset)
     return ev;
   }
 
@@ -179,6 +200,7 @@ export class BrowGesture {
       }
       case 'latched':
         if (released) {
+          this.stopRepeat(); // relaxed: the hold is over; only a new raise moves again
           if (this.releaseSince === null) this.releaseSince = t;
           if (t - this.releaseSince >= releaseMs) {
             this.phase = 'rearming';
@@ -187,6 +209,12 @@ export class BrowGesture {
           }
         } else {
           this.releaseSince = null;
+          if (this.repeatAt !== null && t >= this.repeatAt) {
+            this.repeatCount += 1;
+            ev.push({ type: 'brow-next', at: t, heldMs: t - this.holdOnset, repeat: this.repeatCount });
+            // Never burst after a slow frame: the next repeat is at least one interval away.
+            this.repeatAt = Math.max(this.repeatAt + this.repeatMs, t + this.repeatMs / 2);
+          }
         }
         break;
       case 'rearming':
@@ -207,14 +235,23 @@ export class BrowGesture {
     if (this.phase !== 'rising' || this.onset === null) return;
     const held = t - this.onset;
     if (held < holdMs) return;
-    ev.push({ type: 'brow-next', at: t, heldMs: held });
+    ev.push({ type: 'brow-next', at: t, heldMs: held, repeat: 0 });
+    this.holdOnset = this.onset;
     this.phase = 'latched';
     this.onset = null;
     this.releaseSince = null;
+    this.repeatAt = t + this.repeatMs;
+    this.repeatCount = 0;
+  }
+
+  private stopRepeat() {
+    this.repeatAt = null;
+    this.repeatCount = 0;
   }
 
   /** An untrustworthy frame or gap: no raise may start until neutral + a stable face are seen again. */
   private untrusted() {
+    this.stopRepeat();
     this.needNeutral = true;
     this.stableSince = null;
     this.releaseSince = null;

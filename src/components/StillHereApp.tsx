@@ -135,6 +135,8 @@ function SurfaceView({ runtime, surface }: { runtime: StillHereRuntime; surface:
     case 'compose': return <Composer runtime={runtime} surface={surface} />;
     case 'speaking': return <SpeakingPanel runtime={runtime} />;
     case 'paused': return <PausedPanel runtime={runtime} />;
+    // Branching flow: "Other ways to answer" renders as a menu (title, partner question, path cards).
+    case 'paths': return <MenuSurface runtime={runtime} surface={surface} />;
     default: return <MenuSurface runtime={runtime} surface={surface} />;
   }
 }

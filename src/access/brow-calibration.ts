@@ -31,6 +31,80 @@ export const BROW_CALIBRATION_MINIMUMS = {
 /** Fixed timings: holdMs is the user-requested 500 ms; release/cooldown are provisional. */
 export const BROW_CALIBRATION_TIMING = { holdMs: 500, releaseMs: 250, cooldownMs: 500 } as const;
 
+/**
+ * Personal timing (prototype engineering values, not clinical): a person whose calibration raises
+ * went from relaxed to raised quickly and decisively gets a shorter hold, never below minHoldMs
+ * (casual expressions are briefer than that) and never above the 500 ms default. Without enough
+ * measured raises, or with a marginal / noisy calibration, the defaults stay.
+ */
+export const PERSONAL_TIMING = {
+  minHoldMs: 350,
+  maxHoldMs: 500,
+  /** Median rise (release → raised crossing) at or below this gets minHoldMs … */
+  fastRiseMs: 150,
+  /** … at or above this gets maxHoldMs; linear in between. */
+  slowRiseMs: 400,
+  /** At least this many prompted raises must have a measured rise. */
+  minRises: 2,
+  /** A rise longer than this is a drift, not a raise onset, and is ignored. */
+  maxRiseMs: 1000,
+  /** Eyebrow re-arm cooldown for a clean personal calibration (default 500; never below 400). */
+  browCooldownMs: 400,
+  /** Blink re-arm cooldown after a select for a new calibration (default 800; never below 400). */
+  blinkCooldownMs: 500,
+} as const;
+
+/**
+ * Rise time of the first raise in each prompt window: from the last sample at or below `release`
+ * to the first sample at or above `raised` (a frame gap > HELD_RAISE.maxGapMs breaks it).
+ */
+export function measureRiseTimes(
+  windows: readonly (readonly BrowScoreSample[])[], raised: number, release: number,
+): number[] {
+  const out: number[] = [];
+  for (const w of windows) {
+    let lowT: number | null = null;
+    let lastT: number | null = null;
+    for (const s of w) {
+      if (!isNum(s?.t) || !isNum(s?.score)) continue;
+      if (lastT !== null && s.t - lastT > HELD_RAISE.maxGapMs) lowT = null;
+      lastT = s.t;
+      if (s.score <= release) {
+        lowT = s.t;
+      } else if (s.score >= raised && lowT !== null) {
+        const rise = s.t - lowT;
+        if (rise > 0 && rise <= PERSONAL_TIMING.maxRiseMs) out.push(rise);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Personal hold from measured rise times, clamped to [minHoldMs, maxHoldMs]; default when insufficient. */
+export function personalBrowHoldMs(riseTimesMs: readonly number[]): number {
+  const P = PERSONAL_TIMING;
+  const rises = riseTimesMs.filter((x) => isNum(x) && x > 0);
+  if (rises.length < P.minRises) return BROW_CALIBRATION_TIMING.holdMs;
+  const m = median(rises);
+  const f = Math.min(1, Math.max(0, (m - P.fastRiseMs) / (P.slowRiseMs - P.fastRiseMs)));
+  const hold = Math.round((P.minHoldMs + f * (P.maxHoldMs - P.minHoldMs)) / 10) * 10;
+  return Math.min(P.maxHoldMs, Math.max(P.minHoldMs, hold));
+}
+
+/**
+ * Applies personal timing to a successful proposal. Only a clean calibration (no warnings) is
+ * shortened; the person must already have held raises for the default 500 ms to get here.
+ */
+export function withPersonalBrowTiming(
+  c: BrowCalibration, windows: readonly (readonly BrowScoreSample[])[], warnings: readonly string[],
+): BrowCalibration {
+  if (warnings.length > 0) return { ...c };
+  const holdMs = personalBrowHoldMs(measureRiseTimes(windows, c.raisedThreshold, c.releaseThreshold));
+  const personal = holdMs < BROW_CALIBRATION_TIMING.holdMs;
+  return { ...c, holdMs, cooldownMs: personal ? Math.max(400, PERSONAL_TIMING.browCooldownMs) : c.cooldownMs };
+}
+
 export type BrowCalibrationResult =
   | { ok: true; calibration: BrowCalibration; warnings: string[] }
   | { ok: false; reason: string };

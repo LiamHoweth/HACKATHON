@@ -84,7 +84,7 @@ describe('BrowGesture — hold threshold (GEST-01/02)', () => {
     s.at(onset + 499, RAISED);
     expect(s.count('brow-next')).toBe(0);
     const ev = s.at(onset + 500, RAISED);
-    expect(ev).toEqual([{ type: 'brow-next', at: onset + 500, heldMs: 500 }]);
+    expect(ev).toEqual([{ type: 'brow-next', at: onset + 500, heldMs: 500, repeat: 0 }]);
     expect(s.g.status).toBe('latched');
     expect(s.g.progress(onset + 500)).toBe(0);
   });
@@ -131,14 +131,12 @@ describe('BrowGesture — hold threshold (GEST-01/02)', () => {
 });
 
 describe('BrowGesture — latch and re-arm (GEST-03/04)', () => {
-  it('GEST-03: a 2-second sustained raise yields one next total', () => {
+  it('GEST-03 (hold to keep moving): a 2-second sustained raise steps at 500, 1100 and 1700 ms — one raise', () => {
     const s = armed();
     s.raised(2000);
-    expect(s.count('brow-next')).toBe(1);
+    expect(s.count('brow-next')).toBe(3);
     expect(s.count('brow-start')).toBe(1);
     expect(s.g.status).toBe('latched');
-    s.raised(3000);
-    expect(s.count('brow-next')).toBe(1);
   });
 
   it('GEST-04: the next raise needs stable neutral (releaseMs) plus cooldown', () => {

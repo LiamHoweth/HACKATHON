@@ -92,11 +92,23 @@ export type RequestIdentity = {
   sessionEpoch: Id; workspaceId: Id; requestId: Id;
   contextRevision: number; preferenceRevision: number;
 };
+/**
+ * "Other ways to answer" (branching flow): an AI-generated direction the person can take
+ * instead of the top replies, e.g. { label: 'Rough day', summary: 'Say the day was hard' }.
+ * label: 1–3 words shown on a card; summary: one short line used to steer generation.
+ */
+export type ReplyPath = { label: string; summary: string };
+
 export type ChoiceBatch = {
   id: Id; identity: RequestIdentity; anchor: Anchor;
-  candidates: [Candidate, Candidate, Candidate];
+  /** 3 replies normally; 2 when the batch also offers `paths` (branching flow). */
+  candidates: Candidate[];
   source: CandidateSource;
   kind: 'suggestions' | 'refinement';
+  /** Branching flow: directions offered behind "Other ways to answer…" (3–5), when present. */
+  paths?: ReplyPath[];
+  /** Branching flow: the chosen direction these replies belong to (breadcrumb), when present. */
+  pathLabel?: string | null;
   receivedAt: number;
 };
 export type RejectionFeedback = 'none-fit' | 'different-meaning' | 'too-long' | 'different-tone' | 'too-specific';
@@ -201,9 +213,15 @@ export type ReplyRequest = {
   rejected: Array<{ candidates: Array<{ text: string; meaning: CandidateMeaning }>; feedback: RejectionFeedback }>;
   refineTarget: { text: string; meaning: CandidateMeaning; mode: 'shorter' | 'different-tone' } | null;
   lengthPolicy: LengthPolicy;
+  /** Branching flow: return exactly 2 replies plus 3–5 `paths` (other ways to answer). */
+  branching?: boolean;
+  /** Branching flow: return exactly 3 replies within this chosen direction (no paths). */
+  pathHint?: ReplyPath | null;
 };
 export type ReplyResponseData = {
   candidates: Array<{ text: string; meaning: CandidateMeaning }>;
+  /** Present (3–5) when the request had branching: true and no pathHint. */
+  paths?: ReplyPath[];
   source: CandidateSource;
   model: string | null;
   repaired: boolean;

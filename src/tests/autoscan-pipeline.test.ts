@@ -33,6 +33,7 @@ import { newId, reducer } from '@/core/reducer';
 import { targetsFor } from '@/core/targets';
 import { currentSurface, initialState, type Action, type Effect, type Settings, type State } from '@/core/state';
 import type { BlinkGestureEvent, GestureCommand } from '@/runtime/contract';
+import type { FaceCommand } from '@/access/gesture-arbiter';
 import {
   ALT_CANDIDATES, Driver, okResult, SPREAD_CANDIDATES,
   type ActivateAction, type FixtureCandidate, type GenEffect, type SpeakEffect,
@@ -53,7 +54,7 @@ const READING = SCAN_DEFAULTS.readingPauseMs; // 2000
 type FaceCommandEvent =
   | { type: 'freeze'; at: number }
   | { type: 'unfreeze'; at: number }
-  | { type: 'accept'; command: GestureCommand; at: number; cycleId: string }
+  | { type: 'accept'; command: FaceCommand; at: number; cycleId: string }
   | { type: 'face-lost'; at: number };
 type FaceCommandResult = { applied: boolean; targetId: string | null };
 type SynthFrame = { faces?: number; blink?: number | null; brow?: number | null };

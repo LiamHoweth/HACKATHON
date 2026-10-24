@@ -154,3 +154,71 @@ describe('explicit intent and fallbacks', () => {
     expect(fixtureReplies(seeded).candidates[0].text).toContain('the garden');
   });
 });
+
+describe('branching flow fixtures ("Other ways to answer")', () => {
+  const PATH_QUESTIONS = [...Object.values(QUESTIONS), 'How was your day?', 'Is the blue one better?'];
+
+  it.each(PATH_QUESTIONS)('%s: branching gives 2 valid candidates and 3-5 distinct paths', (q) => {
+    const r = req(q, { branching: true });
+    const out = fixtureReplies(r);
+    expect(out.source).toBe('demo-fixture');
+    expect(out.candidates).toHaveLength(2);
+    expect(out.paths!.length).toBeGreaterThanOrEqual(3);
+    expect(out.paths!.length).toBeLessThanOrEqual(5);
+    expect(checkModelOutput({ candidates: out.candidates, paths: out.paths }, r)).toMatchObject({ ok: true });
+    for (const p of out.paths!) {
+      expect(wordCount(p.label), p.label).toBeLessThanOrEqual(3);
+      expect(p.summary.length).toBeGreaterThan(0);
+    }
+    // A path label is never one of the two top replies.
+    const top = new Set(out.candidates.map((c) => c.text.toLowerCase()));
+    for (const p of out.paths!) expect(top.has(p.label.toLowerCase())).toBe(false);
+  });
+
+  it('uses the demo directions for "How was your day?" and dinner', () => {
+    expect(fixtureReplies(req('How was your day?', { branching: true })).paths!.map((p) => p.label))
+      .toEqual(['It was great', 'Rough day', 'Pretty normal', 'Ask about theirs', 'Not now']);
+    expect(fixtureReplies(req(QUESTIONS.food, { branching: true })).paths!.map((p) => p.label))
+      .toContain('Running late');
+  });
+
+  it('every offered path resolves to 3 valid candidates when chosen (pathHint), with no paths', () => {
+    for (const q of PATH_QUESTIONS) {
+      for (const p of fixtureReplies(req(q, { branching: true })).paths!) {
+        const r = req(q, { branching: true, pathHint: p });
+        const out = fixtureReplies(r);
+        expect(out.paths).toBeUndefined();
+        expect(out.candidates).toHaveLength(3);
+        expect(checkModelOutput({ candidates: out.candidates }, r), `${q} / ${p.label}`).toMatchObject({ ok: true });
+      }
+    }
+  });
+
+  it('an unknown pathHint label falls back to generic, harmless replies keyed off the label', () => {
+    const r = req(QUESTIONS.food, { pathHint: { label: 'Ask what time', summary: 'Ask when dinner is' } });
+    const out = fixtureReplies(r);
+    expect(out.candidates).toHaveLength(3);
+    expect(out.candidates.every((c) => c.meaning.act === 'question')).toBe(true);
+    expect(checkModelOutput({ candidates: out.candidates }, r)).toMatchObject({ ok: true });
+    const other = fixtureReplies(req(QUESTIONS.food, { pathHint: { label: 'Totally random', summary: 'Something' } }));
+    expect(other.candidates).toHaveLength(3);
+  });
+
+  it('medication branching stays clarification/boundary only', () => {
+    const out = fixtureReplies(req(QUESTIONS.medication, { branching: true }));
+    const acts: CandidateAct[] = ['question', 'boundary', 'request', 'alternative', 'other'];
+    expect(out.candidates.every((c) => acts.includes(c.meaning.act))).toBe(true);
+    for (const p of out.paths!) {
+      for (const c of fixtureReplies(req(QUESTIONS.medication, { pathHint: p })).candidates) {
+        expect(acts.includes(c.meaning.act), c.text).toBe(true);
+      }
+    }
+  });
+
+  it('is deterministic and leaves normal mode unchanged', () => {
+    const r = req(QUESTIONS.food, { branching: true });
+    expect(fixtureReplies(r)).toEqual(fixtureReplies(r));
+    expect(fixtureReplies(req(QUESTIONS.food, { branching: false }))).toEqual(fixtureReplies(req(QUESTIONS.food)));
+    expect(fixtureReplies(req(QUESTIONS.food)).paths).toBeUndefined();
+  });
+});

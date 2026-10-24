@@ -1,9 +1,9 @@
 // Authoritative application state, surfaces, commands, effects, and actions.
 import type {
   AccessMode, AiMode, ApiResult, ApprovedPreference, ApprovedProfileEntry, Anchor, Candidate,
-  ChoiceBatch, ConfirmedUtterance, ConversationEntry, Guidance, Id, InitiationCategory, Intent,
-  PartnerTurnSource, PreferenceProposal, ProfileDraft, RejectedBatch, ReplyRequest, ReplyResponseData,
-  ReviewSnapshot, SavedPhrase, Scope, SessionObservation, StyleKey, StyleSetting, ApiError, SpeechProvider,
+  CandidateSource, ChoiceBatch, ConfirmedUtterance, ConversationEntry, Guidance, Id, InitiationCategory, Intent,
+  PartnerTurnSource, PreferenceProposal, ProfileDraft, RejectedBatch, ReplyPath, ReplyRequest, ReplyResponseData,
+  RequestIdentity, ReviewSnapshot, SavedPhrase, Scope, SessionObservation, StyleKey, StyleSetting, ApiError, SpeechProvider,
 } from './types';
 import { SCAN_DEFAULTS } from './limits';
 import { BUILT_IN_PHRASES } from './phrases';
@@ -44,7 +44,20 @@ export type Surface =
   | { kind: 'change-wording' }
   | { kind: 'speaking' }
   | { kind: 'paused' }
-  | { kind: 'end-confirm' };
+  | { kind: 'end-confirm' }
+  // Branching flow: "Other ways to answer…" — the batch's paths, "Something else", Back.
+  | { kind: 'paths' };
+
+/** One background reply request for one path of the current batch (prefetched when the paths surface opens). */
+export type PathPrefetchEntry = {
+  requestId: Id;
+  identity: RequestIdentity;
+  status: 'pending' | 'ready' | 'error';
+  candidates?: Candidate[];
+  source?: CandidateSource;
+};
+/** Prefetched path replies, valid only while `batchId` is still the workspace's batch. */
+export type PathPrefetch = { batchId: Id; entries: PathPrefetchEntry[] };
 
 export type WorkspaceStatus = 'idle' | 'generating' | 'choosing' | 'error' | 'stale';
 export type Workspace = {
@@ -57,12 +70,15 @@ export type Workspace = {
   failedBatches: number;
   status: WorkspaceStatus;
   error: ApiError | null;
-  pending: { requestId: Id; kind: 'suggestions' | 'refinement'; startedAt: number } | null;
+  /** `path`: this request asks for replies within that chosen direction (branching flow). */
+  pending: { requestId: Id; kind: 'suggestions' | 'refinement'; startedAt: number; path?: ReplyPath } | null;
   refineTarget: Candidate | null;
   refineMode: 'shorter' | 'different-tone' | null;
   parked: boolean;
   closed: 'answered' | 'dismissed' | null;
   unseenResult: boolean;
+  /** Branching flow: background replies for each path of the current batch. */
+  pathPrefetch?: PathPrefetch | null;
 };
 
 export type ReviewOrigin =
@@ -107,6 +123,8 @@ export type Settings = {
   demoProfile: boolean;
   /** Fast mode: selecting a suggestion or quick phrase speaks it at once (no review/confirm step). */
   speakOnSelect: boolean;
+  /** Branching flow ("Other ways to answer"): plain suggestions come as 2 replies + 3–5 paths. */
+  branching: boolean;
 };
 
 export type StorageStatus = 'unknown' | 'empty' | 'loaded' | 'corrupt' | 'unavailable' | 'saved' | 'write-failed' | 'session-only';
@@ -125,6 +143,8 @@ export type MetricEvent = {
 
 export type Effect =
   | { id: Id; kind: 'generate'; request: ReplyRequest }
+  // Branching flow: background prefetch of one path's replies; answered with PATH_RESULT.
+  | { id: Id; kind: 'generate-path'; request: ReplyRequest; batchId: Id; pathIndex: number }
   | { id: Id; kind: 'abort-generation'; requestId: Id }
   | { id: Id; kind: 'speak'; utterance: ConfirmedUtterance }
   | { id: Id; kind: 'stop-speech'; utteranceId: Id }
@@ -175,6 +195,7 @@ export type State = {
 export type Command =
   | { type: 'select-candidate'; candidateId: Id }
   | { type: 'none-of-these' }
+  | { type: 'choose-path'; index: number }
   | { type: 'open'; surface: Surface }
   | { type: 'back' }
   | { type: 'set-intent'; intent: Intent }
@@ -237,6 +258,7 @@ export type Action =
   | { type: 'PARTNER_SUBMIT'; text: string; source: PartnerTurnSource; at: number }
   | { type: 'PARTNER_EDIT_TURN'; turnId: Id; text: string; at: number }
   | { type: 'GENERATION_RESULT'; identity: ReplyRequest['identity']; result: ApiResult<ReplyResponseData>; at: number }
+  | { type: 'PATH_RESULT'; identity: ReplyRequest['identity']; batchId: Id; pathIndex: number; result: ApiResult<ReplyResponseData>; at: number }
   | { type: 'SPEECH_EVENT'; utteranceId: Id; sessionEpoch: Id; kind: 'start' | 'end' | 'error' | 'interrupted' | 'uncertain'; at: number }
   | { type: 'EFFECTS_DONE'; ids: Id[] }
   | { type: 'STORAGE_LOADED'; data: { approvedPreferences: ApprovedPreference[]; approvedProfile: ApprovedProfileEntry[]; savedPhrases: SavedPhrase[]; suppressedDimensions: StyleKey[] } | null; status: StorageStatus }
@@ -266,6 +288,7 @@ export const DEFAULT_SETTINGS: Settings = {
   scope: { relationship: null, setting: null },
   demoProfile: false,
   speakOnSelect: false,
+  branching: false,
 };
 
 export const EMPTY_GUIDANCE = (scope: Scope): Guidance => ({ intent: null, wording: [], userTopicOrSeed: null, scope });

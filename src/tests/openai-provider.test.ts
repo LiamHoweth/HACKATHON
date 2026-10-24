@@ -75,6 +75,80 @@ describe('OpenAI Responses adapter', () => {
   });
 });
 
+describe('branching flow request shape', () => {
+  const PATHS = [
+    { label: 'Running late', summary: 'Coming, but late' },
+    { label: "Can't make it", summary: 'Decline tonight' },
+    { label: "Ask who's coming", summary: 'Ask who will be there' },
+  ];
+  const branchText = (candidates: unknown, paths: unknown) => ({ type: 'output_text', text: JSON.stringify({ candidates, paths }) });
+  const bodyOf = (i = 0) => JSON.parse(fetchMock.mock.calls[i][1].body);
+
+  it('normal mode keeps the 3-candidate schema and asks for three', async () => {
+    fetchMock.mockResolvedValueOnce(reply([text(GOOD)]));
+    const res = await generateLive(request, cfg, new AbortController().signal);
+    expect(res.ok && res.data.paths).toBeFalsy();
+    const body = bodyOf();
+    expect(body.text.format.name).toBe('aac_candidates');
+    expect(body.text.format.schema.required).toEqual(['candidates']);
+    expect(JSON.parse(body.input).answerMode).toBe('standard');
+  });
+
+  it('branching sends the strict branching schema and returns 2 candidates plus paths', async () => {
+    fetchMock.mockResolvedValueOnce(reply([branchText(GOOD.slice(0, 2), PATHS)]));
+    const res = await generateLive({ ...request, branching: true }, cfg, new AbortController().signal);
+    expect(res.ok).toBe(true);
+    if (res.ok) { expect(res.data.candidates).toHaveLength(2); expect(res.data.paths).toEqual(PATHS); }
+    const body = bodyOf();
+    expect(body.text.format).toMatchObject({ type: 'json_schema', name: 'aac_branching', strict: true });
+    expect(body.text.format.schema.required).toEqual(['candidates', 'paths']);
+    expect(body.text.format.schema.properties.paths.items.required).toEqual(['label', 'summary']);
+    const input = JSON.parse(body.input);
+    expect(input.answerMode).toBe('top-two-plus-paths');
+    expect(input.chosenDirection).toBeUndefined();
+  });
+
+  it('branching repair uses the same branching schema', async () => {
+    fetchMock
+      .mockResolvedValueOnce(reply([text(GOOD)]))
+      .mockResolvedValueOnce(reply([branchText(GOOD.slice(0, 2), PATHS)]));
+    const res = await generateLive({ ...request, branching: true }, cfg, new AbortController().signal);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(res.ok && res.data.repaired).toBe(true);
+    expect(bodyOf(1).text.format.name).toBe('aac_branching');
+    expect(bodyOf(1).input).toMatch(/exactly two candidates and 3-5 paths/);
+  });
+
+  it('pathHint sends the 3-candidate schema with the chosen direction and returns no paths', async () => {
+    fetchMock.mockResolvedValueOnce(reply([text(GOOD)]));
+    const res = await generateLive({ ...request, branching: true, pathHint: PATHS[0] }, cfg, new AbortController().signal);
+    expect(res.ok).toBe(true);
+    if (res.ok) { expect(res.data.candidates).toHaveLength(3); expect(res.data.paths).toBeUndefined(); }
+    const body = bodyOf();
+    expect(body.text.format.name).toBe('aac_candidates');
+    const input = JSON.parse(body.input);
+    expect(input.answerMode).toBe('follow-chosen-direction');
+    expect(input.chosenDirection).toEqual(PATHS[0]);
+  });
+
+  it('rejects branching output with bad paths (too few, long labels) after one repair', async () => {
+    fetchMock.mockResolvedValue(reply([branchText(GOOD.slice(0, 2), PATHS.slice(0, 2))]));
+    let res = await generateLive({ ...request, branching: true }, cfg, new AbortController().signal);
+    expect(!res.ok && res.error.code).toBe('INVALID_MODEL_OUTPUT');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(reply([branchText(GOOD.slice(0, 2), [...PATHS.slice(0, 2), { label: 'this label is far too many words', summary: 'x' }])]));
+    res = await generateLive({ ...request, branching: true }, cfg, new AbortController().signal);
+    expect(!res.ok && res.error.code).toBe('INVALID_MODEL_OUTPUT');
+  });
+
+  it('the system prompt describes both branching modes and keeps the safety rules', () => {
+    expect(REPLY_SYSTEM_PROMPT).toMatch(/top-two-plus-paths/);
+    expect(REPLY_SYSTEM_PROMPT).toMatch(/follow-chosen-direction/);
+    expect(REPLY_SYSTEM_PROMPT).toMatch(/no invented facts, decisions, or consent/);
+    expect(REPLY_SYSTEM_PROMPT).toMatch(/several sentences said in a row/);
+  });
+});
+
 describe('latency tuning of the reply request', () => {
   const sent = async (c: ServerConfig, r: ReplyRequest = request) => {
     fetchMock.mockResolvedValueOnce(reply([text(GOOD)]));

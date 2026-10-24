@@ -37,7 +37,7 @@ export function CameraPreview({ runtime }: { runtime: StillHereRuntime }) {
   return (
     <div className={`camera-preview tone-ring-${tone}${visible ? '' : ' is-hidden'}`}>
       <div className="camera-preview-meta">
-        <p className="camera-preview-caption">Live preview — not recorded</p>
+        <p className="camera-preview-caption">Live preview · not recorded</p>
         <button
           type="button"
           className="btn btn-small btn-quiet camera-preview-toggle"

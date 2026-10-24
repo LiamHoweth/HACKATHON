@@ -2,7 +2,7 @@
 // and executed by the browser runtime (src/runtime/effects-runner.ts) exactly once each.
 import type {
   Anchor, Candidate, ConfirmedUserTurn, ConfirmedUtterance, Delivery, Id, PartnerTurn,
-  RejectedBatch, ReviewSnapshot, StyleSetting,
+  RejectedBatch, ReplyPath, ReviewSnapshot, StyleSetting,
 } from './types';
 import type { Action, Command, Effect, MetricEvent, PendingChange, State, Surface, Workspace } from './state';
 import { currentSurface, EMPTY_GUIDANCE, initialState } from './state';
@@ -81,21 +81,70 @@ function parkActive(s: State): State {
   return { ...updateWorkspace(s, ws.id, { parked: true }), activeWorkspaceId: null };
 }
 
-function startGeneration(s: State, wsId: Id, kind: 'suggestions' | 'refinement', at: number): State {
+// Branching flow: drops a workspace's path prefetch, aborting its in-flight requests
+// (except `keepRequestId`, a prefetch adopted as the workspace's own pending generation).
+function clearPathPrefetch(s: State, wsId: Id, keepRequestId: Id | null = null): State {
+  const pf = s.workspaces[wsId]?.pathPrefetch;
+  if (!pf) return s;
+  for (const e of pf.entries) {
+    if (e.status === 'pending' && e.requestId !== keepRequestId) s = addEffects(s, { kind: 'abort-generation', requestId: e.requestId });
+  }
+  return updateWorkspace(s, wsId, { pathPrefetch: null });
+}
+
+const noGuidance = (ws: Workspace) => ws.guidance.intent === null && ws.guidance.wording.length === 0 && !ws.guidance.userTopicOrSeed;
+
+// Branching flow: plain suggestions (first request, "None of these", refresh) ask for 2 replies +
+// paths; refinements, explicit Guide directions/wording/topics and path requests never do.
+function requestFor(s: State, ws: Workspace, requestId: Id, kind: 'suggestions' | 'refinement', path: ReplyPath | null) {
+  const request = buildReplyRequest(s, ws, requestId);
+  if (path) return { ...request, pathHint: path };
+  if (kind === 'suggestions' && s.settings.branching && noGuidance(ws)) return { ...request, branching: true };
+  return request;
+}
+
+function startGeneration(s: State, wsId: Id, kind: 'suggestions' | 'refinement', at: number, path: ReplyPath | null = null): State {
   let ws = s.workspaces[wsId];
   if (!ws) return s;
+  s = clearPathPrefetch(s, wsId);
   if (s.settings.aiMode === 'local-only') return updateWorkspace(s, wsId, { status: 'idle', pending: null });
   if (ws.pending) s = addEffects(s, { kind: 'abort-generation', requestId: ws.pending.requestId });
   const requestId = newId();
   s = updateWorkspace(s, wsId, {
-    pending: { requestId, kind, startedAt: at }, status: 'generating', error: null,
+    pending: { requestId, kind, startedAt: at, ...(path ? { path } : {}) }, status: 'generating', error: null,
     refineTarget: kind === 'refinement' ? ws.refineTarget : null,
     refineMode: kind === 'refinement' ? ws.refineMode : null, unseenResult: false,
   });
   ws = s.workspaces[wsId];
-  const request = buildReplyRequest(s, ws, requestId);
+  const request = requestFor(s, ws, requestId, kind, path);
   s = addEffects(s, { kind: 'generate', request });
   return metric(s, 'generation-start', at, { workspaceId: wsId, requestId });
+}
+
+// Branching flow: when the paths surface opens, fetch every path's replies in parallel in the
+// background (at most LIMITS.maxPaths requests, never twice for the same batch).
+function prefetchPaths(s: State, at: number): State {
+  const ws = activeWorkspace(s);
+  const batch = ws?.batch;
+  if (!ws || ws.closed || ws.status !== 'choosing' || !batch?.paths?.length) return s;
+  if (s.settings.aiMode === 'local-only' || ws.pathPrefetch?.batchId === batch.id) return s;
+  const entries: NonNullable<Workspace['pathPrefetch']>['entries'] = [];
+  const effects: EffectInput[] = [];
+  batch.paths.slice(0, LIMITS.maxPaths).forEach((path, pathIndex) => {
+    const requestId = newId();
+    const request = requestFor(s, ws, requestId, 'suggestions', path);
+    entries.push({ requestId, identity: request.identity, status: 'pending' });
+    effects.push({ kind: 'generate-path', request, batchId: batch.id, pathIndex });
+  });
+  s = addEffects(updateWorkspace(s, ws.id, { pathPrefetch: { batchId: batch.id, entries } }), ...effects);
+  return metric(s, 'generation-start', at, { workspaceId: ws.id, detail: `path-prefetch:${entries.length}` });
+}
+
+// Branching flow: the paths surface describes the current batch; once that batch is gone or
+// being replaced, leave it so the person is never choosing among stale directions.
+function leavePaths(s: State, at: number): State {
+  if (!s.stack.some((x) => x.kind === 'paths')) return s;
+  return setStack(s, s.stack.filter((x) => x.kind !== 'paths'), at);
 }
 
 function acceptPartnerTurn(s: State, turnId: Id, at: number): State {
@@ -264,7 +313,7 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
       if (ws.batch.kind === 'refinement') {
         // Leaving a wording refinement is not a rejection of the selected meaning.
         s = updateWorkspace(s, ws.id, { refineTarget: null });
-        return startGeneration(s, ws.id, 'suggestions', at);
+        return leavePaths(startGeneration(s, ws.id, 'suggestions', at), at);
       }
       const rejected: RejectedBatch = {
         batchId: ws.batch.id, workspaceId: ws.id, anchor: ws.anchor,
@@ -274,9 +323,13 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
         rejected: [...ws.rejected, rejected].slice(-Math.ceil(LIMITS.rejectedTexts / 3)),
         failedBatches: ws.failedBatches + 1,
       });
-      return startGeneration(s, ws.id, 'suggestions', at);
+      return leavePaths(startGeneration(s, ws.id, 'suggestions', at), at);
     }
-    case 'open': return push(s, cmd.surface, at);
+    case 'choose-path': return choosePath(s, cmd.index, at);
+    case 'open': {
+      s = push(s, cmd.surface, at);
+      return cmd.surface.kind === 'paths' ? prefetchPaths(s, at) : s;
+    }
     case 'back': return pop(s, at);
     case 'set-intent': {
       if (!ws) return toBoard(s, at);
@@ -486,6 +539,42 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
   }
 }
 
+// Branching flow: show the chosen direction's replies — instantly when prefetched, otherwise by
+// adopting its in-flight prefetch or starting a fresh request with that path as the hint.
+function choosePath(s: State, index: number, at: number): State {
+  const ws = activeWorkspace(s);
+  const batch = ws?.batch;
+  const path = batch?.paths?.slice(0, LIMITS.maxPaths)[index];
+  if (!ws || ws.closed || ws.status !== 'choosing' || !batch || !path) return s;
+  s = metric(s, 'guidance', at, { workspaceId: ws.id, detail: 'path' });
+  const pf = ws.pathPrefetch?.batchId === batch.id ? ws.pathPrefetch : null;
+  const entry = pf?.entries[index];
+  const fresh = !!entry && entry.identity.contextRevision === s.contextRevision && entry.identity.preferenceRevision === s.preferenceRevision;
+  if (entry && fresh && entry.status === 'ready' && entry.candidates?.length) {
+    s = clearPathPrefetch(s, ws.id);
+    s = updateWorkspace(s, ws.id, {
+      status: 'choosing', error: null, unseenResult: false, refineTarget: null, refineMode: null,
+      batch: {
+        id: newId(), identity: entry.identity, anchor: ws.anchor, candidates: entry.candidates,
+        source: entry.source ?? batch.source, kind: 'suggestions', pathLabel: path.label, receivedAt: at,
+      },
+    });
+    s = metric(s, 'generation-ready', at, { workspaceId: ws.id, requestId: entry.requestId, detail: 'path-prefetched' });
+    return toBoard(s, at);
+  }
+  if (entry && fresh && entry.status === 'pending' && !ws.pending && s.settings.aiMode !== 'local-only') {
+    // Adopt the request already on its way; its PATH_RESULT is then handled as this generation.
+    s = clearPathPrefetch(s, ws.id, entry.requestId);
+    s = updateWorkspace(s, ws.id, {
+      pending: { requestId: entry.requestId, kind: 'suggestions', startedAt: at, path },
+      status: 'generating', error: null, unseenResult: false, refineTarget: null, refineMode: null,
+    });
+    return toBoard(s, at);
+  }
+  s = updateWorkspace(s, ws.id, { refineTarget: null });
+  return toBoard(startGeneration(s, ws.id, 'suggestions', at, path), at);
+}
+
 function turnKeyOf(anchor: Anchor): Id {
   return anchor.mode === 'reply' ? anchor.turnId : anchor.topicId;
 }
@@ -536,6 +625,7 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>, instan
         const o = observeConfirmedChoice({ batch: w.batch, chosenCandidateId: origin.candidateId, guidance: w.guidance, turnKey: turnKeyOf(w.anchor), sessionEpoch: s.sessionEpoch, at, newId });
         if (o) s = afterObservation({ ...s, observations: [...s.observations, o] }, at);
       }
+      s = clearPathPrefetch(s, w.id);
       // Turn feedback is cleared when the turn is completed.
       s = updateWorkspace(s, w.id, { closed: 'answered', parked: false, rejected: [], refineTarget: null });
       if (s.activeWorkspaceId === w.id) s = { ...s, activeWorkspaceId: null };
@@ -659,6 +749,8 @@ function mergeFollowUp(s: State, ws: Workspace, turn: PartnerTurn, text: string,
     batch: null, rejected: [], failedBatches: 0, refineTarget: null, pending: null, status: 'stale',
   });
   s = startGeneration(s, ws.id, 'suggestions', at);
+  // The old directions answered the shorter question too: leave "Other ways to answer".
+  if (currentSurface(s).kind === 'paths') return leavePaths(s, at);
   // Only re-arm input when the person is looking at the board; a menu is left exactly as it is.
   if (currentSurface(s).kind !== 'board') return s;
   return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at };
@@ -722,8 +814,10 @@ export function reducer(s: State, action: Action): State {
       s = editPartnerTurnText(s, turn, text, 'partner-edited', action.at);
       for (const w of Object.values(s.workspaces)) {
         if (w.anchor.mode !== 'reply' || w.anchor.turnId !== turn.id || w.closed) continue;
+        s = clearPathPrefetch(s, w.id);
         s = updateWorkspace(s, w.id, { status: 'stale', batch: null, rejected: [], failedBatches: 0, pending: null, refineTarget: null });
       }
+      if (currentSurface(s).kind === 'paths' && !activeWorkspace(s)?.batch) s = leavePaths(s, action.at);
       return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: action.at };
     }
     case 'GENERATION_RESULT': {
@@ -732,6 +826,7 @@ export function reducer(s: State, action: Action): State {
       const ws = s.workspaces[identity.workspaceId];
       if (!ws || !ws.pending || ws.pending.requestId !== identity.requestId) return s; // superseded
       const kind = ws.pending.kind;
+      const path = ws.pending.path ?? null;
       const anchorStale = ws.anchor.mode === 'reply' && partnerTurn(s, ws.anchor.turnId)?.contentRevision !== ws.anchor.turnContentRevision;
       if (identity.contextRevision !== s.contextRevision || identity.preferenceRevision !== s.preferenceRevision || anchorStale || ws.closed) {
         // Never fall back to a batch the user already rejected for this question.
@@ -742,14 +837,38 @@ export function reducer(s: State, action: Action): State {
         s = updateWorkspace(s, ws.id, { pending: null, status: 'error', error: result.error });
         return metric(s, 'generation-error', at, { workspaceId: ws.id, requestId: identity.requestId, detail: result.error.code });
       }
-      const candidates = result.data.candidates.map((c) => ({ id: newId(), text: c.text, meaning: c.meaning })) as [Candidate, Candidate, Candidate];
+      const candidates: Candidate[] = result.data.candidates.map((c) => ({ id: newId(), text: c.text, meaning: c.meaning }));
       const visible = s.activeWorkspaceId === ws.id && currentSurface(s).kind === 'board';
+      // Branching flow: keep offered directions (only on plain suggestions) and the chosen path's label.
+      const paths = !path && kind === 'suggestions' ? result.data.paths?.slice(0, LIMITS.maxPaths) ?? [] : [];
+      s = clearPathPrefetch(s, ws.id);
       s = updateWorkspace(s, ws.id, {
         pending: null, status: 'choosing', error: null, unseenResult: !visible,
-        batch: { id: newId(), identity, anchor: ws.anchor, candidates, source: result.data.source, kind, receivedAt: at },
+        batch: {
+          id: newId(), identity, anchor: ws.anchor, candidates, source: result.data.source, kind, receivedAt: at,
+          ...(paths.length ? { paths } : {}), ...(path ? { pathLabel: path.label } : {}),
+        },
       });
       s = metric(s, 'generation-ready', at, { workspaceId: ws.id, requestId: identity.requestId, source: result.data.source });
       return visible ? { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at } : s;
+    }
+    case 'PATH_RESULT': {
+      const { identity, result, batchId, pathIndex, at } = action;
+      if (identity.sessionEpoch !== s.sessionEpoch) return s;
+      const ws = s.workspaces[identity.workspaceId];
+      if (!ws) return s;
+      // A prefetch adopted by choose-path is that workspace's generation now.
+      if (ws.pending?.requestId === identity.requestId) return reducer(s, { type: 'GENERATION_RESULT', identity, result, at });
+      const pf = ws.pathPrefetch;
+      const entry = pf?.entries[pathIndex];
+      if (!pf || pf.batchId !== batchId || ws.batch?.id !== batchId || !entry || entry.requestId !== identity.requestId) return s; // stale
+      const usable = result.ok && result.data.candidates.length > 0 && !ws.closed
+        && identity.contextRevision === s.contextRevision && identity.preferenceRevision === s.preferenceRevision;
+      const next = usable
+        ? { ...entry, status: 'ready' as const, source: result.data.source,
+            candidates: result.data.candidates.map((c) => ({ id: newId(), text: c.text, meaning: c.meaning })) }
+        : { ...entry, status: 'error' as const };
+      return updateWorkspace(s, ws.id, { pathPrefetch: { ...pf, entries: pf.entries.map((e, i) => (i === pathIndex ? next : e)) } });
     }
     case 'SPEECH_EVENT': {
       if (action.sessionEpoch !== s.sessionEpoch || !s.speech || s.speech.utterance.id !== action.utteranceId) return s;

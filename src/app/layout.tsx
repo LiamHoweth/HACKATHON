@@ -1,5 +1,15 @@
 import type { Metadata, Viewport } from 'next';
+import { Atkinson_Hyperlegible } from 'next/font/google';
 import './globals.css';
+
+// Atkinson Hyperlegible (Braille Institute) was drawn for low-vision readers: distinct letterforms
+// (I/l/1, O/0, b/d) that hold up at a distance. Downloaded at build time and self-served by Next.
+const atkinson = Atkinson_Hyperlegible({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-atkinson',
+});
 
 export const metadata: Metadata = {
   title: 'Still Here',
@@ -29,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={atkinson.variable}>
       <body>{children}</body>
     </html>
   );

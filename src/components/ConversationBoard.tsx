@@ -5,6 +5,7 @@ import { activeWorkspace, anchorLabel } from '@/core/targets';
 import { workspacePolicy } from '@/core/context-builder';
 import { describeSetting } from '@/adaptation/preference-policy';
 import { INTENT_LABELS } from '@/core/phrases';
+import type { ReplyPath } from '@/core/types';
 import { TargetButton, TargetList } from './TargetButton';
 import { BlinkHint } from './BlinkStatus';
 import { SurfaceTitle } from './SurfaceTitle';
@@ -44,6 +45,9 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
   const batchLabel = open?.batch && open.status === 'choosing' ? BATCH_SOURCE_LABELS[open.batch.source] : null;
   const sourceLabel = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · these suggestions: ${batchLabel}` : modeLabel;
 
+  // Branching breadcrumb: which "Other ways to answer" direction these replies belong to.
+  const pathLabel = open?.batch && open.status === 'choosing' ? open.batch.pathLabel ?? null : null;
+
   const failed = state.lastFailedSpeech;
   const voiceProblemHead = failed?.delivery === 'uncertain'
     ? 'The natural voice may have partly played. Your message:'
@@ -67,7 +71,7 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         ) : (
           <>
             <SurfaceTitle>No active question</SurfaceTitle>
-            <p className="muted">When your conversation partner types or records something, it appears here. You can also start a conversation, use a quick phrase, or write your own words.</p>
+            <p className="muted">When your partner talks or types, it shows up here. You can also start a conversation, use a quick phrase, or write your own.</p>
           </>
         )}
       </section>
@@ -76,7 +80,7 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         <div className="board-status" role="status">
           {open.status === 'generating' && <p className="status-line">Finding possible responses…</p>}
           {open.status === 'error' && <p className="status-line status-error">{open.error?.message ?? 'Suggestions could not be loaded.'}</p>}
-          {open.status === 'stale' && <p className="status-line">The question or context changed. Refresh to get new suggestions.</p>}
+          {open.status === 'stale' && <p className="status-line">Something changed. Refresh for new suggestions.</p>}
           {open.batch?.kind === 'refinement' && open.status === 'choosing' && (
             <p className="status-line">Rewording your selected message{open.refineTarget ? `: “${open.refineTarget.text}”` : ''}</p>
           )}
@@ -89,9 +93,29 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         </div>
       )}
 
+      {pathLabel && (
+        <p className="path-crumb">
+          <span className="path-crumb-root">Other ways</span>
+          <span className="path-crumb-sep" aria-hidden="true"> › </span>
+          <span className="sr-only">: </span>
+          <span className="path-crumb-label">{pathLabel}</span>
+        </p>
+      )}
+
       <div className="candidates" aria-label="Possible responses" role="group">
         {candidates.length > 0
-          ? candidates.map((t) => <TargetButton key={t.id} target={t} runtime={runtime} className={t.id.startsWith('cand-') ? 'candidate' : 'candidate-none'} />)
+          ? candidates.map((t) => t.id === 'other-ways'
+            ? (
+              <TargetButton
+                key={t.id}
+                target={t}
+                runtime={runtime}
+                className="candidate-other-ways"
+                detailNode={<PathPreview labels={pathPreview(open?.batch?.paths, t.detail)} />}
+                trailing="›"
+              />
+            )
+            : <TargetButton key={t.id} target={t} runtime={runtime} className={t.id.startsWith('cand-') ? 'candidate' : 'candidate-none'} />)
           : open && open.status === 'generating'
             ? [0, 1, 2].map((i) => <div key={i} className="candidate-placeholder" aria-hidden="true" />)
             : null}
@@ -110,7 +134,7 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
 
       {lastUser && lastUser.role === 'user' && (
         <p className={`last-said${lastUser.value.delivery === 'failed' ? ' last-said-failed' : ''}`}>
-          <span className="meta-label">You last said:</span> “{lastUser.value.text}” <span className="muted">— {DELIVERY_LABELS[lastUser.value.delivery]}</span>
+          <span className="meta-label">You last said:</span> “{lastUser.value.text}” <span className="muted">· {DELIVERY_LABELS[lastUser.value.delivery]}</span>
         </p>
       )}
 
@@ -133,5 +157,25 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Path labels for the "Other ways to answer…" preview: from the batch, else from the target detail. */
+function pathPreview(paths: ReplyPath[] | undefined, detail: string | undefined): string[] {
+  if (paths && paths.length) return paths.map((p) => p.label);
+  return detail ? detail.split(' · ').map((x) => x.trim()).filter(Boolean) : [];
+}
+
+function PathPreview({ labels }: { labels: string[] }) {
+  if (labels.length === 0) return null;
+  return (
+    <span className="path-chips">
+      {labels.map((label, i) => (
+        <span key={`${i}-${label}`} className="path-chip">
+          {label}
+          {i < labels.length - 1 && <span className="sr-only">, </span>}
+        </span>
+      ))}
+    </span>
   );
 }

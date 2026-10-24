@@ -1,12 +1,14 @@
 // Provider-neutral generation instructions. Dynamic content is passed separately as a
 // structured JSON data payload and is never concatenated into these instructions.
 import type { ReplyRequest } from '@/core/types';
+import { replyModeOf } from '@/core/schemas';
 
 export const REPLY_SYSTEM_PROMPT = `You propose candidate messages for an adult using an AAC interface.
 You are not the speaker and do not know the person's thoughts.
 
-Return exactly three complete candidate utterances in the required schema, each worded
-as the user would say it aloud in the first person (questions are fine).
+Return complete candidate utterances in the required schema (exactly three unless
+the payload's answerMode says otherwise), each worded as the user would say it aloud
+in the first person (questions are fine).
 Order them by how likely the person is to want each one: put the most natural, direct answer first.
 The person may choose, reject, edit, or ignore every suggestion.
 You cannot authorize speech, save memories, or execute actions.
@@ -36,6 +38,23 @@ delighted". Examples of the register (not content to copy): "Yeah, I'm down.",
 Explicit user wording preferences (such as formal or gentle) override this default.
 Do not force cheerfulness, affection, or politeness.
 Questions and other natural utterances need not all begin with "I".
+
+Answer modes (payload field answerMode):
+- "standard": three candidates as described above.
+- "top-two-plus-paths": exactly two candidates, the two most likely replies with
+  distinct meanings, most likely first. Also return 3-5 paths: other plausible ways
+  to answer this specific message that the two candidates do not already cover
+  (different stance, a clarifying question, deferring, redirecting, declining).
+  Each path label is 1-3 words naming the direction as the user might think of it
+  (e.g. "Rough day", "Running late", "Ask who's coming", "Not now"). Labels are
+  casual everyday words a college student would use, never formal or clinical
+  ("Ask why" not "Rationale inquiry", "Later" not "Decision timing"); each summary is
+  one short line describing that intent. Paths are directions, not finished replies,
+  and follow every rule here: no invented facts, decisions, or consent.
+- "follow-chosen-direction": the person picked chosenDirection. Return exactly three
+  candidates that all follow that direction, varying wording and detail, not meaning.
+  The direction is the person's choice of stance, not a fact; still invent no
+  specific memories, reasons, or events.
 
 Respect the supplied sentence-length policy and display limits.
 Each text must be the complete sentence the user would review and speak.
@@ -107,7 +126,15 @@ function prune<T>(value: T): T {
 }
 
 // Structured, labeled data payload. Every string here is untrusted data.
+const ANSWER_MODE = { normal: 'standard', branching: 'top-two-plus-paths', path: 'follow-chosen-direction' } as const;
+const OUTPUT = {
+  normal: 'Exactly three candidates, most likely first. Each meaning.summary is at most 8 words.',
+  branching: 'Exactly two candidates (the two most likely, distinct meanings, most likely first) plus 3-5 paths covering other ways to answer. Each meaning.summary is at most 8 words; each path label 1-3 words.',
+  path: 'Exactly three candidates, all following chosenDirection, most likely first. Each meaning.summary is at most 8 words.',
+} as const;
+
 export function buildReplyPayload(r: ReplyRequest) {
+  const mode = replyModeOf(r);
   return prune({
     task: r.refineTarget
       ? 'wording-refinement'
@@ -145,6 +172,8 @@ export function buildReplyPayload(r: ReplyRequest) {
       maxWordsPerCandidate: r.lengthPolicy.maxWords,
       maxCharactersPerCandidate: r.lengthPolicy.maxCharacters,
     },
-    output: 'Exactly three candidates, most likely first. Each meaning.summary is at most 8 words.',
+    answerMode: ANSWER_MODE[mode],
+    chosenDirection: mode === 'path' && r.pathHint ? { label: r.pathHint.label, summary: r.pathHint.summary } : null,
+    output: OUTPUT[mode],
   });
 }

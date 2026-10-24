@@ -24,7 +24,7 @@
   --rec: #c4001a;
   --radius: 14px;
   --gap: 1rem;
-  --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font: var(--font-atkinson, system-ui), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }
 
@@ -1332,4 +1332,80 @@ input[type="text"], input[type="number"], input[type="password"], select, textar
 .chat {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 0.75rem);
   mask-image: linear-gradient(to bottom, transparent 0, #000 0.75rem);
+}
+
+/* ---------- Branching: "Other ways to answer" ---------- */
+/* Doorway card on the board, breadcrumb, and the paths surface. Every colour rule that would compete
+   with the yellow scan highlight is guarded with :not(.is-scan), so .is-scan / .is-blink-scan win. */
+
+/* Two reply cards + the doorway: let the replies stretch so the board still feels full. */
+.candidates:has(> .candidate-other-ways) > .candidate.target { max-height: 220px; }
+
+.candidates > .candidate-other-ways.target {
+  flex: 0 0 auto; min-height: 80px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  column-gap: var(--space-4); row-gap: var(--space-2);
+  padding: var(--space-3) var(--space-5); border-width: 2px;
+}
+.candidate-other-ways.target:not(.is-scan) { background: var(--surface-2); border-color: var(--border); }
+@media (hover: hover) {
+  .candidate-other-ways.target:not(.is-scan):hover:not(:disabled) { background: var(--surface); }
+}
+.candidate-other-ways .target-label { grid-column: 1; font-size: var(--fs-2); font-weight: 700; }
+.candidate-other-ways .path-chips { grid-column: 1; }
+.candidate-other-ways .closure-bar { grid-column: 1 / -1; }
+.candidate-other-ways .target-trailing {
+  grid-column: 2; grid-row: 1 / span 2; align-self: center;
+  font-size: 2.5rem; font-weight: 400; line-height: 1; color: var(--muted);
+}
+.candidate-other-ways.is-scan .target-trailing { color: var(--scan-text); }
+
+.path-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.path-chip {
+  display: inline-flex; align-items: center;
+  padding: 0.2rem 0.75rem; border-radius: 999px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  font-size: var(--fs-1); font-weight: 600; line-height: 1.35;
+}
+.is-scan .path-chip { background: transparent; color: var(--scan-text); border-color: var(--scan-text); }
+
+/* Breadcrumb above the replies when they belong to a chosen direction. */
+.path-crumb { margin: 0; font-size: var(--fs-1); color: var(--muted); font-weight: 600; }
+.path-crumb-sep { padding-inline: 0.15rem; }
+.path-crumb-label { color: var(--text); font-weight: 700; }
+
+/* Paths surface: the partner's question stays visible under the title. */
+.menu-paths .surface-sub { font-size: var(--fs-2); color: var(--text); line-height: 1.35; }
+.menu-paths .surface-sub .meta-label { color: var(--muted); }
+.paths-question { font-weight: 700; }
+
+/* Path cards: same size family as reply cards; two columns in the landscape shell. */
+.menu .path-targets.layout-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); max-width: none; }
+.path-targets > .target { min-height: 140px; padding: var(--space-4) var(--space-5); border-width: 2px; gap: var(--space-1); }
+.path-targets > .target .target-label { font-size: clamp(1.5rem, 1.1rem + 0.9vw, 2rem); font-weight: 700; line-height: 1.25; }
+.path-targets > .target .target-detail { font-size: var(--fs-1); line-height: 1.35; }
+/* "Something else" and "Back" are quieter and always share the last row (reading order = NEXT order). */
+.path-targets > .target[data-target-id="path-new"],
+.path-targets > .target[data-target-id="path-back"] { min-height: 72px; padding: var(--space-3) var(--space-5); border-width: 1px; }
+.path-targets > .target[data-target-id="path-new"]:not(.is-scan),
+.path-targets > .target[data-target-id="path-back"]:not(.is-scan) { border-color: var(--border); }
+.path-targets > .target[data-target-id="path-new"] .target-label,
+.path-targets > .target[data-target-id="path-back"] .target-label { font-size: var(--fs-2); font-weight: 600; }
+.path-targets > .target[data-target-id="path-new"] { grid-column: 1; }
+
+/* Subtle "replies ready" dot on a path card whose replies were prefetched. Decorative only. */
+.path-targets > .target.is-path-ready .target-label::after {
+  content: "" / ""; display: inline-block; width: 0.6rem; height: 0.6rem; margin-left: var(--space-3);
+  border-radius: 999px; background: var(--accent); vertical-align: middle;
+}
+.path-targets > .target.is-path-ready.is-scan .target-label::after { background: var(--scan-text); }
+
+@media (max-width: 640px) {
+  .menu .path-targets.layout-stack { grid-template-columns: minmax(0, 1fr); }
+  .path-targets > .target[data-target-id="path-new"] { grid-column: auto; }
+}
+
+@media (forced-colors: active) {
+  .path-chip { border-color: CanvasText; }
+  .is-scan .path-chip { border-color: HighlightText; color: HighlightText; }
 }

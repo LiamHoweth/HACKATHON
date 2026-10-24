@@ -10,6 +10,8 @@ import { BlinkStatus, ClosureBar } from './BlinkStatus';
 import { BLINK_ARMED, BROW_STATUS_LABELS } from './labels';
 import { CALIBRATION_WARNING_TEXT, calibrationWarnings } from '@/access/blink-calibration';
 import { ATTRIBUTION_TIMING } from '@/access/scan-controller';
+import { BROW_TIMING } from '@/access/brow-gesture';
+import { BROW_CALIBRATION_TIMING } from '@/access/brow-calibration';
 import { HIGHLIGHT_MOVED_FEEDBACK } from '@/runtime/useBlink';
 import css from './setup.module.css';
 
@@ -328,10 +330,13 @@ function BrowSampleStage({ blink }: { blink: BlinkRuntime }) {
 
 const BROW_PRACTICE_TARGETS = ['Water', 'Music'] as const;
 
+/** Milliseconds as seconds for people ("0.40 s"). */
+const secs = (ms: number) => `${(Math.max(0, ms) / 1000).toFixed(2)} s`;
+
 /**
  * Eyebrow NEXT practice. Only an ACCEPTED NAV_NEXT (runtime.lastAccepted, emitted by the gesture
- * arbiter) moves the highlight, so a long hold moves once and a blink-pre-empted raise moves
- * nothing. After a couple of successful moves the calibrator moves on to the blink stages.
+ * arbiter) moves the highlight (a held raise keeps moving every BROW_TIMING.repeatMs), and a
+ * blink-pre-empted raise moves nothing. After a couple of successful moves the calibrator moves on to the blink stages.
  */
 function BrowNextPractice({ blink }: { blink: BlinkRuntime }) {
   const cal = blink.calibrator;
@@ -360,13 +365,14 @@ function BrowNextPractice({ blink }: { blink: BlinkRuntime }) {
   }, [complete, advance]);
 
   const armed = BLINK_ARMED.has(blink.status);
+  const holdMs = (cal.proposedBrow ?? blink.browCalibration)?.holdMs ?? BROW_CALIBRATION_TIMING.holdMs;
 
   return (
     <div className="cal-body practice">
       <h2>Practice: move the highlight with your eyebrows</h2>
       <p className="cal-instruction">
-        Raise both eyebrows and hold for half a second to move to the next choice. Relax before the next raise.
-        Holding longer still moves only once. Blinks do nothing in this step.
+        Raise both eyebrows and hold for {secs(holdMs)} to move to the next choice.
+        Keep holding to keep moving, one step every {secs(BROW_TIMING.repeatMs)}; relax to stop. Blinks do nothing in this step.
       </p>
       {!armed && <p className="warning">Waiting for one face to be tracked.</p>}
       <div className="practice-targets" role="group" aria-label="Practice choices (eyebrow raise only)">
@@ -474,10 +480,15 @@ function ReviewStage({ blink, mode }: { blink: BlinkRuntime; mode: FaceMode }) {
                 <div className="kv-row"><dt>Resting level</dt><dd>{score(b.neutral)}</dd></div>
                 <div className="kv-row"><dt>Counts as raised at</dt><dd>{score(b.raisedThreshold)}</dd></div>
                 <div className="kv-row"><dt>Counts as relaxed at</dt><dd>{score(b.releaseThreshold)}</dd></div>
-                <div className="kv-row"><dt>Hold needed to move Next</dt><dd>{Math.round(b.holdMs)} ms</dd></div>
+                <div className="kv-row"><dt>Eyebrow hold</dt><dd>{secs(b.holdMs)}</dd></div>
+                <div className="kv-row"><dt>Keep holding: one more step every</dt><dd>{secs(BROW_TIMING.repeatMs)}</dd></div>
+                <div className="kv-row"><dt>Ready again after relaxing</dt><dd>{secs(b.cooldownMs)}</dd></div>
               </dl>
             ) : <p className="muted">Not measured.</p>}
-            <p className="hint">Scores run from 0 (relaxed) to 1 (fully raised). One raise moves one step; relax before the next.</p>
+            {b && b.holdMs < BROW_CALIBRATION_TIMING.holdMs && (
+              <p className="hint">Hold shortened for you: your eyebrow raises were quick and clear.</p>
+            )}
+            <p className="hint">Scores run from 0 (relaxed) to 1 (fully raised). A raise moves one step; keep holding to keep moving; relax to stop.</p>
             {bWarnings.map((w) => <p key={w} className="warning" role="status">{w}</p>)}
           </section>
         )}
@@ -487,6 +498,7 @@ function ReviewStage({ blink, mode }: { blink: BlinkRuntime; mode: FaceMode }) {
             <div className="kv-row"><dt>Longest natural blink</dt><dd>{fmt(p.naturalMaxMs)}</dd></div>
             <div className="kv-row"><dt>Shortest deliberate closure</dt><dd>{fmt(p.deliberateMinMs)}</dd></div>
             <div className="kv-row"><dt>Too long (ignored as resting)</dt><dd>over {fmt(p.maxClosureMs)}</dd></div>
+            <div className="kv-row"><dt>Ready again after a select</dt><dd>{secs(p.cooldownMs)}</dd></div>
           </dl>
           <div className="min-closure" role="group" aria-label="Minimum closure to select">
             <span className="min-closure-label">A selection needs the eyes closed for at least</span>

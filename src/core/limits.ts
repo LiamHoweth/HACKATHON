@@ -28,6 +28,8 @@ export const LIMITS = {
   // Fast mode: a partner line this soon after the open question, before the person has answered,
   // is treated as a continuation of that question rather than a new one.
   mergeWindowMs: MERGE_WINDOW_MS,
+  // Branching flow: most "other ways to answer" shown, and most prefetch requests per batch.
+  maxPaths: 5,
 } as const;
 
 export const LENGTH_POLICIES: Record<StyleValueByKey['length'], LengthPolicy> = {
