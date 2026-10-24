@@ -157,3 +157,15 @@ Also from the latency run: "How are you feeling today?" -> "I'm feeling pretty g
 ## Late update (2:20 PM CT)
 
 Do not claim the 1.8 s priority-tier number; it was not used (caused timeouts). Use the standard-tier after numbers.
+
+## Late update (2:35 PM CT)
+
+Codex only builds the PowerPoint; do not invent facts. Tag everything below "[deployed, unit-tested; NOT YET on iPad]" (shown in the "Not yet" column or as a small footnote on any slide that mentions it). Commit 2e0954b, deployed 14:30 CT, installed on the iPad, not yet tested by a person on the iPad.
+
+New features for the slides:
+- **Other ways to answer** (setup checkbox "Show other ways to answer", on by default). The board shows the 2 most likely replies, then an "Other ways to answer…" card previewing 3-5 AI directions (for "How was your day?": Rough day, Mixed day, Not now, You first). It opens a screen of direction cards plus "Something else. New ideas" and Back. Replies for every direction are fetched in the background when that screen opens, so a direction usually shows 3 ready replies at once, with a breadcrumb "Other ways › Rough day". One long blink speaks a reply. Slide line: "When none of the likely replies fit, the person steers by direction."
+- **Faster gestures:** raise eyebrows to move; keep them up to keep moving (a step every 0.6 s), relax to stop. A brief deliberate jaw drop (about 0.4-1.5 s, then close) goes back one option; talking and yawns are ignored. Long blink selects, and blink always wins. The eyebrow hold is personalized from calibration (0.35-0.5 s), and re-arming after a select is faster. Update any gesture table to: Eyebrows up = Next, Keep up = keep moving, Jaw drop = Back, Long blink = Select.
+- **Typeface:** Atkinson Hyperlegible (Braille Institute, designed for low-vision legibility). Copy shortened, no em dashes.
+- **Latency (Mac -> deployed server, synthetic speech, not iPad-measured):** concrete questions with branching 2.4-3.7 s; open-ended questions like "How was your day?" can take 7-9 s. Keep the earlier standard-tier table. Priority tier stays OFF; do not cite its 1.8 s number.
+
+Do not claim: gesture reliability, accuracy, "instant", or that these features were tested by a person or on the iPad. Replace "three possible replies" with "the most likely replies plus Other ways to answer" wherever the slides describe the board.

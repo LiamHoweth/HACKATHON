@@ -14,6 +14,8 @@ For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts c
 | Audio prefetch (so the chosen line plays at once) | **Not yet verified.** Do not say "instant". |
 | Narrator voice leaking into the mic | **Unknown. Test it first** (see Cast). |
 | Raise counts for Guide my response, then Disagree | Write them in at rehearsal: ____ raises to Guide, ____ to Disagree |
+| Other ways to answer, hold-to-move (keep brows up = a step every 0.6 s), jaw-drop Back, Atkinson Hyperlegible typeface | **Deployed 14:30 CT (2e0954b), unit-tested, installed on the iPad, NOT yet tested by a person on the iPad.** Rehearse before relying on any of it. |
+| Open-ended question latency ("How was your day?") | Synthetic Mac-to-deployed run: 7-9 s (concrete questions 2.4-3.7 s). Time it live and quote your range. |
 
 ## Cast and positions
 
@@ -40,7 +42,9 @@ For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts c
 - [ ] One practice: Partner asks something, operator long-blinks once, you hear the voice. Then clear it and return to a fresh state.
 - [ ] Backups ready: Safari open to the app URL in a private tab (https://api-production-18038.up.railway.app). **Get the access code on the Mac before you go on, with the projector off, by running this yourself:** `cut -d= -f2 /Users/howeth/Desktop/claudex/Experiments/HACKATHON/.env.railway.local`. Never show or say the code.
 
-## The script (3:00)
+## The script (3:00 core, about 3:30 with Beat 5)
+
+Beat 5 pushes the run to about 3:30. If the slot is a hard 3:00, cut Beat 4 (multi-face, unverified live) and run Beat 5 from 1:55 (close at 2:25, about 35 s).
 
 ### 0:00-0:15 Problem *(narrator talks)*
 **Narrator:** "People who use AAC have plenty to say. The problem is time. By the time a reply is spelled out, the conversation has moved on. Still Here takes a different path: the AI offers possible words, and the person decides what to say."
@@ -86,7 +90,17 @@ For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts c
 - **If "Tracking lost: Paused" appears:** operator looks at the screen, the second person moves back, operator long-blinks on **Resume**. Narrator: "It paused because it lost tracking. That's the safe behavior, and one blink resumes it."
 - **If the leaning judge speaks and it becomes a partner line:** treat it as the follow-up, or helper taps **Stop listening** and the partner types the line.
 
-### 2:25-3:00 Close: privacy and what's next *(narrator talks)*
+### 2:25-2:55 Beat 5: Other ways to answer *(quiet, then narrator talks)*
+**Partner:** "How was your day?" *(open-ended: suggestions can take up to about 8 s. Everyone stays quiet and waits; narrator does not fill the gap with speech.)*
+**Operator:** the board shows the 2 most likely replies, then an **Other ways to answer…** card previewing directions (for example Rough day, Mixed day, Not now, You first). **Keep eyebrows up** to move (a step every 0.6 s), relax at the card, **long blink**. On the direction screen, move to **Rough day**, long blink. Three ready replies appear (breadcrumb **Other ways › Rough day**), long blink to speak one. A brief **jaw drop** (about 0.4-1.5 s, then close) goes back one option if you overshoot. Talking and yawns are ignored.
+**Narrator** *(after the voice finishes)*: "When none of the likely replies fit, the person can steer by direction. The AI offers words; they choose the meaning and the sentence."
+- **Audience should notice:** the person picks a direction, not just a sentence, and the replies are already there when the screen opens.
+- **If the wait passes about 8 s:** narrator: "That's an open-ended question, so the AI takes longer." Operator waits, then uses **None of these** or **My words** (or the helper taps).
+- **If a direction shows loading:** wait a moment; the replies are fetched in the background when the direction screen opens. If it stays empty, **Back** then **Something else. New ideas**, or helper taps.
+- **Time check:** if the run is over time, cut Beat 4 first and keep Beat 5. Beat 5 is the first to cut only if its wait passes about 8 s on the day.
+- **Not yet tested by a person on the iPad.** If rehearsal shows it is flaky, cut it and say nothing about it.
+
+### 2:55-3:30 Close: privacy and what's next *(narrator talks)*
 **Narrator:** "Privacy: camera images stay on the iPad and only eyebrow and eye movement is measured. Nothing is recorded. The partner's speech is sent for transcription to make suggestions, and the chosen sentence goes to a voice service. Nothing is said unless the person chooses it. This is an engineering prototype built today: it has not been tested with AAC users, it is not clinically validated, and our gesture reliability is not measured yet. The next step is to work with AAC users and specialists. Thank you."
 - **Honest wording:** say "camera images stay on the iPad by design". The network check proving it has not been run.
 - Do not claim: instant, first, faster than typing, reliability numbers, clinical, or offline (see below).
@@ -129,4 +143,5 @@ Fill this in during the run-through. Delete what does not apply and update PRESE
 - Raises to Guide my response: ____ ; to Disagree: ____
 - Multi-face beat: worked / paused / cut. Who leaned in: ______
 - Hall noise plan: type partner lines if more than 1 wrong transcript in 3.
-- Total time: ____ (target 3:00; cut Beat 4 first if over).
+- Beat 5: open-ended wait ____ s over ____ runs; hold-to-move overshoot? yes / no; jaw-drop Back worked? yes / no; direction replies ready on open? yes / no.
+- Total time: ____ (target 3:00 to 3:30; cut Beat 4 first if over).

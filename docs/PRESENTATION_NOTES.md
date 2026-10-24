@@ -96,3 +96,13 @@ Current test count: see TEST_RESULTS.md / latest commit (487+ passing at 2:30 PM
 - [VERIFIED, config deployed] Voice is now "Will" (young male). Jessica and Chris remain available.
 - [NOT YET live on iPad] Multi-face lock, one-blink speak timing, audible prefetch, merge on device, redesigned UI on device.
 - [MEASURED offline, then FAILED live, OFF] OpenAI priority tier: replies call 1.8 s median / 2.7 s p90 in the offline run, but on the deployed server at 14:05 CT 4 of 6 requests hit the 15 s timeout. Keep it off; do not cite the 1.8 s number. (tested 14:05 — caused timeouts; keep OFF)
+
+## 2:30 PM — Other ways to answer + faster gestures
+- [deployed, unit-tested; NOT YET on iPad] Deployed 14:30 CT (commit 2e0954b) and installed on the iPad; no person has tested it on the iPad yet.
+- [deployed, unit-tested; NOT YET on iPad] **Other ways to answer** (setup checkbox "Show other ways to answer", ON by default): the board shows the 2 most likely replies, then an "Other ways to answer…" card previewing 3-5 AI directions (for "How was your day?": Rough day, Mixed day, Not now, You first). Choosing it opens a screen of direction cards plus "Something else. New ideas" and Back. Replies for every direction are fetched in the background as soon as that screen opens, so a direction usually shows 3 ready replies at once, with a breadcrumb such as "Other ways › Rough day". One long blink speaks a reply (fast mode).
+- [deployed, unit-tested; NOT YET on iPad] **Gestures:** raise eyebrows to move; KEEP them up to keep moving (a step every 0.6 s) and relax to stop. A brief deliberate JAW DROP (about 0.4-1.5 s, then close) goes BACK one option; talking and yawns are ignored. Long blink selects, and blink always wins over other gestures. The eyebrow hold is personalized from calibration (0.35-0.5 s) and re-arming after a select is faster.
+- [deployed] **Typeface:** Atkinson Hyperlegible (Braille Institute, designed for low-vision legibility). Copy shortened, no em dashes. Not tested with low-vision users.
+- [MEASURED, Mac -> deployed server, synthetic; not iPad-measured] Latency: concrete questions with branching 2.4-3.7 s; open-ended questions such as "How was your day?" can take 7-9 s. The OpenAI priority tier stays OFF.
+- Talking point: "When none of the likely replies fit, the person steers by direction: Rough day, Mixed day, Not now, You first. The AI offers words; they choose."
+- Caveat: do not claim these gestures are reliable. Hold-to-move and jaw-drop thresholds have not been measured on a person on the iPad.
+- Docs updated: manual/QUICK_GUIDE.md, QUICK_GUIDE_SLIDE.md, quick-guide.html, the Quick Guide and Stage Card PDFs, REHEARSAL.md (new Beat 5), JUDGE_QA.md, deck/CODEX_DECK_PROMPT.md.

@@ -21,25 +21,29 @@ Still Here lets someone who can't speak or move their hands hold a conversation 
 
 | Do this | It does this |
 |---|---|
-| **Raise both eyebrows** (hold about 0.5 s) | **Next**: move to the next choice |
+| **Raise both eyebrows** (hold about 0.35-0.5 s, set in calibration) | **Next**: move one choice |
+| **Keep eyebrows up** | **Keep moving**: one step every 0.6 s. Relax to stop |
+| **Drop your jaw** briefly (about 0.4-1.5 s, then close) | **Back**: one choice back. Talking and yawning are ignored |
 | **Long blink** (close your eyes deliberately, about 1 s) | **Select**: a suggestion is spoken right away |
 | Normal blinking | Nothing. It is ignored |
 | Long blink while Still Here is speaking | **Stop** speaking |
 | Face lost, then look back and long blink on **Resume** | Continue after a pause |
 
-The screen always shows a reminder: *Eyebrows up 0.5 s: Next. Long blink: Select.*
+The screen always shows a reminder: *Eyebrows up: Next (keep up to keep moving). Jaw drop: Back. Long blink: Select.* Blink always wins over the other gestures. Hold, jaw drop and personal timing are [deployed, unit-tested; NOT YET on iPad].
 
 ## Having a conversation
-**The screen.** The big **"Partner asked"** text is at the top. Under it are **three suggested replies** with the **top one highlighted first**. Below them is **"None of these: new suggestions"** and an action row: **Guide my response**, **Quick phrases**, **My words**, **More tools**.
+**The screen.** The big **"Partner asked"** text is at the top. Under it are the **two most likely replies** with the **top one highlighted first**. Below them is an **"Other ways to answer…"** card (see below), then **"None of these: new suggestions"** and an action row: **Guide my response**, **Quick phrases**, **My words**, **More tools**.
 
 **The right side.** A live **camera preview** (not recorded), a line of **gesture feedback**, and a **Conversation** panel with chat bubbles, a **"Listening: just talk"** status, a **Stop listening** button, and **Type or record instead** (type, or use Talk).
 
 **Hands-free flow**
 1. **Partner:** just talk near the iPad. Each thing you say is transcribed and becomes the "Partner asked" line automatically.
-2. A few seconds later, **three possible replies** appear. The top one is already highlighted.
-3. **Person:** one **long blink** speaks the highlighted reply in a natural voice. Or raise eyebrows to move to another reply, **None of these** (new suggestions), **Guide my response** (agree, disagree, ask and so on), **Quick phrases**, or **My words** (spell it out).
+2. A few seconds later, the **likely replies** appear (the 2 most likely, plus **Other ways to answer…**). The top one is already highlighted.
+3. **Person:** one **long blink** speaks the highlighted reply in a natural voice. Or raise eyebrows to move to another reply, **Other ways to answer…**, **None of these** (new suggestions), **Guide my response** (agree, disagree, ask and so on), **Quick phrases**, or **My words** (spell it out).
 4. Listening pauses while Still Here speaks, then resumes. If the partner says more within about 20 s of the open question ("Are you coming to dinner?" then "It's at seven"), the new words are added to the same question and the suggestions refresh to cover both, with the highlight back on the top one. The person is not pulled out of menus; the refreshed suggestions are waiting on the board. Lines heard while Still Here is speaking, or while a review or pause dialog is open, wait and are answered right after. Beyond about 20 s, a new partner line starts a new question.
 5. Pure filler on its own ("uh huh", "mm-hmm", "hmm", "got it") is ignored. Short answers like "yeah", "okay" or "sure", and "Yes?", "No." and "Hey", still count.
+
+**Other ways to answer** ([deployed, unit-tested; NOT YET on iPad] setup checkbox **Show other ways to answer**, on by default). The board shows the 2 most likely replies, then an **"Other ways to answer…"** card previewing 3-5 directions (for "How was your day?": Rough day, Mixed day, Not now, You first). Choose it to see a screen of direction cards, plus **"Something else. New ideas"** and **Back**. The replies for every direction load in the background as soon as that screen opens, so picking a direction usually shows 3 ready replies at once, with a trail such as **Other ways › Rough day**. One long blink speaks a reply. Open-ended questions can take 7-9 s to load; concrete ones 2.4-3.7 s (Mac to deployed server, synthetic).
 
 **Fast mode (on by default).** One long blink speaks the suggestion immediately. To add a review step and a separate confirming blink, turn fast mode off in setup. In fast mode, suggested sentences may be sent to the voice service ahead of time so the chosen one plays instantly.
 
@@ -65,3 +69,4 @@ The screen always shows a reminder: *Eyebrows up 0.5 s: Next. Long blink: Select
 - Camera images **stay on the iPad**. Only eyebrow and eye movement is measured. **Nothing is recorded.**
 - The partner's speech **is sent for transcription** to make suggestions.
 - Suggestions are possibilities. **Nothing is said unless the person chooses it.**
+- Text is set in **Atkinson Hyperlegible** (Braille Institute), a typeface designed for low-vision legibility. [deployed, unit-tested; NOT YET on iPad]
