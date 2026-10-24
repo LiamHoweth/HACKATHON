@@ -18,7 +18,7 @@ Liam Howeth and Richard Ognefijiro.
 
 ## Elevator pitch (Devpost, 200 characters or fewer)
 
-Still Here lets people who can't speak or use their hands keep up with a real conversation. AI offers replies; they choose with an eyebrow raise and a blink, and it speaks.
+Still Here helps people with ALS and other disabilities who can't speak or use their hands keep up with real conversations. AI offers replies; they choose with a blink, and it speaks.
 
 ## Inspiration
 
