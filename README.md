@@ -41,12 +41,12 @@ Build, verification, and measurement are separate. "Implemented" means the logic
 | Staged partner turns, parked questions, history | Implemented in reducer | Not run (unit tests written) | Queue is capped at 10 with an explicit notice |
 | Session length adaptation (opt-in) | Implemented (`src/adaptation/`) | Not run (unit tests written) | Deterministic and length-only; off by default |
 | Approved, scoped style preferences and memory review | Implemented in reducer/policy; versioned local store present (`src/adaptation/preference-store.ts`) | Not run (unit tests written) | Saved only after explicit confirmation. Corrupt storage is ignored. No cross-tab sync |
-| Live AI replies (Anthropic) | Adapter + `/api/replies` route present | **Not verified**: no API key configured (route tests with a mocked provider written, not run) | Live path refuses non-local requests unless `APP_ACCESS_TOKEN` is set |
+| Live AI replies (OpenAI `gpt-6-astra`; Anthropic adapter also present) | Adapters + `/api/replies` route | **Verified live** 2026-10-24 (local + Railway): valid 3-candidate batches in ~4 s; 14 synthetic scenarios in [`docs/evidence/live-scenarios.json`](docs/evidence/live-scenarios.json). Anthropic path: mocked tests only (no key) | Deployed server requires the access code; local dev server does not |
 | Fixture demo mode | Implemented (`src/server/fixtures.ts`, `/api/replies`) | Not run (unit test written) | Default demo path; labeled `demo-fixture`; refused if `FIXTURES_ENABLED=false` |
 | Browser runtime, scanning timer, input controller | Present, being integrated | Not run; not browser-verified | `src/runtime/`, `src/access/`. One chained timer; scanning pauses when the tab is hidden or the switch is held |
 | Speech synthesis controller | Present, being integrated | Not run; audible output not hardware-verified | `src/audio/speech-controller.ts`. Start/end watchdogs mark speech `uncertain` and never replay it |
 | Interface components and app shell | Present, being integrated | Not browser-verified | `src/components/`, `src/app/` |
-| Partner recording + transcription | Present (`src/audio/`, `src/server/transcription.ts`, `/api/transcribe`) | **Not verified**: no transcription key configured | 20 s cap; format chosen with `MediaRecorder.isTypeSupported`; typed input is the fallback |
+| Partner recording + transcription | `src/audio/`, `src/server/transcription.ts`, `/api/transcribe` (`gpt-transcribe`) | **Server path verified** with a synthetic clip (exact transcript, ~1.2 s). Browser microphone capture not yet exercised with a real room recording | 20 s cap; typed input is the fallback |
 | Opt-in measurement mode | Reducer events + content-minimal export (`src/metrics/export.ts`) present | Not run | Nothing has been measured |
 | Blink / camera input (P2) | Deferred | Not applicable | Not implemented |
 
@@ -54,7 +54,7 @@ Build, verification, and measurement are separate. "Implemented" means the logic
 
 - **Pointer** (mouse or touch) and **keyboard** (normal button activation).
 - **Single switch** emulated by a configured keyboard key, with automatic scanning (default 1.5 s per target, 2 s reading pause on new content, adjustable from 0.7 s to 5 s). Compatibility with specific external switch hardware has not been tested.
-- **Partner input:** typed text. Microphone recording with transcript review is present in source but unverified, and requires a transcription key.
+- **Partner input:** typed text, or microphone recording with an editable transcript draft (requires consent and a configured transcription service).
 - **Not supported:** blink, gaze, or camera input (deferred).
 
 ## Setup
@@ -86,7 +86,9 @@ Names only; see [.env.example](.env.example). Keep values in `.env.local`, which
 | Variable | Purpose |
 | --- | --- |
 | `AI_PROVIDER` | `anthropic` enables the live reply adapter |
-| `ANTHROPIC_API_KEY` | Server-side key for live replies |
+| `AI_PROVIDER` | `openai` or `anthropic` |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Server-side key for live replies (OpenAI key also used for transcription when `TRANSCRIPTION_PROVIDER=openai`) |
+| `REPLY_REASONING_EFFORT` | Optional OpenAI reasoning effort |
 | `REPLY_MODEL` | Model id (suggested `claude-opus-5-5`; verify on your account) |
 | `REPLY_FALLBACKS` | `default` enables the server-side refusal fallback beta; `off` disables it |
 | `TRANSCRIPTION_PROVIDER` | `openai` enables the OpenAI-compatible transcription adapter |
@@ -102,7 +104,7 @@ The interface always shows which source produced a suggestion.
 
 | Mode | When | What it does |
 | --- | --- | --- |
-| **Live AI** | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, and `REPLY_MODEL` set, and the user consents to cloud transmission | Sends a bounded structured request to the Anthropic Messages API. **Not verified today:** no key was configured on the development machine. |
+| **Live AI** | `AI_PROVIDER=openai` with `OPENAI_API_KEY` (or `anthropic` with `ANTHROPIC_API_KEY`) and `REPLY_MODEL` set, and the user consents to cloud transmission | Sends a bounded structured request to the configured provider (OpenAI Responses API with `store: false`, or Anthropic Messages API). Verified with OpenAI on 2026-10-24. |
 | **Fixture demo** | Default; `FIXTURES_ENABLED=true` | Returns deterministic, synthetic demo suggestions labeled `demo-fixture`. Fixtures are never substituted for a failed live request. |
 | **Local only** | Selected in setup | No generation requests. Quick phrases, saved phrases, and My words still work. |
 
@@ -115,8 +117,8 @@ See [docs/PRIVACY_AND_LIMITATIONS.md](docs/PRIVACY_AND_LIMITATIONS.md) for full 
 | Data | Handling in this build |
 | --- | --- |
 | Camera frames | None. There is no camera feature. |
-| Recorded partner audio | Sent to the configured transcription service only after consent and an explicit Record action. Not stored by the app. (Not verified: no key.) |
-| Conversation text and approved context | In Live AI mode, sent to the Anthropic API: up to 10 recent turns, the active question, approved profile entries, guidance, and approved preferences. Fixture and Local-only modes stay on your machine and the local Next.js server. |
+| Recorded partner audio | Sent to the configured transcription service (OpenAI) only after consent and an explicit Record action. Not stored by the app. |
+| Conversation text and approved context | In Live AI mode, sent to the configured provider (OpenAI by default, with `store: false`): up to 10 recent turns, the active question, approved profile entries, guidance, and approved preferences. Fixture and Local-only modes stay on your machine and the Still Here server. Provider retention policies still apply. |
 | Speech text | Spoken through the browser's `speechSynthesis` voice. Whether a voice is local or remote depends on the browser and voice (`localService`), which has not been verified on the demo machine. |
 | Approved preferences, profile, saved phrases | Kept in memory for the session. Written to browser local storage only if "Remember on this device" is turned on. Conversation transcripts, suggestions, recordings, and session observations are never written to storage. |
 
@@ -133,7 +135,7 @@ Server logs record only the request ID, route, outcome code, and duration. They 
 ## Known limitations
 
 - Not tested with AAC users, people with ALS, clinicians, or specialists. Team testing is not clinical validation.
-- Live AI and transcription have not been verified (no keys configured). The demo uses the labeled Fixture mode.
+- Live AI and server-side transcription were verified with OpenAI using synthetic inputs only. No AAC users have tested the app.
 - The UI, browser runtime, speech, and recording had just landed and were being integrated at the time of writing. Browser, audio, and hardware behavior has not been verified.
 - Session learning covers sentence length only. Other style dimensions can be set manually.
 - English only. Word-count length rules are not a multilingual implementation.
@@ -157,7 +159,7 @@ More detail: [docs/PRIVACY_AND_LIMITATIONS.md](docs/PRIVACY_AND_LIMITATIONS.md).
 The full script, with fallbacks, is in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 1. `npm run dev`, then open `http://localhost:3000`.
-2. Setup: choose an input mode (switch scanning or keyboard), test the voice, and leave AI on **Fixture demo** unless a key is configured. Microphone and camera stay off.
+2. Setup: choose an input mode (switch scanning or keyboard), test the voice, and choose **Live AI** (with cloud consent; on the deployed server, enter the access code) or **Fixture demo** as a labeled fallback. Microphone and camera stay off until used.
 3. The partner types *"Are you coming to dinner tonight?"*. Three suggestions appear, labeled with their source.
 4. Choose **None of these — new suggestions**. Three different meanings appear.
 5. **Guide my response → Choose a direction → Suggest an alternative**. New alternatives appear.
@@ -182,3 +184,12 @@ The full script, with fallbacks, is in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md
 | [References](docs/REFERENCES.md) | Prior art and documentation, with verification status |
 | [Presentation log](docs/PRESENTATION_LOG.md), [Slide outline](docs/SLIDE_OUTLINE.md), [Demo script](docs/DEMO_SCRIPT.md), [Judge Q&A](docs/JUDGE_QA.md), [Submission draft](docs/SUBMISSION_DRAFT.md) | Presentation materials |
 | [Demo checklist](docs/DEMO.md), [Setup checklist](docs/SETUP.md), [AI usage](docs/AI_USAGE.md) | Team process |
+
+## Deployment (Railway)
+
+The backend and web app are deployed as one Next.js service on Railway (project `still-here`, service `api`): `https://api-production-18038.up.railway.app`.
+
+- Deploy from a clean checkout with `railway up --service api`. `.railwayignore` keeps `.env*` files, `node_modules`, `.next`, and `ios/` out of the upload. Railway runs `npm run build` and `npm start`.
+- Configure variables on Railway, never in Git: `AI_PROVIDER`, `OPENAI_API_KEY`, `REPLY_MODEL`, `TRANSCRIPTION_PROVIDER`, `TRANSCRIPTION_MODEL`, `APP_ACCESS_TOKEN`, `FIXTURES_ENABLED`.
+- On the deployed server, `/api/replies` (live) and `/api/transcribe` require the `x-still-here-access` header. Production builds never trust the `Host` header as local. `GET /api/status` reports `accessCodeValid` when a code is sent.
+- Limits: per-instance in-memory rate limits keyed on Railway's `X-Real-IP` (30 live requests/min, 12 transcriptions/min, 120 fixture requests/min per client). These are not a distributed spending cap. Keep one instance, or add a shared store before scaling out.

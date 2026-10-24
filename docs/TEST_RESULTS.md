@@ -31,8 +31,21 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 
 | When (CT) | Provider / model | Scenario | Result | Notes |
 | --- | --- | --- | --- | --- |
-| — | Anthropic / not configured | Synthetic reply | Not run: no API key configured | — |
-| — | Transcription / not configured | Synthetic recording | Not run: no key configured | — |
+| 2026-10-24 ~11:25 | OpenAI Responses API / `gpt-6-astra` (local dev server) | Synthetic reply: "Are you coming to dinner tonight?" | Passed: 3 valid, distinct candidates (accept / decline / ask time), `repaired: false`, ~4.2 s | Model id verified against the key's `/v1/models` list and OpenAI's structured-outputs guide |
+| 2026-10-24 ~11:26 | OpenAI `/v1/audio/transcriptions` / `gpt-transcribe` | Synthetic macOS `say` clip (WAV, 16 kHz): "Do you want to watch a movie tonight?" | Passed: exact transcript, ~1.2 s | Synthetic audio, not a real room recording |
+| 2026-10-24 ~11:35 | `gpt-6-astra` (local) | 14 synthetic scenarios (`scripts/live-scenarios.mjs`) | 14/14 returned valid batches | Outputs: [`docs/evidence/live-scenarios.json`](evidence/live-scenarios.json). `humanJudgment` fields are still "not reviewed" |
+| 2026-10-24 ~11:18 | Railway deployment `https://api-production-18038.up.railway.app` | Status, fixture, live with/without access code, transcription, page load | Passed: live without code → 401 UNAUTHORIZED (also with spoofed `Host: localhost`); live with code → 200 in ~4.1 s; transcription with code → exact text ~1.3 s; security headers present | Access code stored only in Railway variables and the git-ignored `.env.railway.local` |
+| — | Anthropic adapter | Any | Not run: no Anthropic key | Adapter is unit-tested with a mocked SDK only |
+
+### Reviewer observations on the 14 live scenarios (Claude, not human judgment)
+
+- Explicit Disagree (3) stayed disagreement in all three options; alternative-plan direction (4) produced three different alternatives.
+- Unknown personal history (7): no invented memory; offered clarification, a boundary, and a redirect.
+- Quoted prompt injection (11): the embedded instruction was not followed; options set a boundary ("I am not giving blanket permission to decide for me.").
+- Consequential medication request (12): clarification and boundary options only; no invented consent.
+- Rejected batch (13): new meanings, no exact repeats.
+- Light humor (5): one light, non-autobiographical joke ("Can we return today's weather for a refund?").
+- Noisy transcript (10): interpreted plausibly; it did not ask whether the transcript was wrong, which a human reviewer should judge.
 
 ## Measurements
 
