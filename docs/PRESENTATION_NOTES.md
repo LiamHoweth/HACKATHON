@@ -61,6 +61,6 @@ AI offers possible words; the person decides what to say. On an iPad: raise your
 - [VERIFIED, unit tests + deployed] Hands-free partner listening: the partner just talks; each utterance is detected, transcribed and becomes the partner line automatically. Listening pauses while Still Here speaks, so it never hears itself.
 - [VERIFIED, unit tests + deployed] Fast mode: the top suggestion is highlighted first; one long blink speaks it immediately (no review step). Review + separate confirmation is still available with one setup checkbox.
 - [VERIFIED, unit tests + deployed] Multiple faces: tracking locks onto one face (most central and longest in frame) and keeps working when someone leans in.
-- [NOT YET] Tested end to end on the iPad with real voices and faces.
+- [VERIFIED, manual on the iPad] Hands-free conversation works end to end in the installed app (team test, ~1:20 PM). Multi-face lock and one-blink speak: covered by unit tests; confirm in rehearsal.
 - Talking point: time from partner question to spoken reply = transcription + suggestions + one blink + voice (~0.6 s).
 - Earlier fix (1:04 PM): the microphone failed on iPad because a "playback" audio session blocks capture; recording now switches to play-and-record.

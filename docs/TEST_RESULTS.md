@@ -80,3 +80,10 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 | Audio unlocked with no tap ("Audio ready / Audio enabled") | Pass | device screenshot |
 | Built-in access code accepted (natural voice shows "Configured on this server", which /api/status reveals only for a valid code) | Pass | device screenshot |
 | Camera permission, live gestures, audible speech in the app | Not yet run | needs a person in front of the iPad |
+
+## Hands-free conversation on the iPad (2026-10-24, after commit c5519d0)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Partner speaks without pressing anything → transcribed → suggestions → reply spoken, in the installed iPad app | Pass | Reported by the team after a manual test on the demo iPad |
+| Microphone works in the installed app (play-and-record fix, commit after aedf913) | Pass | Reported by the team |
