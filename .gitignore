@@ -72,3 +72,6 @@ npm-debug.log*
 /ipad-shell/build/
 /ipad-shell/StillHereShell/DemoSecrets.swift
 /ipad-shell/StillHereShell/Info.plist
+
+# Raw iPad audit frames (selected frames are committed)
+/docs/ux-audit/before/raw/
