@@ -135,3 +135,14 @@ Still not verified live on the iPad: multi-face lock, one-blink speak timing, au
 | Decision | Priority OFF for the demo. Always redeploy and run `node scripts/smoke-deployed.mjs` after changing Railway variables | n/a |
 
 Note: no `scripts/smoke-deployed.mjs` result for the 14:16 deployment is recorded in this file; run it before the demo.
+
+## Demo-freeze build (2:30 PM CT, commit 2e0954b, tag demo-freeze)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Unit tests (`npx vitest run`) | 586 passed, 2 expected fail, 34 files | Run by the lead at 2:29 PM before deploy |
+| Type check, lint, production build | Pass | Same run |
+| Deployed smoke test (`node scripts/smoke-deployed.mjs`) | 6/6 PASS | Railway deployment d379c526 (2:30 PM): status, replies, speech, transcribe, headers |
+| Branching replies live | Pass: 2 replies + 4 directions; 2.4–3.7 s concrete questions, 7–9 s open-ended | One-off calls to the deployed /api/replies, 2:32 PM |
+| Native app reinstalled on the demo iPad | Pass (installed and launched) | devicectl install + launch |
+| Hold to keep moving, jaw drop back, personal timing, Other ways to answer on the iPad | NOT YET (needs the team's rehearsal) | Unit tests only |
