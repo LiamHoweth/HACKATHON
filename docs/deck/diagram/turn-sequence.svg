@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif">
+<style>@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=block');</style>
+<defs>
+<marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0b5d46"/></marker>
+<marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#13325b"/></marker>
+<marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#121417"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#ffffff"/>
+<text x="40" y="70" font-size="44" font-weight="700" fill="#121417" text-anchor="start">One turn, end to end</text>
+<text x="40" y="108" font-size="24" font-weight="400" fill="#464b53" text-anchor="start">Suggestions arrive about 3.6 s after the partner stops talking; the chosen voice then plays at once.</text>
+<rect x="65" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#121417" stroke-width="2.5"/>
+<text x="170" y="180" font-size="24" font-weight="700" fill="#121417" text-anchor="middle">Partner</text>
+<path d="M 170 202 L 170 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<rect x="305" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#0b5d46" stroke-width="2.5"/>
+<text x="410" y="180" font-size="24" font-weight="700" fill="#0b5d46" text-anchor="middle">Person</text>
+<path d="M 410 202 L 410 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<rect x="585" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#0b5d46" stroke-width="2.5"/>
+<text x="690" y="180" font-size="24" font-weight="700" fill="#0b5d46" text-anchor="middle">iPad app</text>
+<path d="M 690 202 L 690 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<rect x="880" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#13325b" stroke-width="2.5"/>
+<text x="985" y="180" font-size="24" font-weight="700" fill="#13325b" text-anchor="middle">Railway server</text>
+<path d="M 985 202 L 985 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<rect x="1155" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#121417" stroke-width="2.5"/>
+<text x="1260" y="180" font-size="24" font-weight="700" fill="#121417" text-anchor="middle">OpenAI</text>
+<path d="M 1260 202 L 1260 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<rect x="1395" y="140" width="210" height="62" rx="14" fill="#ffffff" stroke="#121417" stroke-width="2.5"/>
+<text x="1500" y="180" font-size="24" font-weight="700" fill="#121417" text-anchor="middle">ElevenLabs</text>
+<path d="M 1500 202 L 1500 975" stroke="#c9ccd1" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="1772" y="180" font-size="24" font-weight="700" fill="#121417" text-anchor="middle">Measured</text>
+<circle cx="40" cy="262" r="19" fill="#0b5d46"/>
+<text x="40" y="270" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<path d="M 170 262 L 686 262" stroke="#121417" stroke-width="3" fill="none" marker-end="url(#k)"/>
+<text x="300.0" y="250" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">speaks</text>
+<text x="708" y="270" font-size="22" font-weight="400" fill="#464b53" text-anchor="start">waits for 0.65 s of silence</text>
+<rect x="1655" y="222" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="256" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">0.65 s</text>
+<text x="1772" y="286" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">end of speech</text>
+<circle cx="40" cy="397.0" r="19" fill="#0b5d46"/>
+<text x="40" y="405.0" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<path d="M 690 372 L 1256 372" stroke="#13325b" stroke-width="3" fill="none" marker-end="url(#b)"/>
+<circle cx="985" cy="372" r="6" fill="#13325b"/>
+<text x="837.5" y="360" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">audio segment</text>
+<text x="1122.5" y="360" font-size="22" font-weight="400" fill="#464b53" text-anchor="middle">gpt-transcribe</text>
+<path d="M 1260 422 L 694 422" stroke="#0b5d46" stroke-width="3" fill="none" marker-end="url(#g)"/>
+<circle cx="985" cy="422" r="6" fill="#0b5d46"/>
+<text x="837.5" y="452" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">transcript text</text>
+<rect x="1655" y="357.0" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="391.0" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">~0.5 s</text>
+<text x="1772" y="421.0" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">transcription</text>
+<circle cx="40" cy="547.0" r="19" fill="#0b5d46"/>
+<text x="40" y="555.0" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<path d="M 690 522 L 1256 522" stroke="#13325b" stroke-width="3" fill="none" marker-end="url(#b)"/>
+<circle cx="985" cy="522" r="6" fill="#13325b"/>
+<text x="837.5" y="510" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">partner text + context</text>
+<text x="1122.5" y="510" font-size="22" font-weight="400" fill="#464b53" text-anchor="middle">gpt-6-astra</text>
+<path d="M 1260 572 L 694 572" stroke="#0b5d46" stroke-width="3" fill="none" marker-end="url(#g)"/>
+<circle cx="985" cy="572" r="6" fill="#0b5d46"/>
+<text x="837.5" y="602" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">2 replies + 3–5 other ways</text>
+<rect x="1655" y="507.0" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="541.0" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">~2.5 s</text>
+<text x="1772" y="571.0" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">replies, median</text>
+<circle cx="40" cy="697.0" r="19" fill="#0b5d46"/>
+<text x="40" y="705.0" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+<path d="M 690 672 L 1496 672" stroke="#13325b" stroke-width="3" fill="none" marker-end="url(#b)"/>
+<circle cx="985" cy="672" r="6" fill="#13325b"/>
+<text x="837.5" y="660" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">candidate texts</text>
+<text x="1282.5" y="660" font-size="22" font-weight="400" fill="#464b53" text-anchor="middle">eleven_v4_turbo</text>
+<path d="M 1500 722 L 694 722" stroke="#0b5d46" stroke-width="3" fill="none" marker-end="url(#g)"/>
+<circle cx="985" cy="722" r="6" fill="#0b5d46"/>
+<text x="837.5" y="752" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">MP3 into prefetch cache</text>
+<rect x="1655" y="657.0" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="691.0" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">background</text>
+<text x="1772" y="721.0" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">while the person reads</text>
+<circle cx="40" cy="832" r="19" fill="#0b5d46"/>
+<text x="40" y="840" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+<path d="M 410 832 L 686 832" stroke="#0b5d46" stroke-width="3" fill="none" marker-end="url(#g)"/>
+<text x="390" y="818" font-size="22" font-weight="400" fill="#121417" text-anchor="end">raise / hold to move,</text>
+<text x="390" y="848" font-size="22" font-weight="400" fill="#121417" text-anchor="end">jaw = back, blink = select</text>
+<text x="708" y="840" font-size="22" font-weight="700" fill="#0b5d46" text-anchor="start">one guarded ACTIVATE</text>
+<rect x="1655" y="792" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="826" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">their pace</text>
+<text x="1772" y="856" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">on-device only</text>
+<circle cx="40" cy="932" r="19" fill="#0b5d46"/>
+<text x="40" y="940" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+<path d="M 690 932 L 174 932" stroke="#0b5d46" stroke-width="3" fill="none" marker-end="url(#g)"/>
+<text x="300.0" y="920" font-size="22" font-weight="400" fill="#121417" text-anchor="middle">voice plays</text>
+<text x="708" y="940" font-size="22" font-weight="400" fill="#464b53" text-anchor="start">from cache: no network wait</text>
+<rect x="1655" y="892" width="235" height="80" rx="14" fill="#eef6f2" stroke="#0b5d46" stroke-width="2"/>
+<text x="1772" y="926" font-size="26" font-weight="700" fill="#0b5d46" text-anchor="middle">~0 s</text>
+<text x="1772" y="956" font-size="20" font-weight="400" fill="#464b53" text-anchor="middle">~0.65 s without prefetch</text>
+<text x="40" y="1040" font-size="22" font-weight="400" fill="#464b53" text-anchor="start">Measured on a Mac with synthetic speech (October 24, 2026). Not yet timed on the iPad over venue Wi-Fi. 3.6 s is the sum of medians.</text>
+</svg>
