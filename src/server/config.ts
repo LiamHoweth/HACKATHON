@@ -28,7 +28,7 @@ export function serverConfig() {
     transcriptionProvider,
     transcriptionKey,
     transcriptionModel,
-    transcriptionBaseUrl: (env.TRANSCRIPTION_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/+$/, ''),
+    transcriptionBaseUrl: ((env.TRANSCRIPTION_BASE_URL ?? '').trim() || 'https://api.openai.com/v1').replace(/\/+$/, ''),
     transcriptionConfigured: transcriptionProvider === 'openai' && transcriptionKey.length > 0 && transcriptionModel.length > 0,
     fixturesEnabled: (env.FIXTURES_ENABLED ?? 'true').trim().toLowerCase() !== 'false',
     generationTimeoutMs: num(env.GENERATION_TIMEOUT_MS, 15_000),

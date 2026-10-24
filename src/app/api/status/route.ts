@@ -1,5 +1,5 @@
 import { serverConfig } from '@/server/config';
-import { ACCESS_HEADER, accessCodeMatches } from '@/server/request-guards';
+import { ACCESS_HEADER, verifyAccessCode } from '@/server/request-guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,13 +8,21 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const cfg = serverConfig();
   const sent = request.headers.has(ACCESS_HEADER);
+  const verdict = sent && cfg.accessToken ? verifyAccessCode(request, cfg) : null;
+  const production = process.env.NODE_ENV === 'production';
+  const reveal = !production || verdict === 'ok';
   return Response.json(
     {
-      replies: { configured: cfg.repliesConfigured, provider: cfg.repliesConfigured ? cfg.aiProvider : null, model: cfg.repliesConfigured ? cfg.replyModel : null },
+      replies: {
+        configured: cfg.repliesConfigured,
+        provider: cfg.repliesConfigured && reveal ? cfg.aiProvider : null,
+        model: cfg.repliesConfigured && reveal ? cfg.replyModel : null,
+      },
       transcription: { configured: cfg.transcriptionConfigured, provider: cfg.transcriptionConfigured ? cfg.transcriptionProvider : null },
       fixturesEnabled: cfg.fixturesEnabled,
-      accessRequired: cfg.accessToken.length > 0 || process.env.NODE_ENV === 'production',
-      accessCodeValid: sent ? accessCodeMatches(request, cfg) : null,
+      accessRequired: cfg.accessToken.length > 0 || production,
+      accessCodeValid: !sent ? null : verdict === 'ok',
+      accessCodeThrottled: verdict === 'throttled',
     },
     { headers: { 'cache-control': 'no-store' } },
   );

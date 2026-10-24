@@ -36,6 +36,8 @@ type Job = {
   finished: boolean;
   stoppedByUs: boolean;
   timer: unknown;
+  // Held so Chrome cannot garbage-collect the utterance mid-speech and drop onend.
+  u?: UtteranceLike;
 };
 
 export const START_WATCHDOG_MS = 4000;
@@ -88,6 +90,7 @@ export class SpeechController {
         u.lang = opts.lang;
       }
       u.rate = opts.rate;
+      job.u = u;
     } catch {
       this.finish(job, 'error');
       return false;

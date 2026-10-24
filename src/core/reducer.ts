@@ -170,11 +170,18 @@ function applyChange(s: State, change: PendingChange, a: Extract<Action, { type:
     case 'approve-profile': {
       const d = s.profileDraft;
       if (!d) return s;
-      const entries = [
-        ...(d.preferredName ? [{ field: 'preferredName' as const, value: d.preferredName }] : []),
-        ...d.interests.map((i) => ({ field: 'interest' as const, value: i })),
-      ].slice(0, LIMITS.profileEntries).map((e) => ({ ...e, id: newId(), approvedAt: at, approvalEventId: a.eventId, enabled: true }));
-      s = { ...s, approvedProfile: [...s.approvedProfile, ...entries], profileDraft: null, preferenceRevision: s.preferenceRevision + 1 };
+      const clean = (v: string) => v.trim().slice(0, 120);
+      const incoming = [
+        ...(d.preferredName ? [{ field: 'preferredName' as const, value: clean(d.preferredName) }] : []),
+        ...d.interests.map((i) => ({ field: 'interest' as const, value: clean(i) })),
+      ].filter((e) => e.value);
+      // A new preferred name replaces the old one; duplicates are dropped; totals stay within the stored schema.
+      const kept = s.approvedProfile.filter((p) => !(p.field === 'preferredName' && incoming.some((e) => e.field === 'preferredName')));
+      const seen = new Set(kept.map((p) => `${p.field}:${p.value.toLowerCase()}`));
+      const fresh = incoming.filter((e) => { const k = `${e.field}:${e.value.toLowerCase()}`; if (seen.has(k)) return false; seen.add(k); return true; })
+        .map((e) => ({ ...e, id: newId(), approvedAt: at, approvalEventId: a.eventId, enabled: true }));
+      const approvedProfile = [...kept, ...fresh].slice(0, LIMITS.profileEntries);
+      s = { ...s, approvedProfile, profileDraft: null, preferenceRevision: s.preferenceRevision + 1 };
       return persist(s, at, 'Profile approved');
     }
     case 'delete-item': {
@@ -191,6 +198,7 @@ function applyChange(s: State, change: PendingChange, a: Extract<Action, { type:
     case 'save-phrase': {
       const text = change.text.trim().slice(0, LIMITS.phraseChars);
       if (!text) return s;
+      if (s.savedPhrases.filter((p) => !p.builtIn).length >= 40) return notice(s, 'You have 40 saved phrases, the most this prototype keeps. Delete one in Memory first.', at);
       s = { ...s, savedPhrases: [...s.savedPhrases, { id: newId(), text, builtIn: false, group: 'custom' }], drafts: { ...s.drafts, phrase: '' } };
       return persist(s, at, 'Phrase saved');
     }
@@ -502,7 +510,20 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
       if (s.activeWorkspaceId === w.id) s = { ...s, activeWorkspaceId: null };
     }
   }
-  if (r.origin.kind === 'composed') s = { ...s, drafts: { ...s.drafts, message: '' } };
+  if (r.origin.kind === 'composed') {
+    s = { ...s, drafts: { ...s.drafts, message: '' } };
+    // An own-words reply answers the active question (quick phrases do not).
+    const active = s.activeWorkspaceId ? s.workspaces[s.activeWorkspaceId] : null;
+    if (active && !active.closed) {
+      if (active.pending) s = addEffects(s, { kind: 'abort-generation', requestId: active.pending.requestId });
+      s = updateWorkspace(s, active.id, { closed: 'answered', parked: false, rejected: [], refineTarget: null, pending: null });
+      s = { ...s, activeWorkspaceId: null };
+      if (active.anchor.mode === 'reply') {
+        const anchorId = active.anchor.turnId;
+        s = { ...s, conversation: s.conversation.map((e) => (e.role === 'user' && e.value.id === turn.id ? { role: 'user', value: { ...e.value, anchorTurnId: anchorId } } : e)) };
+      }
+    }
+  }
   if (s.recording.status === 'recording' || s.recording.status === 'requesting') s = addEffects(s, { kind: 'discard-recording' });
   s = addEffects(s, { kind: 'speak', utterance });
   s = metric(s, 'confirm', at, { source: snap.source, workspaceId: snap.workspaceId });
@@ -613,7 +634,9 @@ export function reducer(s: State, action: Action): State {
       const kind = ws.pending.kind;
       const anchorStale = ws.anchor.mode === 'reply' && partnerTurn(s, ws.anchor.turnId)?.contentRevision !== ws.anchor.turnContentRevision;
       if (identity.contextRevision !== s.contextRevision || identity.preferenceRevision !== s.preferenceRevision || anchorStale || ws.closed) {
-        return updateWorkspace(s, ws.id, { pending: null, status: ws.batch && !anchorStale ? 'choosing' : 'stale' });
+        // Never fall back to a batch the user already rejected for this question.
+        const batchRejected = !!ws.batch && ws.rejected.some((r) => r.batchId === ws.batch!.id);
+        return updateWorkspace(s, ws.id, { pending: null, status: ws.batch && !anchorStale && !batchRejected ? 'choosing' : 'stale' });
       }
       if (!result.ok) {
         s = updateWorkspace(s, ws.id, { pending: null, status: 'error', error: result.error });

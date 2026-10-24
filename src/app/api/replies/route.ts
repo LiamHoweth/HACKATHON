@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const access = checkAccess(request, cfg);
   if (access !== 'ok') {
     logRequest('replies', requestId, 'UNAUTHORIZED', startedAt);
-    return failure(requestId, 'UNAUTHORIZED', access === 'denied' ? 'Access code required for live AI.' : 'Live AI on a deployed server requires APP_ACCESS_TOKEN to be configured.', 401, false);
+    return failure(requestId, 'UNAUTHORIZED', access === 'throttled' ? 'Too many incorrect access codes. Wait and try again.' : access === 'denied' ? 'Access code required for live AI.' : 'Live AI on a deployed server requires APP_ACCESS_TOKEN to be configured.', 401, false);
   }
   if (!rateLimit(`replies:${clientKey(request)}`, 30, 60_000)) return failure(requestId, 'RATE_LIMITED', 'Too many requests. Wait a moment.', 429);
 

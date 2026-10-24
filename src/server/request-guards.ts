@@ -31,15 +31,33 @@ export function accessCodeMatches(request: Request, cfg: ServerConfig): boolean 
 
 // Paid endpoints require the access code when APP_ACCESS_TOKEN is set. Without one, they
 // work only from a local development server.
-export function checkAccess(request: Request, cfg: ServerConfig): 'ok' | 'denied' | 'unprotected-remote' {
-  if (cfg.accessToken) return accessCodeMatches(request, cfg) ? 'ok' : 'denied';
+export function checkAccess(request: Request, cfg: ServerConfig): 'ok' | 'denied' | 'throttled' | 'unprotected-remote' {
+  if (cfg.accessToken) return verifyAccessCode(request, cfg);
   return isLocalDevHost(request) ? 'ok' : 'unprotected-remote';
+}
+
+// Failed access-code attempts are rate limited per client before comparing, so the code
+// cannot be brute-forced through /api/status or the paid routes.
+const failedAttempts = new Map<string, { count: number; resetAt: number }>();
+export function verifyAccessCode(request: Request, cfg: ServerConfig): 'ok' | 'denied' | 'throttled' {
+  const key = clientKey(request);
+  const now = Date.now();
+  const f = failedAttempts.get(key);
+  if (f && f.resetAt > now && f.count >= 10) return 'throttled';
+  if (accessCodeMatches(request, cfg)) return 'ok';
+  if (failedAttempts.size > 5000) failedAttempts.clear();
+  if (!f || f.resetAt <= now) failedAttempts.set(key, { count: 1, resetAt: now + 10 * 60_000 });
+  else f.count += 1;
+  return 'denied';
 }
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 export function rateLimit(key: string, limit: number, windowMs: number): boolean {
   const now = Date.now();
-  if (buckets.size > 5000) for (const [k, v] of buckets) if (v.resetAt <= now) buckets.delete(k);
+  if (buckets.size > 5000) {
+    for (const [k, v] of buckets) if (v.resetAt <= now) buckets.delete(k);
+    if (buckets.size > 5000) buckets.clear(); // hard cap: never scan an unbounded map per request
+  }
   const b = buckets.get(key);
   if (!b || b.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + windowMs });
