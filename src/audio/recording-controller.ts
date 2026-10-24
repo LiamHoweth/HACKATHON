@@ -41,6 +41,33 @@ function extFor(mime: string): string {
   return 'webm';
 }
 
+// The voice player sets navigator.audioSession.type = 'playback' (so speech plays with the silent
+// switch on). WebKit refuses microphone capture in a playback session, so switch to
+// 'play-and-record' only while recording and put the previous type back afterwards.
+type AudioSessionNav = Navigator & { audioSession?: { type: string } };
+
+function enterRecordSession(): string | null {
+  const session = typeof navigator !== 'undefined' ? (navigator as AudioSessionNav).audioSession : undefined;
+  if (!session) return null;
+  const previous = session.type;
+  try {
+    session.type = 'play-and-record';
+  } catch {
+    return null;
+  }
+  return previous;
+}
+
+function restoreAudioSession(previous: string | null) {
+  const session = typeof navigator !== 'undefined' ? (navigator as AudioSessionNav).audioSession : undefined;
+  if (!session || previous === null) return;
+  try {
+    session.type = previous;
+  } catch {
+    /* ignore */
+  }
+}
+
 export type Capture = { captureId: Id; blob: Blob; filename: string; mimeType: string };
 export type StartResult = { ok: true; captureId: Id } | { ok: false; cancelled: boolean; message: string };
 export type FinishResult = { ok: true; capture: Capture } | { ok: false; message: string };
@@ -54,6 +81,8 @@ type Session = {
   mimeType: string;
   ext: string;
   autoStop: ReturnType<typeof setTimeout> | null;
+  /** The audio session type to restore when this capture ends (null: nothing was changed). */
+  previousAudioSession: string | null;
 };
 
 export class RecordingController {
@@ -76,6 +105,7 @@ export class RecordingController {
     const session: Session = {
       token, captureId: this.newId(), stream: null, recorder: null, chunks: [],
       mimeType: format?.mimeType ?? '', ext: format?.ext ?? 'webm', autoStop: null,
+      previousAudioSession: enterRecordSession(),
     };
     this.session = session;
     this.status = 'requesting';
@@ -178,5 +208,6 @@ export class RecordingController {
       t.stop();
     });
     s.chunks = [];
+    restoreAudioSession(s.previousAudioSession);
   }
 }
