@@ -1,0 +1,71 @@
+name: StillHere
+options:
+  bundleIdPrefix: com.liamhoweth
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  StillHere:
+    type: application
+    platform: iOS
+    sources:
+      - path: StillHere
+    info:
+      path: StillHere/Info.plist
+      properties:
+        CFBundleDisplayName: Still Here
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSMicrophoneUsageDescription: "Still Here records your conversation partner only when they tap Talk. The recording is sent to the transcription service configured on your Still Here server, and the text is shown for review before it is used."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        STILL_HERE_API_BASE: $(STILL_HERE_API_BASE)
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liamhoweth.stillhere
+        PRODUCT_NAME: StillHere
+        TARGETED_DEVICE_FAMILY: "1,2"
+        STILL_HERE_API_BASE: "https:/$()/api-production-18038.up.railway.app"
+        ENABLE_PREVIEWS: YES
+  StillHereTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: StillHereTests
+    dependencies:
+      - target: StillHere
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.liamhoweth.stillhere.tests
+schemes:
+  StillHere:
+    build:
+      targets:
+        StillHere: all
+        StillHereTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - StillHereTests
