@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (!cfg.transcriptionConfigured) return failure('unknown', 'NOT_CONFIGURED', 'Transcription is not configured. Type instead.', 503, false);
   const access = checkAccess(request, cfg);
   if (access !== 'ok') return failure('unknown', 'UNAUTHORIZED', 'Access code required for transcription.', 401, false);
-  if (!rateLimit(`transcribe:${clientKey(request)}`, 12, 60_000)) return failure('unknown', 'RATE_LIMITED', 'Too many recordings. Wait a moment.', 429);
+  if (!rateLimit(`transcribe:${clientKey(request)}`, 20, 60_000)) return failure('unknown', 'RATE_LIMITED', 'Too many recordings. Wait a moment.', 429);
 
   let form: FormData;
   try { form = await request.formData(); } catch { return failure('unknown', 'INVALID_INPUT', 'Could not read the recording.', 400, false); }

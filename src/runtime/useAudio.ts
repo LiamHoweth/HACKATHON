@@ -15,6 +15,8 @@ import type { Id, VoiceOption } from '@/core/types';
 import { ACCESS_HEADER, type AudioRuntime, type ServerStatus } from './contract';
 import { getSharedElevenPlayer, MESSAGES, type ElevenSnapshot, type PreviewOutcome } from '@/audio/eleven-player';
 import { observeElevenPlayer } from '@/metrics/gesture-metrics';
+import { getSharedSpeechCache, type PrefetchItem } from '@/audio/speech-prefetch';
+import { activeWorkspace } from '@/core/targets';
 
 export type { PreviewOutcome };
 /**
@@ -47,6 +49,22 @@ export function voicesFetchAllowed(status: ServerStatus | null): boolean {
   return status.accessCodeValid === true || status.accessRequired === false;
 }
 
+/**
+ * What to prefetch for the batch now on screen, or null for nothing. Only in fast mode with the
+ * natural voice configured and selected, after setup, while the active workspace shows a batch.
+ * Candidates come back in on-screen order (top first), with the same voice the reducer will use.
+ */
+export function speechPrefetchPlan(s: State, speechConfigured: boolean): { batchId: Id; items: PrefetchItem[] } | null {
+  if (!speechConfigured || s.phase !== 'active') return null;
+  if (!s.settings.speakOnSelect || s.settings.speechProvider !== 'elevenlabs') return null;
+  const ws = activeWorkspace(s);
+  if (!ws || ws.closed || ws.status !== 'choosing' || !ws.batch) return null;
+  return {
+    batchId: ws.batch.id,
+    items: ws.batch.candidates.map((c) => ({ text: c.text, voiceChoiceId: s.settings.voiceChoiceId })),
+  };
+}
+
 const IDLE: ElevenSnapshot = { state: 'idle', message: null, unlocked: false, lastConfirmToPlayMs: null };
 const subscribe = (fn: () => void) => getSharedElevenPlayer()?.subscribe(fn) ?? (() => {});
 const getSnapshot = () => getSharedElevenPlayer()?.getSnapshot() ?? IDLE;
@@ -74,6 +92,27 @@ export function useAudio(deps: UseAudioDeps): AudioRuntime {
     getStateRef.current = deps.getState;
     configuredRef.current = configured;
     accessRef.current = accessCode;
+  });
+
+  // Fast mode: prefetch the MP3 for each suggestion as soon as a batch is shown, so choosing one
+  // plays from memory. Runs after every render but only acts when the batch (or voice/code) changes.
+  const lastPrefetchKey = useRef<string | null>(null);
+  useEffect(() => {
+    const cache = getSharedSpeechCache();
+    if (!cache) return;
+    const s = getStateRef.current();
+    const plan = speechPrefetchPlan(s, configuredRef.current);
+    if (!plan) {
+      if (lastPrefetchKey.current !== null) {
+        lastPrefetchKey.current = null;
+        cache.cancelPending(); // batch replaced/closed or fast mode off: nothing queued should run
+      }
+      return;
+    }
+    const key = `${plan.batchId}|${s.settings.voiceChoiceId ?? ''}|${accessRef.current}`;
+    if (key === lastPrefetchKey.current) return;
+    lastPrefetchKey.current = key;
+    cache.prefetch(plan.items, accessRef.current);
   });
 
   // Approved voices: fetched once per validated (status, access code); never per keystroke and

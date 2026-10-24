@@ -104,9 +104,10 @@ function openaiCall(cfg: ServerConfig): ModelCall {
           instructions: REPLY_SYSTEM_PROMPT,
           input: content,
           store: false,
-          max_output_tokens: 4000,
+          max_output_tokens: cfg.replyMaxOutputTokens,
           text: { format: { type: 'json_schema', name: 'aac_candidates', schema: modelOutputJsonSchema, strict: true } },
           ...(cfg.replyReasoningEffort ? { reasoning: { effort: cfg.replyReasoningEffort } } : {}),
+          ...(cfg.replyServiceTier ? { service_tier: cfg.replyServiceTier } : {}),
         }),
         signal: AbortSignal.any([signal, timeout]),
       });

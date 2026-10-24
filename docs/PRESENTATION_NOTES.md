@@ -71,3 +71,18 @@ AI offers possible words; the person decides what to say. On an iPad: raise your
 - [NOT YET] After-screenshots of the new UI (skipped by choice).
 
 Current test count: see TEST_RESULTS.md / latest commit (487+ passing at 2:30 PM).
+
+## 2:00–2:30 PM — Speed, interruption handling, redesign (not yet deployed)
+- [VERIFIED, Mac] Latency baseline measured (docs/evidence/E2E_LATENCY.md): partner stops → suggestions median 5.1 s / p90 7.8 s, from a Mac against the deployed server. Replies are the bottleneck (median 3.9 s, bimodal). After-numbers are [NOT YET]: pending a re-run after deploy.
+- [unit tests; NOT YET live] Instant voice: audio for all 3 suggestions is prefetched, so a blink plays it from memory (~0.7 s saved). Trade-off: unchosen suggestions are also sent to ElevenLabs; the server daily budget was raised to 60,000 chars.
+- [unit tests + Mac transcription ~0.5 s] Faster listening: end-of-speech 0.9 → 0.65 s, smaller uploads, English hint.
+- [unit tests; NOT YET live] Follow-ups merge (Option B): partner speech within 20 s of an unanswered question is merged into it and the suggestions refresh, so the person never loses the question.
+- [unit tests] Filler filter: "uh huh", "mm-hmm" and "got it" alone are ignored; short answers like "yeah" and "sure" still count.
+- [unit tests] Safety fixes from code review: partner speech can't knock the app out of Pause; the voice player can't deafen the mic; lines heard during speech are answered after Stop too.
+- [headless render at 1366x1024; NOT YET on iPad] One coherent design system: slim header, chat-style conversation panel, larger action tiles, gesture legend chips, launch-card setup. Accessibility fixes: fewer live announcements, corrected heading order.
+- [IN PROGRESS] Replies restyled to sound like a casual college student, plus speed tuning.
+- [config set; applies on next deploy] Voice switched to "Will" (young, male, conversational ElevenLabs voice); Jessica and Chris remain available.
+- [VERIFIED] New tooling: scripts/smoke-deployed.mjs (6/6 PASS pre-deploy) and scripts/e2e-latency.mjs.
+- [VERIFIED] Native app pre-built and signed (profile valid to Oct 2027).
+- Talking point: "From question to spoken reply in about N seconds — [FILL after re-run]"
+- Talking point: "The person never loses their place: follow-ups join the question."

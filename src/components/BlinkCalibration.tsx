@@ -438,7 +438,7 @@ function browWarnings(p: BrowCalibration | null, required: boolean): string[] {
     out.push('Resting and raised eyebrows are close together. Small movements might count as Next — consider redoing with clearer raises.');
   }
   if (p.releaseThreshold <= p.neutral) {
-    out.push('The relax level is at or below the measured rest level, so re-arming after a raise may be slow.');
+    out.push('The relax level is at or below the measured rest level, so getting ready for the next raise may be slow.');
   }
   return out;
 }

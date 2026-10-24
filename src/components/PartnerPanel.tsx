@@ -39,12 +39,12 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
     setFullWarning(false);
   };
 
-  const recent = state.conversation.slice(-4);
+  const recent = state.conversation.slice(-6);
 
   return (
     <aside className={`partner${collapsed ? ' is-collapsed' : ''}`} aria-labelledby={`${uid}-title`}>
       <div className="partner-head">
-        <h2 id={`${uid}-title`} className="partner-title">Conversation partner</h2>
+        <h2 id={`${uid}-title`} className="partner-title">Conversation</h2>
         <button
           type="button"
           className="btn btn-small btn-quiet partner-toggle"
@@ -57,20 +57,33 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
         </button>
       </div>
       <div id={`${uid}-body`} className="partner-body" hidden={collapsed}>
-        <p className="hint">For the person talking with the user: just talk. Typing always works.</p>
 
         {listening?.available && (
-          <section className={`listen listen-${listening.enabled ? listening.status : 'off'}`} aria-label="Hands-free listening">
-            <p className="listen-status" role="status">
+          <section className={`listen listen-${listening.enabled ? listening.status : 'off'}`}>
+            <p className="listen-status" aria-live="off">
               <span className="listen-dot" aria-hidden="true" />
               {listening.enabled ? LISTEN_LABELS[listening.status] : 'Hands-free listening is off'}
               {listening.transcribing > 0 && <span className="listen-sub"> · Transcribing…</span>}
             </p>
-            {listening.message && <p className="warning">{listening.message}</p>}
+            {listening.message && <p className="warning" role="alert">{listening.message}</p>}
             {listening.lastHeard && <p className="listen-heard">Heard: “{listening.lastHeard}”</p>}
             <button type="button" className="btn btn-small btn-quiet" onClick={() => listening.setEnabled(!listening.enabled)}>
               {listening.enabled ? 'Stop listening' : 'Listen hands-free'}
             </button>
+          </section>
+        )}
+
+        {recent.length > 0 && (
+          <section className="chat" tabIndex={0} aria-label="Recent conversation">
+            <ol role="list">
+              {recent.map((e) => (
+                <li key={e.value.id} className={`bubble ${e.role === 'partner' ? 'bubble-partner' : 'bubble-user'}`}>
+                  <span className="sr-only">{e.role === 'partner' ? 'Partner: ' : 'User: '}</span>
+                  <span className="bubble-text">{e.value.text}</span>
+                  {e.role === 'user' && <span className="bubble-meta">{DELIVERY_LABELS[e.value.delivery]}</span>}
+                </li>
+              ))}
+            </ol>
           </section>
         )}
 
@@ -98,7 +111,7 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
               )}
             </form>
 
-            <section className="partner-mic" aria-label="Record speech">
+            <section className="partner-mic">
               {recording && (
                 <p className="recording-indicator" role="status">
                   <span className="rec-dot" aria-hidden="true" /> RECORDING — microphone is on
@@ -159,20 +172,6 @@ export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime
           </div>
         </details>
 
-        {recent.length > 0 && (
-          <section className="partner-recent" aria-label="Recent conversation">
-            <h3>Recent</h3>
-            <ol>
-              {recent.map((e) => (
-                <li key={e.value.id} className={e.role === 'partner' ? 'turn-partner' : 'turn-user'}>
-                  <span className="turn-who">{e.role === 'partner' ? 'Partner' : 'User'}</span>
-                  <span className="turn-text">{e.value.text}</span>
-                  {e.role === 'user' && <span className="item-meta">{DELIVERY_LABELS[e.value.delivery]}</span>}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </div>
     </aside>
   );

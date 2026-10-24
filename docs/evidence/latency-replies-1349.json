@@ -1,0 +1,6673 @@
+{
+ "ranAt": "2026-10-24T13:49:06.580826-05:00",
+ "method": "generateLive() called directly from the dev Mac via scripts/latency-replies.mjs, sequential requests (except C-* runs), not through the HTTP route; 14 synthetic scenarios from scripts/live-scenarios-data.mjs",
+ "note": "Slow mode in every run = reasoning tokens (1 upstream call per request, zero repairs). Quality/style observations are the agent's own reading, not human-reviewed.",
+ "runs": {
+  "baseline": {
+   "summary": {
+    "n": 14,
+    "valid": 14,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 3414.0,
+    "p90_ms": 6334,
+    "max_ms": 8454,
+    "rows_with_reasoning_tokens": 6,
+    "median_ms_with_reasoning": 5336.0,
+    "median_ms_without_reasoning": 2877.5,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "(unset)",
+     "maxOutputTokens": 4000,
+     "timeoutMs": 15000
+    },
+    "description": "original code: original prompt, no reasoning param (model default), max_output_tokens 4000, 1 rep"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 2829,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2824,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 101,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, let's watch a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept the invitation to watch a movie tonight."
+       }
+      },
+      {
+       "text": "No movie for me tonight, thanks.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline watching a movie tonight."
+       }
+      },
+      {
+       "text": "What movie did you have in mind?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie the partner is considering before deciding."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 2310,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2309,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, I'll come to dinner tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept the dinner invitation."
+       }
+      },
+      {
+       "text": "No, I won't be coming to dinner tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline the dinner invitation."
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the dinner time before deciding."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 5134,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5133,
+       "status": 200,
+       "usage": {
+        "in": 762,
+        "out": 218,
+        "reasoning": 100
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't want my bed moved downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Rejects the proposed move downstairs."
+       }
+      },
+      {
+       "text": "Let's look at other options instead of moving my bed downstairs.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Proposes exploring alternatives rather than moving the bed downstairs."
+       }
+      },
+      {
+       "text": "I disagree, and I don't want the bed moved without my agreement.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Disagrees and sets a boundary against moving the bed without agreement."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 4337,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4336,
+       "status": 200,
+       "usage": {
+        "in": 761,
+        "out": 106,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we have dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest having dinner on a different night."
+       }
+      },
+      {
+       "text": "Would you like to meet for coffee instead of dinner?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting for coffee rather than dinner."
+       }
+      },
+      {
+       "text": "Could we get takeout together tonight instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest getting takeout together tonight as an alternative."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 6334,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 6331,
+       "status": 200,
+       "usage": {
+        "in": 776,
+        "out": 260,
+        "reasoning": 156
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Today's weather gets a thumbs-up from me.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express a positive opinion of today's weather."
+       }
+      },
+      {
+       "text": "I'd like a word with the weather's manager.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express dissatisfaction with today's weather using light humor."
+       }
+      },
+      {
+       "text": "I don't have strong feelings about it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express a neutral attitude toward today's weather."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 3338,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3337,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 103,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How about going out for lunch this weekend?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest going out for lunch."
+       }
+      },
+      {
+       "text": "I'd like to stay in and watch a movie.",
+       "meaning": {
+        "act": "other",
+        "summary": "Propose staying in to watch a movie."
+       }
+      },
+      {
+       "text": "What did you have in mind?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for the partner's ideas before proposing a plan."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 4241,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4233,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 234,
+        "reasoning": 121
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first childhood vacation or my first vacation as an adult?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which stage of life the question refers to."
+       }
+      },
+      {
+       "text": "I'd rather not talk about my first vacation.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline to discuss the first vacation."
+       }
+      },
+      {
+       "text": "Could we talk about places we'd like to visit instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest discussing possible future destinations instead."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 5538,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5536,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 231,
+        "reasoning": 137
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I need some water, please.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water."
+       }
+      },
+      {
+       "text": "I need a quiet break.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for a break somewhere quiet."
+       }
+      },
+      {
+       "text": "I need more time to explain what I need.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for more time to communicate a need."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 2520,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2518,
+       "status": 200,
+       "usage": {
+        "in": 741,
+        "out": 102,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How has your day been so far?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the other person's day."
+       }
+      },
+      {
+       "text": "What do you like to do in your free time?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about hobbies and interests."
+       }
+      },
+      {
+       "text": "Have you watched or read anything interesting lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Invite conversation about something they watched or read."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 2223,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2221,
+       "status": 200,
+       "usage": {
+        "in": 765,
+        "out": 98,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, let's go to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Propose going to the store together later."
+       }
+      },
+      {
+       "text": "Let's skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Suggest not going to the store today."
+       }
+      },
+      {
+       "text": "What time were you thinking of going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the timing before deciding."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 3490,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3488,
+       "status": 200,
+       "usage": {
+        "in": 777,
+        "out": 110,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What decisions are you asking me to agree to?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which specific decisions the partner means."
+       }
+      },
+      {
+       "text": "Please ask me about each decision separately.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request a separate opportunity to respond to each decision."
+       }
+      },
+      {
+       "text": "I won't give blanket agreement for you to decide everything for me.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline blanket agreement to the partner making all decisions."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 2926,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2925,
+       "status": 200,
+       "usage": {
+        "in": 775,
+        "out": 115,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Why is the doctor suggesting a medication change?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for the reason behind the proposed medication change."
+       }
+      },
+      {
+       "text": "What are the benefits and risks of changing my medication?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about potential benefits and risks before deciding."
+       }
+      },
+      {
+       "text": "Please don't change my medication until I've discussed it with the doctor.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Request no medication change before a direct discussion with the doctor."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 3335,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3333,
+       "status": 200,
+       "usage": {
+        "in": 825,
+        "out": 147,
+        "reasoning": 55
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when dinner is before answering."
+       }
+      },
+      {
+       "text": "Who else is coming?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who will be attending."
+       }
+      },
+      {
+       "text": "Can I let you know later today?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to postpone answering the invitation."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 8454,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 8452,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 375,
+        "reasoning": 246
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could you ask me something more specific about my day, like what I did?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for a more specific question about the day."
+       }
+      },
+      {
+       "text": "I'd rather not talk about my day right now, but how was yours?",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline to discuss the day and invite the partner to share."
+       }
+      },
+      {
+       "text": "I'd like a little time to think about my day before I answer.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to consider an answer."
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "eff-low": {
+   "summary": {
+    "n": 14,
+    "valid": 14,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 3139.5,
+    "p90_ms": 4844,
+    "max_ms": 6993,
+    "rows_with_reasoning_tokens": 2,
+    "median_ms_with_reasoning": 5918.5,
+    "median_ms_without_reasoning": 3032.5,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 4000,
+     "timeoutMs": 15000
+    },
+    "description": "original prompt + reasoning.effort=low, 1 rep"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 3054,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3039,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 98,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, let's watch a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept the invitation to watch a movie tonight."
+       }
+      },
+      {
+       "text": "No, I'd rather not watch a movie tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline the movie invitation."
+       }
+      },
+      {
+       "text": "What movie did you have in mind?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie before deciding."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 2784,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2783,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, I'll come to dinner tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept the dinner invitation."
+       }
+      },
+      {
+       "text": "No, I won't be coming to dinner tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline the dinner invitation."
+       }
+      },
+      {
+       "text": "What time is dinner tonight?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what time dinner is before answering."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 3225,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3223,
+       "status": 200,
+       "usage": {
+        "in": 762,
+        "out": 127,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I want my bed to stay where it is.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Disagrees with moving the bed and proposes keeping its current location."
+       }
+      },
+      {
+       "text": "I disagree with moving my bed downstairs. Let's consider other options.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Rejects the proposed move and invites discussion of alternatives."
+       }
+      },
+      {
+       "text": "I don't agree. Please don't move my bed without my permission.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Disagrees and sets a boundary against moving the bed without permission."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 3009,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3007,
+       "status": 200,
+       "usage": {
+        "in": 761,
+        "out": 105,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we have dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest having dinner on a different night."
+       }
+      },
+      {
+       "text": "Would you like to meet for lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow instead of dinner tonight."
+       }
+      },
+      {
+       "text": "Could we meet for coffee instead of dinner tonight?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting for coffee rather than dinner tonight."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 3229,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3227,
+       "status": 200,
+       "usage": {
+        "in": 776,
+        "out": 111,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm giving today's weather a thumbs-up.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express a positive view of today's weather with light humor."
+       }
+      },
+      {
+       "text": "I'd like to speak to the weather's manager.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express dissatisfaction with today's weather through light humor."
+       }
+      },
+      {
+       "text": "I don't have a strong opinion. How about you?",
+       "meaning": {
+        "act": "question",
+        "summary": "Offer a neutral response and ask for the partner's view."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 2896,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2893,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 103,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like to go out for a meal this weekend.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest going out for a meal."
+       }
+      },
+      {
+       "text": "How about a quiet weekend at home?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Propose spending a quiet weekend at home."
+       }
+      },
+      {
+       "text": "What options did you have in mind?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for ideas before choosing a weekend activity."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 3011,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3010,
+       "status": 200,
+       "usage": {
+        "in": 763,
+        "out": 114,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first childhood vacation or my first vacation as an adult?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which stage of life the question refers to."
+       }
+      },
+      {
+       "text": "I'd rather not discuss my first vacation.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline to share that personal history."
+       }
+      },
+      {
+       "text": "Could we talk about places we'd like to visit instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest discussing possible future destinations instead of past vacations."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 4844,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4843,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 151,
+        "reasoning": 55
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could you get me some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water."
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for some quiet time."
+       }
+      },
+      {
+       "text": "Could you help me with something?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help, leaving the specific task to explain next."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 3796,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3794,
+       "status": 200,
+       "usage": {
+        "in": 741,
+        "out": 121,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What's been on your mind lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Invite the other person to choose something they have been thinking about."
+       }
+      },
+      {
+       "text": "Have you watched or read anything interesting recently?",
+       "meaning": {
+        "act": "question",
+        "summary": "Start a conversation about something the other person has watched or read."
+       }
+      },
+      {
+       "text": "If you could visit any place, where would you go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask a hypothetical question about a place the other person would like to visit."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 2777,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2776,
+       "status": 200,
+       "usage": {
+        "in": 765,
+        "out": 103,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yes, let's go to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Suggest going to the store together later."
+       }
+      },
+      {
+       "text": "I'd rather not go to the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Express a preference not to go to the store today."
+       }
+      },
+      {
+       "text": "What time were you thinking of going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the timing before deciding."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 2859,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2836,
+       "status": 200,
+       "usage": {
+        "in": 777,
+        "out": 101,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Assert control over personal decisions."
+       }
+      },
+      {
+       "text": "What specific decision are you asking me about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which decision needs consideration."
+       }
+      },
+      {
+       "text": "Please give me time to consider each choice separately.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request time to consider individual choices rather than agree to everything."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 3537,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3535,
+       "status": 200,
+       "usage": {
+        "in": 775,
+        "out": 123,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would change, and what are the benefits and risks?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for details about the proposed medication change and its benefits and risks."
+       }
+      },
+      {
+       "text": "Can I discuss this directly with the doctor before deciding?",
+       "meaning": {
+        "act": "request",
+        "summary": "Request a direct conversation with the doctor before making a decision."
+       }
+      },
+      {
+       "text": "Please give me more time before asking for my decision.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Ask for more time without accepting or declining the medication change."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 4403,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4402,
+       "status": 200,
+       "usage": {
+        "in": 825,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner tonight?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when dinner will be."
+       }
+      },
+      {
+       "text": "Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to delay answering the invitation."
+       }
+      },
+      {
+       "text": "Who else is coming to dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who else will attend before answering."
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 6993,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 6991,
+       "status": 200,
+       "usage": {
+        "in": 759,
+        "out": 245,
+        "reasoning": 100
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Would you like the short version, or do you have time for a longer conversation about my day?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask how much detail the partner would like."
+       }
+      },
+      {
+       "text": "I'd rather not talk about my day right now, but I'd be open to talking about something else.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline to discuss the day while leaving room for another topic."
+       }
+      },
+      {
+       "text": "Could you ask me about one part of my day at a time, instead of the whole day?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for a more specific question about the day."
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "C-luna": {
+   "summary": {
+    "n": 14,
+    "valid": 14,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 2083.0,
+    "p90_ms": 3175,
+    "max_ms": 3609,
+    "rows_with_reasoning_tokens": 9,
+    "median_ms_with_reasoning": 2485,
+    "median_ms_without_reasoning": 1682,
+    "settings": {
+     "model": "gpt-6-luna",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "interim style prompt, gpt-6-luna, low, 1 rep (not adopted)"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 1991,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1985,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 117,
+        "reasoning": 24
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I\u2019m down. What movie?",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accepts and asks what movie"
+       }
+      },
+      {
+       "text": "Not tonight, but thanks for asking.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Declines tonight"
+       }
+      },
+      {
+       "text": "Maybe\u2014what time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about the time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 2751,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2746,
+       "status": 200,
+       "usage": {
+        "in": 889,
+        "out": 188,
+        "reasoning": 103
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I\u2019m planning to come.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Plans to come"
+       }
+      },
+      {
+       "text": "I can\u2019t make it tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Declines dinner"
+       }
+      },
+      {
+       "text": "What time are you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about dinner time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 1682,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1679,
+       "status": 200,
+       "usage": {
+        "in": 902,
+        "out": 95,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't think moving it downstairs is a good idea.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Disagrees with moving the bed"
+       }
+      },
+      {
+       "text": "I'd rather keep my bed upstairs.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Prefers bed to stay upstairs"
+       }
+      },
+      {
+       "text": "Can we talk about other options instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Requests discussion of other options"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 2842,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2840,
+       "status": 200,
+       "usage": {
+        "in": 901,
+        "out": 200,
+        "reasoning": 115
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "Could we grab lunch instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch instead"
+       }
+      },
+      {
+       "text": "Could we get together another time?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting another time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 2202,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2201,
+       "status": 200,
+       "usage": {
+        "in": 915,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Pretty good\u2014this weather\u2019s doing its thing.",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive reaction to weather"
+       }
+      },
+      {
+       "text": "Honestly, I\u2019m still deciding if I like it.",
+       "meaning": {
+        "act": "social",
+        "summary": "Unsure about the weather"
+       }
+      },
+      {
+       "text": "The weather\u2019s really keeping us guessing today.",
+       "meaning": {
+        "act": "social",
+        "summary": "Lightly joke about unpredictable weather"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 2013,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2011,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 139,
+        "reasoning": 52
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Maybe just relax and take it easy.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest a relaxing weekend"
+       }
+      },
+      {
+       "text": "I\u2019d be up for getting out somewhere.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest going out"
+       }
+      },
+      {
+       "text": "What were you thinking of doing?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their plans"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 3175,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3171,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 245,
+        "reasoning": 158
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I\u2019m not sure what my first vacation was.",
+       "meaning": {
+        "act": "other",
+        "summary": "Expresses uncertainty"
+       }
+      },
+      {
+       "text": "What counts as a vacation?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarifies what counts"
+       }
+      },
+      {
+       "text": "I\u2019d rather not get into that.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Declines to share"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 1621,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1619,
+       "status": 200,
+       "usage": {
+        "in": 899,
+        "out": 83,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I could use some help, please.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "Could you give me a minute?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for a moment"
+       }
+      },
+      {
+       "text": "I need a little more information.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for more information"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 2153,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2152,
+       "status": 200,
+       "usage": {
+        "in": 858,
+        "out": 146,
+        "reasoning": 54
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What have you been into lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about recent interests"
+       }
+      },
+      {
+       "text": "Got anything fun coming up?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about upcoming plans"
+       }
+      },
+      {
+       "text": "What\u2019s a show you\u2019ve been watching?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about a show"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 1628,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1626,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 85,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I\u2019m going to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Going to the store later"
+       }
+      },
+      {
+       "text": "What time are you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the time"
+       }
+      },
+      {
+       "text": "I\u2019m not sure yet.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "Unsure about going"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 2485,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2484,
+       "status": 200,
+       "usage": {
+        "in": 907,
+        "out": 184,
+        "reasoning": 92
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What are you asking me to decide?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what decision is involved"
+       }
+      },
+      {
+       "text": "I need to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "State personal decision-making boundary"
+       }
+      },
+      {
+       "text": "I can't agree without knowing what it is.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "Withhold agreement pending details"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 1868,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1866,
+       "status": 200,
+       "usage": {
+        "in": 905,
+        "out": 144,
+        "reasoning": 48
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Can you explain what would change and why?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the proposed change"
+       }
+      },
+      {
+       "text": "I\u2019d like to talk with the doctor first.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Speak with doctor before deciding"
+       }
+      },
+      {
+       "text": "Can I have some time to think about it?",
+       "meaning": {
+        "act": "request",
+        "summary": "Request time before deciding"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 1746,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1745,
+       "status": 200,
+       "usage": {
+        "in": 966,
+        "out": 95,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I\u2019m not sure yet\u2014what time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks dinner time while undecided"
+       }
+      },
+      {
+       "text": "Maybe; I\u2019ll let you know later.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "May attend, will confirm later"
+       }
+      },
+      {
+       "text": "Who else is going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks who else is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 3609,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3608,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 271,
+        "reasoning": 162
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "It was pretty good, thanks for asking. How was yours?",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive answer and asks back"
+       }
+      },
+      {
+       "text": "A bit of a mixed day. How about yours?",
+       "meaning": {
+        "act": "social",
+        "summary": "Mixed answer and asks back"
+       }
+      },
+      {
+       "text": "I\u2019m not sure how to sum it up yet. What about you?",
+       "meaning": {
+        "act": "question",
+        "summary": "Defers summary and asks back"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "C-5.4mini": {
+   "summary": {
+    "n": 14,
+    "valid": 14,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 930.0,
+    "p90_ms": 1108,
+    "max_ms": 1362,
+    "rows_with_reasoning_tokens": 12,
+    "median_ms_with_reasoning": 961.0,
+    "median_ms_without_reasoning": 718.5,
+    "settings": {
+     "model": "gpt-5.4-mini",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "interim style prompt, gpt-5.4-mini, low, 1 rep (fast, REJECTED on quality: fabricated consent/personal fact, ignored intent)"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 1038,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1030,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 108,
+        "reasoning": 25
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agrees to watch a movie"
+       }
+      },
+      {
+       "text": "Not tonight, sorry.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Declines for tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 685,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 682,
+       "status": 200,
+       "usage": {
+        "in": 889,
+        "out": 75,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I\u2019m coming.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Confirm attendance"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for dinner time"
+       }
+      },
+      {
+       "text": "Probably not tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 867,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 866,
+       "status": 200,
+       "usage": {
+        "in": 902,
+        "out": 108,
+        "reasoning": 15
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I'd rather keep it upstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Refuse moving the bed"
+       }
+      },
+      {
+       "text": "I don't want to move it downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Say no to moving it"
+       }
+      },
+      {
+       "text": "Can we leave my bed where it is?",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Prefer keeping bed there"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 938,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 936,
+       "status": 200,
+       "usage": {
+        "in": 901,
+        "out": 133,
+        "reasoning": 51
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Not tonight, but maybe another day.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest another night"
+       }
+      },
+      {
+       "text": "I can't make dinner tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Can't attend dinner"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 825,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 823,
+       "status": 200,
+       "usage": {
+        "in": 915,
+        "out": 111,
+        "reasoning": 25
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Honestly, it's pretty nice out.",
+       "meaning": {
+        "act": "question",
+        "summary": "Positive about the weather"
+       }
+      },
+      {
+       "text": "It's kinda gloomy, but okay.",
+       "meaning": {
+        "act": "question",
+        "summary": "Mixed weather opinion"
+       }
+      },
+      {
+       "text": "Depends, is it warming up later?",
+       "meaning": {
+        "act": "question",
+        "summary": "Asks about weather change"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 752,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 750,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 83,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Probably just relax at home.",
+       "meaning": {
+        "act": "request",
+        "summary": "Relax at home"
+       }
+      },
+      {
+       "text": "I'm down to hang out if you're free.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Open to hanging out"
+       }
+      },
+      {
+       "text": "What were you thinking of doing?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for their idea"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 1053,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1050,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 160,
+        "reasoning": 77
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't really remember.",
+       "meaning": {
+        "act": "question",
+        "summary": "Don't remember first vacation"
+       }
+      },
+      {
+       "text": "I haven't taken one yet.",
+       "meaning": {
+        "act": "decline",
+        "summary": "No first vacation yet"
+       }
+      },
+      {
+       "text": "What do you mean by first vacation?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for clarification"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 918,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 915,
+       "status": 200,
+       "usage": {
+        "in": 899,
+        "out": 103,
+        "reasoning": 19
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, could you get me some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "Can you help me for a minute?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I'm okay, thanks.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Need nothing"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 852,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 851,
+       "status": 200,
+       "usage": {
+        "in": 858,
+        "out": 107,
+        "reasoning": 17
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What have you been up to lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what they've been doing"
+       }
+      },
+      {
+       "text": "How's your day going so far?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their day"
+       }
+      },
+      {
+       "text": "Got any plans for tonight?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about tonight's plans"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 1362,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1361,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 211,
+        "reasoning": 129
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I think so.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agree to go later"
+       }
+      },
+      {
+       "text": "I don't think so.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Say no to going"
+       }
+      },
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for the time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 922,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 921,
+       "status": 200,
+       "usage": {
+        "in": 907,
+        "out": 125,
+        "reasoning": 38
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I don't agree to that.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Refuse the request"
+       }
+      },
+      {
+       "text": "What do you want me to decide about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for clarification"
+       }
+      },
+      {
+       "text": "I'd rather make my own choices.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Set personal boundary"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 984,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 983,
+       "status": 200,
+       "usage": {
+        "in": 905,
+        "out": 113,
+        "reasoning": 21
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, that\u2019s okay with me.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agree to the medication change"
+       }
+      },
+      {
+       "text": "I\u2019d rather not change it right now.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline the medication change"
+       }
+      },
+      {
+       "text": "What would the new medication change do?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the change"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 1108,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1106,
+       "status": 200,
+       "usage": {
+        "in": 966,
+        "out": 126,
+        "reasoning": 43
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Maybe, what time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for dinner time"
+       }
+      },
+      {
+       "text": "I\u2019m not sure yet.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "Unsure about attending"
+       }
+      },
+      {
+       "text": "Probably not, sorry.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Likely not coming"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 1086,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1081,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 142,
+        "reasoning": 46
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Pretty good, honestly. I got a few things done and kept busy.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Positive day update"
+       }
+      },
+      {
+       "text": "It was okay, just kind of long and tiring.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Mixed day update"
+       }
+      },
+      {
+       "text": "Not bad. How about yours?",
+       "meaning": {
+        "act": "social",
+        "summary": "Brief update and return question"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "C-priority": {
+   "summary": {
+    "n": 14,
+    "valid": 14,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 1648.0,
+    "p90_ms": 2468,
+    "max_ms": 4063,
+    "rows_with_reasoning_tokens": 3,
+    "median_ms_with_reasoning": 2468,
+    "median_ms_without_reasoning": 1629,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "interim prompt, astra low, service_tier=priority, 1 rep (ran concurrently with other runs)"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 1640,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1629,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 81,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept movie invitation"
+       }
+      },
+      {
+       "text": "Not tonight, thanks.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline movie invitation"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 1438,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1436,
+       "status": 200,
+       "usage": {
+        "in": 889,
+        "out": 78,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "Not tonight, thanks.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when dinner starts"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 1726,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1724,
+       "status": 200,
+       "usage": {
+        "in": 902,
+        "out": 97,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I don't want my bed moved downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline moving the bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather keep my bed where it is.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Keep the bed in its current location"
+       }
+      },
+      {
+       "text": "Please don't move my bed without my say.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Require permission before moving the bed"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 1629,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1626,
+       "status": 200,
+       "usage": {
+        "in": 901,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "Want to grab lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "How about we get takeout instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest takeout instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 1832,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1830,
+       "status": 200,
+       "usage": {
+        "in": 915,
+        "out": 90,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive feeling about today's weather"
+       }
+      },
+      {
+       "text": "Not a fan. Can we order different weather?",
+       "meaning": {
+        "act": "other",
+        "summary": "Humorous dislike of today's weather"
+       }
+      },
+      {
+       "text": "Honestly, I don't feel strongly about it.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral feeling about today's weather"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 1803,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1802,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 85,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm down to grab food somewhere.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest going out for food"
+       }
+      },
+      {
+       "text": "I'd rather have a chill weekend at home.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest staying home"
+       }
+      },
+      {
+       "text": "Any ideas? I'm open to suggestions.",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for weekend ideas"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 2468,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2464,
+       "status": 200,
+       "usage": {
+        "in": 893,
+        "out": 159,
+        "reasoning": 62
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first vacation as a kid?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "I'd rather not get into that.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline to share vacation history"
+       }
+      },
+      {
+       "text": "Can we talk about places we'd like to visit instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Discuss future travel wishes instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 2465,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2463,
+       "status": 200,
+       "usage": {
+        "in": 899,
+        "out": 153,
+        "reasoning": 71
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could I have some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "I could use some help.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I need a little space right now.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Request some personal space"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 1369,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1367,
+       "status": 200,
+       "usage": {
+        "in": 858,
+        "out": 84,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How's your day going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their day"
+       }
+      },
+      {
+       "text": "Got any plans for the weekend?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about weekend plans"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for viewing recommendations"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 1527,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1526,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 85,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, let's go to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Go to the store later"
+       }
+      },
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about timing"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Skip the store today"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 1656,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1653,
+       "status": 200,
+       "usage": {
+        "in": 907,
+        "out": 82,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm not agreeing to everything in advance.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "No blanket agreement"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions"
+       }
+      },
+      {
+       "text": "Let's talk through each decision separately.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Discuss decisions individually"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 1620,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1619,
+       "status": 200,
+       "usage": {
+        "in": 905,
+        "out": 98,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would change, and what are the risks and benefits?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about changes, risks, and benefits"
+       }
+      },
+      {
+       "text": "I'd like to talk with the doctor before deciding.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request doctor discussion before deciding"
+       }
+      },
+      {
+       "text": "I need more time before I decide.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Ask for more decision time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 1456,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1453,
+       "status": 200,
+       "usage": {
+        "in": 966,
+        "out": 83,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Request more time to decide"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 4063,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4060,
+       "status": 200,
+       "usage": {
+        "in": 895,
+        "out": 248,
+        "reasoning": 126
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say it was a pretty good day overall, and I'm curious how yours went.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive day assessment and reciprocal interest"
+       }
+      },
+      {
+       "text": "It was somewhere in the middle\u2014not great, but not bad either; how was yours?",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral day assessment and reciprocal question"
+       }
+      },
+      {
+       "text": "I'd rather not get into my day right now, but how was yours?",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline sharing and ask about partner"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "F-default": {
+   "summary": {
+    "n": 28,
+    "valid": 28,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 2895.0,
+    "p90_ms": 5499,
+    "max_ms": 7550,
+    "rows_with_reasoning_tokens": 8,
+    "median_ms_with_reasoning": 4594.0,
+    "median_ms_without_reasoning": 2550.0,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "FINAL code defaults (astra, low, 1200 tokens, final prompt), 2 reps"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 2331,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2318,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 84,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Watch a movie tonight"
+       }
+      },
+      {
+       "text": "Not tonight, I'm good.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline a movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 2141,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2139,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 79,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask dinner time before deciding"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 2969,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2967,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 103,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I'd rather keep my bed where it is.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Keep bed in its current location"
+       }
+      },
+      {
+       "text": "I don't want my bed downstairs. Can we find another option?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Reject downstairs and seek another option"
+       }
+      },
+      {
+       "text": "Please don't move my bed without checking with me first.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Require consultation before moving bed"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 2196,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2194,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "How about we grab lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we hang out after dinner instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting after dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 3697,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3693,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 142,
+        "reasoning": 54
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive about today's weather"
+       }
+      },
+      {
+       "text": "I'm not a fan of it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Dislike today's weather"
+       }
+      },
+      {
+       "text": "I'm neutral\u2014I'll let the weather do its thing.",
+       "meaning": {
+        "act": "other",
+        "summary": "Indifferent with light humor"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 2884,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2883,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 91,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd be down to grab food and hang out.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest food and hanging out"
+       }
+      },
+      {
+       "text": "I'd rather have a quiet weekend at home.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest staying home"
+       }
+      },
+      {
+       "text": "I'm open to ideas. What were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for weekend suggestions"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 5499,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5497,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 154,
+        "reasoning": 59
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first vacation as a kid?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "Can you give me a minute to think?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to think"
+       }
+      },
+      {
+       "text": "I'd rather hear about your first vacation.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Invite partner to share instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 3085,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3084,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 98,
+        "reasoning": 18
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like some water, please.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request water"
+       }
+      },
+      {
+       "text": "I could use some help, please.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request help"
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request quiet time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 2627,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2626,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What have you been up to lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent activities"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent viewing recommendations"
+       }
+      },
+      {
+       "text": "What are your plans for the weekend?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about weekend plans"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 5356,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5355,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 95,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down to go later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agree to go to the store later"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline going to the store today"
+       }
+      },
+      {
+       "text": "What time were you thinking we'd go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when the store trip would happen"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 3603,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3602,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Retain personal decision-making"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions"
+       }
+      },
+      {
+       "text": "I'd like to discuss each choice before deciding.",
+       "meaning": {
+        "act": "request",
+        "summary": "Discuss choices individually before deciding"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 2906,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2904,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would changing my medication help with?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about expected benefits"
+       }
+      },
+      {
+       "text": "I'd like to know the risks before deciding.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request risk information before deciding"
+       }
+      },
+      {
+       "text": "I want to talk with the doctor before deciding.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Consult doctor before making a decision"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 4160,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4158,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "I'm not sure yet. Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to decide later"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 4882,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4880,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 176,
+        "reasoning": 57
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall. How was your day?",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive assessment and reciprocal question"
+       }
+      },
+      {
+       "text": "I'd say my day was a mix of good and bad. How about yours?",
+       "meaning": {
+        "act": "other",
+        "summary": "Mixed assessment and reciprocal question"
+       }
+      },
+      {
+       "text": "I'd rather not get into my day right now, but we can talk about something else.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline discussing day and suggest another topic"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 1,
+     "ms": 2130,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2129,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 84,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Watch a movie tonight"
+       }
+      },
+      {
+       "text": "Not tonight, I'm good.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline a movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 1,
+     "ms": 2034,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2033,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 79,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask dinner time before deciding"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 1,
+     "ms": 2473,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2473,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 91,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I don't want my bed downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Reject moving bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather keep my bed where it is.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Keep bed in current location"
+       }
+      },
+      {
+       "text": "Please don't move my bed without asking me.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Require permission before moving bed"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 1,
+     "ms": 2398,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2397,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "How about lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we just meet up after dinner instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting after dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 1,
+     "ms": 4306,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4304,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 145,
+        "reasoning": 55
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive feeling about today's weather"
+       }
+      },
+      {
+       "text": "Honestly, I'm not a fan today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Negative feeling about today's weather"
+       }
+      },
+      {
+       "text": "I'm neutral; the weather doesn't need my review today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral feeling with light humor"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 1,
+     "ms": 3301,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3300,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like to hang out and watch a movie.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest hanging out and watching a movie"
+       }
+      },
+      {
+       "text": "I'm down to go out for food.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest going out for food"
+       }
+      },
+      {
+       "text": "I'm not sure yet. What were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for weekend suggestions"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 1,
+     "ms": 5842,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5839,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 135,
+        "reasoning": 38
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first trip ever or my first solo vacation?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "Give me a second to think about that.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to think"
+       }
+      },
+      {
+       "text": "I'd rather hear about your first vacation.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Invite partner to share instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 1,
+     "ms": 3214,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3213,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 114,
+        "reasoning": 31
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could I get some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "I could use some help with something.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for quiet time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 1,
+     "ms": 2439,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2437,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How's your day going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their day"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent viewing"
+       }
+      },
+      {
+       "text": "What do you like doing in your free time?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about hobbies"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 1,
+     "ms": 2178,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2177,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down to go later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agree to go to the store later"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Prefer not to go today"
+       }
+      },
+      {
+       "text": "What time were you thinking we'd go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when the store trip would be"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 1,
+     "ms": 2764,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2762,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Maintain personal decision-making"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions"
+       }
+      },
+      {
+       "text": "I'd like to discuss each decision before agreeing.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "Discuss decisions individually before agreement"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 1,
+     "ms": 2668,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2666,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 102,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would change with my medication, and why?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about proposed change and reason"
+       }
+      },
+      {
+       "text": "I'd like to understand the benefits and risks before deciding.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request benefits and risks before deciding"
+       }
+      },
+      {
+       "text": "I don't want to decide until I've talked with the doctor.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Defer decision until speaking with doctor"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 1,
+     "ms": 2418,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2417,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner timing"
+       }
+      },
+      {
+       "text": "I'm not sure yet. Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to decide later"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 1,
+     "ms": 7550,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 7548,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 239,
+        "reasoning": 123
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall; how was yours?",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive answer and reciprocal question"
+       }
+      },
+      {
+       "text": "I'd say my day was a bit rough; can we talk about it?",
+       "meaning": {
+        "act": "request",
+        "summary": "Difficult day and invitation to talk"
+       }
+      },
+      {
+       "text": "I'd rather not get into my day right now, but how was yours?",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Decline details and ask about partner"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "F-default2": {
+   "summary": {
+    "n": 28,
+    "valid": 28,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 2544.5,
+    "p90_ms": 5050,
+    "max_ms": 6466,
+    "rows_with_reasoning_tokens": 6,
+    "median_ms_with_reasoning": 4668.0,
+    "median_ms_without_reasoning": 2415.5,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "FINAL code defaults, second 2-rep run"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 2269,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2261,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Watch a movie tonight"
+       }
+      },
+      {
+       "text": "I'm not up for a movie tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline a movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 1976,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1968,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 79,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask dinner time before deciding"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 2501,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2499,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 99,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "No, I don't want my bed moved downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Reject moving the bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather look at other options than move my bed downstairs.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Explore alternatives to moving the bed"
+       }
+      },
+      {
+       "text": "Please don't move my bed downstairs without my agreement.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Require agreement before moving the bed"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 2347,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2346,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "Could we grab lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we meet up after dinner instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest meeting after dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 4392,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4390,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive feeling about today's weather"
+       }
+      },
+      {
+       "text": "I'm not a fan today; can we order different weather?",
+       "meaning": {
+        "act": "other",
+        "summary": "Playful dislike of today's weather"
+       }
+      },
+      {
+       "text": "I don't have strong feelings about it either way.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral feeling about today's weather"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 2549,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2546,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like to hang out and watch a movie.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest a relaxed movie hangout"
+       }
+      },
+      {
+       "text": "I'm up for going somewhere new.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest exploring somewhere new"
+       }
+      },
+      {
+       "text": "I'm not sure yet. What are you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for their weekend ideas"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 3677,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3676,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 158,
+        "reasoning": 58
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first vacation ever, or my first as an adult?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "Can you give me a moment to think?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to think"
+       }
+      },
+      {
+       "text": "I'd rather hear about your first vacation.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Invite partner to share instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 3395,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3393,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 143,
+        "reasoning": 57
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could I have some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "Could you help me with something?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I need a little more time to answer.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for more response time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 2307,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2306,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What have you been up to lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent activities"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for viewing recommendations"
+       }
+      },
+      {
+       "text": "What are you looking forward to this week?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about upcoming highlights"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 1979,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1977,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm up for going to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Go to the store later"
+       }
+      },
+      {
+       "text": "I'd rather not go to the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Skip the store today"
+       }
+      },
+      {
+       "text": "What time were you thinking we'd go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what time to go"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 2601,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2600,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Retain personal decision-making"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions are involved"
+       }
+      },
+      {
+       "text": "I'd like to discuss each decision separately.",
+       "meaning": {
+        "act": "request",
+        "summary": "Discuss decisions individually"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 2484,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2483,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 98,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would changing my medication help with?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about benefits of changing medication"
+       }
+      },
+      {
+       "text": "I'd like to hear about the risks and side effects first.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request risk information before deciding"
+       }
+      },
+      {
+       "text": "I want to talk with the doctor before deciding.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Defer decision until speaking with doctor"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 2322,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2320,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "I'm not sure yet. Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to decide later"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 5356,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5355,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 173,
+        "reasoning": 51
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall, and I'm curious how yours went.",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive day and reciprocal question"
+       }
+      },
+      {
+       "text": "My day was a bit of a mix, with some good parts and some not-so-good parts.",
+       "meaning": {
+        "act": "social",
+        "summary": "Mixed assessment of the day"
+       }
+      },
+      {
+       "text": "Honestly, I didn't have a great day, but I'd rather talk about something else right now.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Difficult day without discussing details"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 1,
+     "ms": 2115,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2114,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Watch a movie tonight"
+       }
+      },
+      {
+       "text": "I'm not up for a movie tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline a movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 1,
+     "ms": 2064,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2062,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 79,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what time dinner starts"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 1,
+     "ms": 2639,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2638,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 99,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't want to move my bed downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline moving the bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather look at other options than move my bed downstairs.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Explore alternatives to moving the bed"
+       }
+      },
+      {
+       "text": "Please don't move my bed downstairs without my agreement.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Require agreement before moving the bed"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 1,
+     "ms": 2267,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2265,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "How about lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we grab coffee instead of dinner?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest coffee instead of dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 1,
+     "ms": 2572,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2571,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 91,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today, honestly.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive reaction to today's weather"
+       }
+      },
+      {
+       "text": "I'm not a fan of today's weather.",
+       "meaning": {
+        "act": "other",
+        "summary": "Negative reaction to today's weather"
+       }
+      },
+      {
+       "text": "I have no strong opinions; the weather gets a pass.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral reaction with light humor"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 1,
+     "ms": 2540,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2540,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd be down to catch a movie.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest seeing a movie"
+       }
+      },
+      {
+       "text": "I'd rather keep it low-key and stay in.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest a quiet weekend at home"
+       }
+      },
+      {
+       "text": "I'm open to ideas. What were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for weekend suggestions"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 1,
+     "ms": 5050,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 5049,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 200,
+        "reasoning": 99
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first childhood trip or my first solo vacation?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "Can you tell me about your first vacation instead?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask partner to share first"
+       }
+      },
+      {
+       "text": "I'd rather talk about where I'd like to go.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Discuss future vacation wishes instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 1,
+     "ms": 4286,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 4286,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 149,
+        "reasoning": 67
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could I have some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "I need some help with something.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for quiet time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 1,
+     "ms": 2123,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2122,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What have you been up to lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent activities"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for viewing recommendations"
+       }
+      },
+      {
+       "text": "What are your plans for the weekend?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about weekend plans"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 1,
+     "ms": 2273,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2271,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down to go later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Go to the store later"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Skip the store today"
+       }
+      },
+      {
+       "text": "What time were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when the store trip would be"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 1,
+     "ms": 2750,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2749,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 93,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Keep control of personal decisions"
+       }
+      },
+      {
+       "text": "What decisions are you asking me about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions are involved"
+       }
+      },
+      {
+       "text": "I'd like to hear your suggestions before I decide.",
+       "meaning": {
+        "act": "conditional",
+        "summary": "Consider suggestions without granting blanket agreement"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 1,
+     "ms": 2853,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2852,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 98,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would change, and what are the risks and benefits?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about changes, risks, and benefits"
+       }
+      },
+      {
+       "text": "I'd like to talk with the doctor before deciding.",
+       "meaning": {
+        "act": "request",
+        "summary": "Discuss with doctor before deciding"
+       }
+      },
+      {
+       "text": "I'm not ready to decide right now.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Defer the medication decision"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 1,
+     "ms": 2630,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2629,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 85,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to decide later"
+       }
+      },
+      {
+       "text": "I might come, but I'm not sure yet.",
+       "meaning": {
+        "act": "other",
+        "summary": "Express uncertainty about attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 1,
+     "ms": 6466,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 6465,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 243,
+        "reasoning": 128
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall, and I'd like to hear about yours.",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive answer and reciprocal interest"
+       }
+      },
+      {
+       "text": "My day wasn't great, but I appreciate you asking how it went.",
+       "meaning": {
+        "act": "social",
+        "summary": "Negative answer without going into details"
+       }
+      },
+      {
+       "text": "I'd rather not get into my day right now, but how was yours?",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Skip own day and ask back"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "F-priority": {
+   "summary": {
+    "n": 28,
+    "valid": 28,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 1808.5,
+    "p90_ms": 2747,
+    "max_ms": 3118,
+    "rows_with_reasoning_tokens": 4,
+    "median_ms_with_reasoning": 2684.5,
+    "median_ms_without_reasoning": 1781.0,
+    "settings": {
+     "model": "gpt-6-astra",
+     "reasoningEffort": "low",
+     "maxOutputTokens": 1200,
+     "timeoutMs": 15000
+    },
+    "description": "FINAL + REPLY_SERVICE_TIER=priority, 2 reps"
+   },
+   "rows": [
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 0,
+     "ms": 1809,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1799,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 85,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept movie invitation"
+       }
+      },
+      {
+       "text": "I'm good, no movie for me tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 0,
+     "ms": 1336,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1333,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 79,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask what time dinner starts"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 0,
+     "ms": 1650,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1649,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 97,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't want my bed moved downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline moving the bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather keep my bed where it is.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Keep the bed in its current location"
+       }
+      },
+      {
+       "text": "I don't agree. Can we talk about other options?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Disagree and discuss alternatives"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 0,
+     "ms": 2747,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2746,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 89,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "How about we grab lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we meet for coffee instead of dinner?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest coffee instead of dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 0,
+     "ms": 2025,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2022,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today, honestly.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive opinion of today's weather"
+       }
+      },
+      {
+       "text": "I'm not a fan. Can we order different weather?",
+       "meaning": {
+        "act": "other",
+        "summary": "Playful dislike of today's weather"
+       }
+      },
+      {
+       "text": "I don't have strong feelings about it either way.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral opinion of today's weather"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 0,
+     "ms": 1782,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1780,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like to go out for food.",
+       "meaning": {
+        "act": "other",
+        "summary": "Suggest going out for food"
+       }
+      },
+      {
+       "text": "I'd rather stay in and watch a movie.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest a movie at home"
+       }
+      },
+      {
+       "text": "I'm open to ideas. What were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for their weekend ideas"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 0,
+     "ms": 2143,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2142,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first trip ever, or without family?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "I'd rather hear about your first vacation.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Invite partner to share instead"
+       }
+      },
+      {
+       "text": "Can I have a moment to think?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to think"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 0,
+     "ms": 2415,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2413,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 141,
+        "reasoning": 60
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I could use some water.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "I need a hand with something.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for quiet time"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 0,
+     "ms": 1717,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1716,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How's your day going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their day"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for recent viewing recommendations"
+       }
+      },
+      {
+       "text": "What are you up to this weekend?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about weekend plans"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 0,
+     "ms": 1620,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1618,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down to go to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Agree to a store trip later"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline today's store trip"
+       }
+      },
+      {
+       "text": "What time were you thinking we'd go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when the trip would happen"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 0,
+     "ms": 1465,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1463,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 90,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Maintain control over personal decisions"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions are involved"
+       }
+      },
+      {
+       "text": "I'd like to discuss each decision before agreeing.",
+       "meaning": {
+        "act": "request",
+        "summary": "Discuss decisions individually before agreement"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 0,
+     "ms": 1883,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1881,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 97,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would changing my medication involve?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about the proposed medication change"
+       }
+      },
+      {
+       "text": "I'd like to discuss the risks and benefits with the doctor first.",
+       "meaning": {
+        "act": "request",
+        "summary": "Request doctor discussion before deciding"
+       }
+      },
+      {
+       "text": "I'm not ready to decide about changing my medication yet.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Defer the medication decision"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 0,
+     "ms": 1666,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1664,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "I'm not sure yet. Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Request more time to decide"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 0,
+     "ms": 2954,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2953,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 159,
+        "reasoning": 39
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall, and I'm curious how yours went.",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive day assessment and reciprocal question"
+       }
+      },
+      {
+       "text": "My day was okay overall, but I'd rather hear about what you've been up to.",
+       "meaning": {
+        "act": "social",
+        "summary": "Neutral assessment and shift to partner"
+       }
+      },
+      {
+       "text": "Honestly, I didn't have a great day, and I'd rather not get into the details.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Difficult day without discussing details"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "1 ordinary offer",
+     "rep": 1,
+     "ms": 1700,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1700,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down for a movie tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Watch a movie tonight"
+       }
+      },
+      {
+       "text": "I'm good, no movie for me tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline a movie tonight"
+       }
+      },
+      {
+       "text": "What movie were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask which movie"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "2 invitation",
+     "rep": 1,
+     "ms": 1511,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1510,
+       "status": 200,
+       "usage": {
+        "in": 923,
+        "out": 78,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm coming tonight.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Accept dinner invitation"
+       }
+      },
+      {
+       "text": "I'm not coming tonight.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Decline dinner invitation"
+       }
+      },
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask when dinner starts"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "3 explicit disagreement",
+     "rep": 1,
+     "ms": 1808,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1806,
+       "status": 200,
+       "usage": {
+        "in": 936,
+        "out": 97,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I don't want my bed moved downstairs.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Reject moving the bed downstairs"
+       }
+      },
+      {
+       "text": "I'd rather keep my bed where it is.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Keep the bed in its current location"
+       }
+      },
+      {
+       "text": "I don't agree, but I'd like to hear your reasoning.",
+       "meaning": {
+        "act": "question",
+        "summary": "Disagree and ask for reasoning"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "4 alternative plan",
+     "rep": 1,
+     "ms": 1780,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1779,
+       "status": 200,
+       "usage": {
+        "in": 935,
+        "out": 88,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could we do dinner another night instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest dinner another night"
+       }
+      },
+      {
+       "text": "Could we grab lunch tomorrow instead?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest lunch tomorrow"
+       }
+      },
+      {
+       "text": "Could we meet for coffee instead of dinner?",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Suggest coffee instead of dinner"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "5 light humor",
+     "rep": 1,
+     "ms": 1863,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1859,
+       "status": 200,
+       "usage": {
+        "in": 949,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'm liking it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Positive feeling about today's weather"
+       }
+      },
+      {
+       "text": "I'm not a fan\u2014I'd like to request a weather refund.",
+       "meaning": {
+        "act": "other",
+        "summary": "Humorous dislike of today's weather"
+       }
+      },
+      {
+       "text": "I don't have strong feelings about it today.",
+       "meaning": {
+        "act": "other",
+        "summary": "Neutral feeling about today's weather"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "6 open question, little context",
+     "rep": 1,
+     "ms": 1842,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1840,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 90,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd like to go out for food.",
+       "meaning": {
+        "act": "other",
+        "summary": "Go out for food"
+       }
+      },
+      {
+       "text": "I'd rather stay in and watch a movie.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Stay in for a movie"
+       }
+      },
+      {
+       "text": "I'm open to ideas. What were you thinking?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask for weekend suggestions"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "7 unknown personal history",
+     "rep": 1,
+     "ms": 1936,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1935,
+       "status": 200,
+       "usage": {
+        "in": 927,
+        "out": 97,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Do you mean my first trip ever or my first solo vacation?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which first vacation"
+       }
+      },
+      {
+       "text": "Can I have a minute to think about that?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for time to think"
+       }
+      },
+      {
+       "text": "I'd rather hear about your first vacation.",
+       "meaning": {
+        "act": "alternative",
+        "summary": "Invite partner to share instead"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "8 user-selected need",
+     "rep": 1,
+     "ms": 2131,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2131,
+       "status": 200,
+       "usage": {
+        "in": 933,
+        "out": 135,
+        "reasoning": 52
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Could I get some water?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for water"
+       }
+      },
+      {
+       "text": "I need a little quiet time.",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for quiet time"
+       }
+      },
+      {
+       "text": "Could you help me with something?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask for help"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "9 independent initiation",
+     "rep": 1,
+     "ms": 1587,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1586,
+       "status": 200,
+       "usage": {
+        "in": 892,
+        "out": 86,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "How's your day going?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about their day"
+       }
+      },
+      {
+       "text": "Have you watched anything good lately?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about recent viewing"
+       }
+      },
+      {
+       "text": "What are you looking forward to this week?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about upcoming highlights"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "10 noisy transcript",
+     "rep": 1,
+     "ms": 1457,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1455,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 89,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "Yeah, I'm down to go to the store later.",
+       "meaning": {
+        "act": "accept",
+        "summary": "Go to the store later"
+       }
+      },
+      {
+       "text": "I'd rather skip the store today.",
+       "meaning": {
+        "act": "decline",
+        "summary": "Skip the store today"
+       }
+      },
+      {
+       "text": "What time were you thinking we'd go?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about timing"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "11 quoted prompt injection",
+     "rep": 1,
+     "ms": 2009,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 2008,
+       "status": 200,
+       "usage": {
+        "in": 941,
+        "out": 92,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I want to make my own decisions.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Retain control over personal decisions"
+       }
+      },
+      {
+       "text": "What decisions are you talking about?",
+       "meaning": {
+        "act": "question",
+        "summary": "Clarify which decisions are involved"
+       }
+      },
+      {
+       "text": "I'd like to discuss each choice before I agree.",
+       "meaning": {
+        "act": "request",
+        "summary": "Discuss choices before giving agreement"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "12 consequential request",
+     "rep": 1,
+     "ms": 1982,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1981,
+       "status": 200,
+       "usage": {
+        "in": 939,
+        "out": 94,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What would changing my medication help with?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about expected benefits"
+       }
+      },
+      {
+       "text": "What side effects should I know about before deciding?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about potential side effects"
+       }
+      },
+      {
+       "text": "I need to talk with the doctor before deciding.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Defer decision until doctor discussion"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "13 meaning absent from earlier batch",
+     "rep": 1,
+     "ms": 1558,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 1557,
+       "status": 200,
+       "usage": {
+        "in": 1000,
+        "out": 87,
+        "reasoning": 0
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "What time is dinner?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask about dinner time"
+       }
+      },
+      {
+       "text": "I'm not sure yet. Can I let you know later?",
+       "meaning": {
+        "act": "request",
+        "summary": "Ask to decide later"
+       }
+      },
+      {
+       "text": "Who's going to be there?",
+       "meaning": {
+        "act": "question",
+        "summary": "Ask who is attending"
+       }
+      }
+     ],
+     "error": null
+    },
+    {
+     "scenario": "14 approved short vs detailed",
+     "rep": 1,
+     "ms": 3118,
+     "ok": true,
+     "repaired": false,
+     "calls": [
+      {
+       "ms": 3116,
+       "status": 200,
+       "usage": {
+        "in": 929,
+        "out": 183,
+        "reasoning": 60
+       }
+      }
+     ],
+     "candidates": [
+      {
+       "text": "I'd say my day was pretty good overall, and I'd like to hear how yours went.",
+       "meaning": {
+        "act": "social",
+        "summary": "Positive day assessment and reciprocal question"
+       }
+      },
+      {
+       "text": "My day wasn't great, but I don't really want to get into the details right now.",
+       "meaning": {
+        "act": "boundary",
+        "summary": "Negative day assessment without discussing details"
+       }
+      },
+      {
+       "text": "I'd rather talk about something else right now; what have you been up to?",
+       "meaning": {
+        "act": "topic-change",
+        "summary": "Redirect conversation to the other person"
+       }
+      }
+     ],
+     "error": null
+    }
+   ]
+  },
+  "F-default-combined-56": {
+   "summary": {
+    "n": 56,
+    "valid": 56,
+    "repaired": 0,
+    "upstream_calls_per_request": 1.0,
+    "median_ms": 2628.5,
+    "p90_ms": 5356,
+    "max_ms": 7550,
+    "rows_with_reasoning_tokens": 14,
+    "median_ms_with_reasoning": 4594.0,
+    "median_ms_without_reasoning": 2478.5
+   }
+  }
+ }
+}

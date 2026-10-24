@@ -76,6 +76,19 @@ export function isFaceMode(mode: AccessMode): boolean {
   return mode === 'brow-blink' || mode === 'blink';
 }
 
+type GestureChipProps = { icon: string; label: string; result: string; spoken: string };
+
+/** One legend chip: a visual "gesture · result" pill with a full-sentence screen-reader reading. */
+function GestureChip({ icon, label, result, spoken }: GestureChipProps) {
+  return (
+    <span className="gesture-chip">
+      <span className="gesture-chip-icon" aria-hidden="true">{icon}</span>
+      <span aria-hidden="true">{result ? `${label} · ${result}` : label}</span>
+      <span className="sr-only">{spoken}</span>
+    </span>
+  );
+}
+
 /**
  * Bottom hint line for face-gesture modes: what each gesture does on this screen. The brow
  * progress slot is always reserved (no layout shift) and filled only while the brows are
@@ -85,21 +98,35 @@ export function BlinkHint({ runtime, action = 'select' }: { runtime: StillHereRu
   const st = runtime.state.settings;
   if (!isFaceMode(st.accessMode)) return null;
   const brow = st.accessMode === 'brow-blink';
-  let text: string;
+  let chips: GestureChipProps[];
   if (brow) {
-    text = action === 'speak'
-      ? 'Raise eyebrows to move to Speak • New long blink speaks it'
-      : 'Eyebrows up 0.5 s → Next • Long blink → Select';
+    chips = action === 'speak'
+      ? [
+        { icon: '↑', label: 'Eyebrows up', result: 'Move to Speak', spoken: 'Raise your eyebrows to move to Speak.' },
+        { icon: '◉', label: 'New long blink', result: 'Speak', spoken: 'A new long blink speaks it.' },
+      ]
+      : [
+        { icon: '↑', label: 'Eyebrows up ½ s', result: 'Next', spoken: 'Eyebrows up for half a second moves to Next.' },
+        { icon: '◉', label: 'Long blink', result: 'Select', spoken: 'A long blink selects.' },
+      ];
   } else {
     const secs = (st.scanIntervalMs / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    text = action === 'speak'
-      ? `Highlight starts on Cancel • New long blink on Speak says it • ${secs} s per item`
-      : `Highlight moves automatically • Long blink → Select • ${secs} s per item`;
+    chips = action === 'speak'
+      ? [
+        { icon: '↻', label: `Starts on Cancel · ${secs} s per item`, result: '', spoken: `The highlight starts on Cancel and moves every ${secs} seconds.` },
+        { icon: '◉', label: 'New long blink on Speak', result: 'Says it', spoken: 'A new long blink on Speak says it.' },
+      ]
+      : [
+        { icon: '↻', label: 'Auto-scan', result: `${secs} s per item`, spoken: `The highlight moves automatically, every ${secs} seconds.` },
+        { icon: '◉', label: 'Long blink', result: 'Select', spoken: 'A long blink selects.' },
+      ];
   }
   const rising = brow && runtime.blink.browStatus === 'rising';
   return (
     <p className="blink-hint">
-      <span className="blink-hint-text">{text}</span>
+      <span className="blink-hint-text">
+        {chips.map((c) => <GestureChip key={c.icon + c.label} {...c} />)}
+      </span>
       <span className="blink-hint-progress" aria-hidden="true">
         {rising && <><span className="blink-hint-progress-label">Brow</span><GestureBar value={runtime.blink.browProgress} /></>}
       </span>

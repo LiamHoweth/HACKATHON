@@ -55,6 +55,8 @@ export type PartnerTurnSource = 'partner-typed' | 'partner-transcribed' | 'partn
 export type PartnerTurn = {
   id: Id; sequence: number; contentRevision: number;
   text: string; createdAt: number;
+  // Set when a follow-up line was merged into this turn (fast mode); the merge window counts from here.
+  updatedAt?: number;
   source: PartnerTurnSource;
   acceptedForContext: boolean;
   dismissed: boolean;

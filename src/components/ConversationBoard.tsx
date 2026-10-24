@@ -42,7 +42,7 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
   // Same wording as the status bar: the suggestion mode once, the batch source only when it differs.
   const modeLabel = AI_MODE_LABELS[state.settings.aiMode];
   const batchLabel = open?.batch && open.status === 'choosing' ? BATCH_SOURCE_LABELS[open.batch.source] : null;
-  const sourceLabel = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · this batch: ${batchLabel}` : modeLabel;
+  const sourceLabel = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · these suggestions: ${batchLabel}` : modeLabel;
 
   const failed = state.lastFailedSpeech;
   const voiceProblemHead = failed?.delivery === 'uncertain'

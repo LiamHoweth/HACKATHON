@@ -574,7 +574,19 @@ function stopSpeech(s: State, at: number): State {
   const { utterance, afterStack } = s.speech;
   s = setDelivery(s, utterance.id, 'interrupted');
   s = addEffects({ ...s, speech: null }, { kind: 'stop-speech', utteranceId: utterance.id });
-  return setStack(s, afterStack, at);
+  return answerStaged(setStack(s, afterStack, at), at);
+}
+
+// Fast mode keeps these surfaces in front of a new partner line (it waits instead):
+// own-words typing and every pause or confirmation dialog.
+const FAST_MODE_HOLD: Surface['kind'][] = ['compose', 'paused', 'end-confirm', 'compose-clear', 'confirm-change'];
+
+// Fast mode: once speech is over, answer the newest partner line heard meanwhile.
+function answerStaged(s: State, at: number): State {
+  if (!s.settings.speakOnSelect || s.staged.length === 0 || s.review || s.speech) return s;
+  if (currentSurface(s).kind !== 'board') return s;
+  s = acceptPartnerTurn(s, s.staged[s.staged.length - 1], at);
+  return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at };
 }
 
 function endSession(s: State, at: number): State {
@@ -614,6 +626,41 @@ function activate(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State {
   return { ...next, surfaceRevision: Math.max(next.surfaceRevision, s.surfaceRevision + 1), surfaceOpenedAt: a.at };
 }
 
+// Rewrites a partner turn's text: new content revision, context revision, and any open
+// workspace on that turn aborts its in-flight request (callers decide what happens next).
+function editPartnerTurnText(s: State, turn: PartnerTurn, text: string, source: PartnerTurn['source'], at: number): State {
+  s = updatePartnerTurn(s, turn.id, { text, contentRevision: turn.contentRevision + 1, source, updatedAt: at });
+  if (turn.acceptedForContext) s = { ...s, contextRevision: s.contextRevision + 1 };
+  for (const w of Object.values(s.workspaces)) {
+    if (w.anchor.mode !== 'reply' || w.anchor.turnId !== turn.id || w.closed) continue;
+    if (w.pending) s = addEffects(s, { kind: 'abort-generation', requestId: w.pending.requestId });
+  }
+  return s;
+}
+
+// Fast mode: the open, unanswered question a new partner line may continue, if any.
+function mergeTarget(s: State, ws: Workspace | null, text: string, at: number): { ws: Workspace; turn: PartnerTurn } | null {
+  if (!ws || ws.closed || ws.anchor.mode !== 'reply' || s.staged.length > 0) return null;
+  const turn = partnerTurn(s, ws.anchor.turnId);
+  if (!turn || !turn.acceptedForContext) return null;
+  if (at - (turn.updatedAt ?? turn.createdAt) > LIMITS.mergeWindowMs) return null;
+  if (turn.text.length + 1 + text.length > LIMITS.partnerInputChars) return null;
+  return { ws, turn };
+}
+
+function mergeFollowUp(s: State, ws: Workspace, turn: PartnerTurn, text: string, at: number): State {
+  s = editPartnerTurnText(s, turn, `${turn.text} ${text}`, turn.source, at);
+  // The old suggestions answered the shorter question: drop them and regenerate for the combined one.
+  s = updateWorkspace(s, ws.id, {
+    anchor: { mode: 'reply', turnId: turn.id, turnContentRevision: turn.contentRevision + 1 },
+    batch: null, rejected: [], failedBatches: 0, refineTarget: null, pending: null, status: 'stale',
+  });
+  s = startGeneration(s, ws.id, 'suggestions', at);
+  // Only re-arm input when the person is looking at the board; a menu is left exactly as it is.
+  if (currentSurface(s).kind !== 'board') return s;
+  return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at };
+}
+
 export function reducer(s: State, action: Action): State {
   switch (action.type) {
     case 'SETUP_START': {
@@ -639,10 +686,17 @@ export function reducer(s: State, action: Action): State {
       const text = action.text.trim().slice(0, LIMITS.partnerInputChars);
       if (!text) return s;
       const ws = activeWorkspace(s);
-      // Fast mode (speakOnSelect) is conversational: the newest partner line replaces open
-      // suggestions on the board at once (the old question is parked, not lost).
-      const busy = s.settings.speakOnSelect
-        ? currentSurface(s).kind === 'compose' || !!s.review || !!s.speech
+      const fast = s.settings.speakOnSelect;
+      // Fast mode: a follow-up to a question the person has not answered yet continues that
+      // question (same workspace, combined text, fresh suggestions) instead of replacing it.
+      if (fast && !s.review && !s.speech && !FAST_MODE_HOLD.includes(currentSurface(s).kind)) {
+        const merge = mergeTarget(s, ws, text, action.at);
+        if (merge) return mergeFollowUp(s, merge.ws, merge.turn, text, action.at);
+      }
+      // Fast mode (speakOnSelect) is conversational: otherwise the newest partner line replaces
+      // open suggestions on the board at once (the old question is parked, not lost).
+      const busy = fast
+        ? FAST_MODE_HOLD.includes(currentSurface(s).kind) || !!s.review || !!s.speech
         : (ws && !ws.closed) || currentSurface(s).kind !== 'board' || !!s.review || !!s.speech || s.staged.length > 0;
       if (busy && s.staged.length >= LIMITS.stagedQueue) {
         return notice(s, `The waiting list is full (${LIMITS.stagedQueue}). Answer or dismiss waiting messages first.`, action.at);
@@ -654,19 +708,17 @@ export function reducer(s: State, action: Action): State {
       s = { ...s, conversation: [...s.conversation, { role: 'partner', value: turn }], nextSequence: s.nextSequence + 1 };
       if (busy) return notice({ ...s, staged: [...s.staged, turn.id] }, 'New partner message waiting. Your current work is unchanged.', action.at);
       s = acceptPartnerTurn(s, turn.id, action.at);
-      // Fast mode: leave any menu so the new suggestions are in front of the person at once.
-      if (s.settings.speakOnSelect && currentSurface(s).kind !== 'board') s = { ...s, stack: [{ kind: 'board' }] };
+      // Fast mode, new question: leave any menu so the new suggestions are in front of the person.
+      if (fast && currentSurface(s).kind !== 'board') s = { ...s, stack: [{ kind: 'board' }] };
       return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: action.at };
     }
     case 'PARTNER_EDIT_TURN': {
       const turn = partnerTurn(s, action.turnId);
       const text = action.text.trim().slice(0, LIMITS.partnerInputChars);
       if (!turn || !text || text === turn.text) return s;
-      s = updatePartnerTurn(s, turn.id, { text, contentRevision: turn.contentRevision + 1, source: 'partner-edited' });
-      if (turn.acceptedForContext) s = { ...s, contextRevision: s.contextRevision + 1 };
+      s = editPartnerTurnText(s, turn, text, 'partner-edited', action.at);
       for (const w of Object.values(s.workspaces)) {
         if (w.anchor.mode !== 'reply' || w.anchor.turnId !== turn.id || w.closed) continue;
-        if (w.pending) s = addEffects(s, { kind: 'abort-generation', requestId: w.pending.requestId });
         s = updateWorkspace(s, w.id, { status: 'stale', batch: null, rejected: [], failedBatches: 0, pending: null, refineTarget: null });
       }
       return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: action.at };
@@ -704,21 +756,14 @@ export function reducer(s: State, action: Action): State {
       switch (action.kind) {
         case 'start':
           return metric(setDelivery(s, action.utteranceId, 'speaking'), 'playback-start', at);
-        case 'end': {
-          let done = metric(leave(setDelivery(s, action.utteranceId, 'completed')), 'playback-end', at);
-          // Fast mode: answer what the partner said while the app was speaking.
-          if (done.settings.speakOnSelect && done.staged.length > 0 && currentSurface(done).kind === 'board' && !done.review) {
-            done = acceptPartnerTurn(done, done.staged[done.staged.length - 1], at);
-            done = { ...done, surfaceRevision: done.surfaceRevision + 1, surfaceOpenedAt: at };
-          }
-          return done;
-        }
+        case 'end':
+          return answerStaged(metric(leave(setDelivery(s, action.utteranceId, 'completed')), 'playback-end', at), at);
         case 'interrupted':
-          return leave(setDelivery(s, action.utteranceId, 'interrupted'));
+          return answerStaged(leave(setDelivery(s, action.utteranceId, 'interrupted')), at);
         case 'error':
-          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'failed')), s, 'failed'), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at);
+          return answerStaged(notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'failed')), s, 'failed'), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at), at);
         case 'uncertain':
-          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'uncertain')), s, 'uncertain'), 'Speech status is uncertain. It was not replayed automatically.', at);
+          return answerStaged(notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'uncertain')), s, 'uncertain'), 'Speech status is uncertain. It was not replayed automatically.', at), at);
       }
       return s;
     }

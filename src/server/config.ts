@@ -16,6 +16,11 @@ export function serverConfig() {
   // An OpenAI transcription provider may reuse OPENAI_API_KEY.
   const transcriptionKey = (env.TRANSCRIPTION_API_KEY ?? '').trim() || (transcriptionProvider === 'openai' ? openaiKey : '');
   const transcriptionModel = (env.TRANSCRIPTION_MODEL ?? '').trim();
+  // Hinting the language skips auto-detection and stops short clips being guessed as another language.
+  // "auto" (or an invalid value) sends no hint. The prompt is opt-in: it can be echoed back on noise.
+  const langRaw = ((env.TRANSCRIPTION_LANGUAGE ?? '').trim() || 'en').toLowerCase().split('-')[0];
+  const transcriptionLanguage = /^[a-z]{2,3}$/.test(langRaw) && langRaw !== 'auto' ? langRaw : '';
+  const transcriptionPrompt = (env.TRANSCRIPTION_PROMPT ?? '').trim().slice(0, 200);
   const providerKey = aiProvider === 'anthropic' ? anthropicKey : aiProvider === 'openai' ? openaiKey : '';
   // ElevenLabs speech (server-side only). The voice id is not the API key.
   const elevenLabsKey = (env.ELEVENLABS_API_KEY ?? '').trim();
@@ -29,11 +34,22 @@ export function serverConfig() {
     openaiKey,
     replyModel,
     replyFallbacks: (env.REPLY_FALLBACKS ?? 'default').trim().toLowerCase() !== 'off',
-    replyReasoningEffort: (env.REPLY_REASONING_EFFORT ?? '').trim().toLowerCase(),
+    // Reasoning effort for OpenAI reply calls. Defaults to 'low' (the lowest gpt-6-astra accepts; 'minimal'/'none'
+    // are rejected there). Set REPLY_REASONING_EFFORT=off to omit the parameter for models that do not support it.
+    replyReasoningEffort: (() => {
+      const v = (env.REPLY_REASONING_EFFORT ?? '').trim().toLowerCase();
+      return v === 'off' ? '' : v || 'low';
+    })(),
+    // Output budget for one reply call: three short candidates need ~100-250 tokens including any reasoning.
+    replyMaxOutputTokens: Math.round(num(env.REPLY_MAX_OUTPUT_TOKENS, 1200)),
+    // Optional OpenAI service tier (e.g. 'priority' for lower latency at a higher price). Unset by default.
+    replyServiceTier: (env.REPLY_SERVICE_TIER ?? '').trim().toLowerCase(),
     repliesConfigured: providerKey.length > 0 && replyModel.length > 0,
     transcriptionProvider,
     transcriptionKey,
     transcriptionModel,
+    transcriptionLanguage,
+    transcriptionPrompt,
     transcriptionBaseUrl: ((env.TRANSCRIPTION_BASE_URL ?? '').trim() || 'https://api.openai.com/v1').replace(/\/+$/, ''),
     transcriptionConfigured: transcriptionProvider === 'openai' && transcriptionKey.length > 0 && transcriptionModel.length > 0,
     fixturesEnabled: (env.FIXTURES_ENABLED ?? 'true').trim().toLowerCase() !== 'false',

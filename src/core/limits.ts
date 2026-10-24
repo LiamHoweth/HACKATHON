@@ -1,6 +1,8 @@
 // Configurable bounds. These are prototype engineering defaults, not clinical guidance.
 import type { LengthPolicy, StyleValueByKey } from './types';
 
+export const MERGE_WINDOW_MS = 20_000;
+
 export const LIMITS = {
   recentTurns: 10,
   turnChars: 600,
@@ -23,6 +25,9 @@ export const LIMITS = {
   confirmArmMs: 600,
   failedBatchesBeforeHelp: 2,
   maxRequestBytes: 64_000,
+  // Fast mode: a partner line this soon after the open question, before the person has answered,
+  // is treated as a continuation of that question rather than a new one.
+  mergeWindowMs: MERGE_WINDOW_MS,
 } as const;
 
 export const LENGTH_POLICIES: Record<StyleValueByKey['length'], LengthPolicy> = {

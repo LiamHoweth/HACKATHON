@@ -173,9 +173,9 @@ describe('POST /api/speech configuration and access', () => {
     configure();
     const headers = { 'x-real-ip': '192.0.2.77' };
     const statuses: number[] = [];
-    for (let i = 0; i < 21; i += 1) statuses.push((await POST(post(speechBody({ exactText: 'Hi.' }), headers))).status);
-    expect(statuses.slice(0, 20).every((s) => s === 200)).toBe(true);
-    expect(statuses[20]).toBe(429);
+    for (let i = 0; i < 41; i += 1) statuses.push((await POST(post(speechBody({ exactText: 'Hi.' }), headers))).status);
+    expect(statuses.slice(0, 40).every((s) => s === 200)).toBe(true);
+    expect(statuses[40]).toBe(429);
   });
 });
 

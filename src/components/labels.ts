@@ -26,6 +26,13 @@ export const SPEECH_PROVIDER_LABELS: Record<SpeechProvider, string> = {
   browser: 'Basic device voice',
 };
 
+/** Friendly name for a reply provider id reported by the server. */
+export const providerDisplayName = (provider: string | null | undefined): string => {
+  if (!provider) return 'the configured service';
+  const names: Record<string, string> = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', gemini: 'Google Gemini' };
+  return names[provider.toLowerCase()] ?? provider;
+};
+
 export type AudioTone = 'off' | 'ok' | 'work' | 'warn' | 'stop';
 
 /** Factual speech lifecycle labels. Never implies sound played when Safari blocked it. */
@@ -34,7 +41,7 @@ export const SPEECH_STATE_LABELS: Record<SpeechPlaybackState, { text: string; to
   requesting: { text: 'Generating voice…', tone: 'work' },
   buffering: { text: 'Loading audio…', tone: 'work' },
   playing: { text: 'Speaking', tone: 'work' },
-  completed: { text: 'Playback reported complete', tone: 'ok' },
+  completed: { text: 'Finished speaking', tone: 'ok' },
   interrupted: { text: 'Stopped before finishing', tone: 'warn' },
   failed: { text: 'Voice unavailable — shown as text', tone: 'stop' },
   uncertain: { text: 'Playback status uncertain', tone: 'warn' },

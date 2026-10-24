@@ -206,3 +206,58 @@ minute per client, because more splits mean more uploads.
 
 **Not done.** Server-side trimming of leading silence needs an audio decoder, so it was skipped. Re-run the script on the demo
 Wi-Fi, and time a real utterance on the iPad (Safari Web Inspector Network tab, `/api/transcribe` row), before quoting a number.
+
+## 5. Reply latency (partner line to three suggestions), 24 Oct 2026
+
+Evidence: [`docs/evidence/latency-replies-1349.json`](evidence/latency-replies-1349.json). Method: `scripts/latency-replies.mjs` calls the real
+`generateLive()` (prompt, provider, validation, repair) from the dev Mac against the live OpenAI API, one request at a time, with the 14 synthetic
+scenarios of `scripts/live-scenarios-data.mjs`. It bypasses the HTTP route, so add the route and network cost on top. About 200 live requests were
+spent in total, including model probes. Quality notes are the agent's own reading, not a human review.
+
+**What makes the slow mode.** Every request made exactly one upstream call and **no run needed a repair** (0 repaired in about 190 validated
+batches), so the bimodal latency is not a retry or a timeout. It is reasoning tokens: `gpt-6-astra` spends 0 reasoning tokens on easy lines (about
+2.5 s) and 50 to 250 on harder ones, such as explicit stances, "unknown history" and the detailed-length scenario (about 4.5 to 8 s).
+
+| Run (n) | Valid | Median | p90 | Max | Requests that used reasoning tokens |
+|---|---|---|---|---|---|
+| Before: original prompt, no effort set, 4000 token cap (14) | 14/14 | 3.4 s | 6.3 s | 8.5 s | 6/14 (median 5.3 s vs 2.9 s without) |
+| Original prompt + `effort: low` (14) | 14/14 | 3.1 s | 4.8 s | 7.0 s | 2/14 |
+| **After (new defaults): low effort, 1200 cap, casual-student prompt, compact payload (56)** | 56/56 | **2.6 s** | **5.4 s** | 7.6 s | 14/56 (median 4.6 s vs 2.5 s without) |
+| After + `REPLY_SERVICE_TIER=priority` (28) | 28/28 | **1.8 s** | **2.7 s** | **3.1 s** | 4/28 |
+
+Findings, in order of effect:
+
+- **`service_tier: "priority"` is the big win.** It roughly halves the fixed overhead (a trivial call went from about 1.4 s to 0.9 s) and removes
+  the slow tail on the same model, so quality is unchanged. It is **opt-in** because it is billed at a higher price. The Railway variable to set is
+  `REPLY_SERVICE_TIER=priority`.
+- **Lowest reasoning effort.** `gpt-6-astra` rejects `minimal` and `none` (it accepts `low`, `medium`, `high`, `xhigh`, `max`), so `low` is the floor.
+  It is now the default, set in `src/server/config.ts` (`REPLY_REASONING_EFFORT=off` omits it for models that do not support it). It trims the tail
+  (p90 6.3 s to 4.8 s on the original prompt) but does not eliminate it.
+- **Prompt.** The system prompt now asks for most-likely-first ordering and a summary of at most 8 words, and tells the model to answer without long
+  deliberation. The payload drops null and empty fields and sends at most the latest 6 turns. Input tokens went from about 760 to about 650. The
+  effect on latency is small. A harsher trim ("first-person", shorter rules) pushed the model into more reasoning and made every reply start with
+  "I'd like", so it was not kept.
+- **`max_output_tokens`** 4000 to 1200 (`REPLY_MAX_OUTPUT_TOKENS`). Typical use is 80 to 250 tokens, so this is a runaway guard, not a speedup. A tighter cap
+  risks a truncation and a repair call, which costs more than it saves.
+- **Other models, not adopted.** `gpt-5.4-mini` is fastest (median 0.9 s, p90 1.1 s, 14/14 valid), but in 14 samples it invented consent ("Yeah, that's
+  okay with me" to a medication change), invented a personal fact ("I haven't taken one yet") and ignored an explicit "suggest an alternative" intent.
+  `gpt-6-luna` (median 2.1 s) was not meaningfully faster than astra with priority. Switching is just `REPLY_MODEL`, but that quality trade is the
+  lead's call.
+- **Keep-alive.** Node `fetch` already reuses connections inside one process, so nothing was added.
+- **Deployed baseline** from `docs/evidence/E2E_LATENCY.md` (median 3.9 s, p90 6.6 s) matches the shape above. The deployed server had no
+  `REPLY_REASONING_EFFORT`, so it will pick up `low` automatically once this code is deployed.
+
+Examples (before = original prompt, after = final prompt; same scenario text):
+
+| Partner line (scenario) | Before | After |
+|---|---|---|
+| "Do you want to watch a movie tonight?" | Yes, let's watch a movie tonight. / No movie for me tonight, thanks. / What movie did you have in mind? | Yeah, I'm down for a movie tonight. / Not tonight, I'm good. / What movie were you thinking? |
+| "Are you coming to dinner tonight?" (suggest an alternative) | Could we have dinner another night instead? / Would you like to meet for coffee instead of dinner? / Could we get takeout together tonight instead? | Could we do dinner another night instead? / How about we grab lunch tomorrow instead? / Could we hang out after dinner instead? |
+| "Is there anything you need?" (express a need) | I need some water, please. / I need a quiet break. / I need more time to explain what I need. | I'd like some water, please. / I could use some help, please. / I need a little quiet time. |
+| "The doctor says we can change your medication. Is that okay with you?" | Why is the doctor suggesting a medication change? / What are the benefits and risks of changing my medication? / Please don't change my medication until I've discussed it with the doctor. | What would changing my medication help with? / I'd like to know the risks before deciding. / I want to talk with the doctor before deciding. |
+
+The casual register is moderate: contractions and "Yeah, I'm down", "I'm good" appear when they fit, and consequential lines stay careful. Remaining stiff
+spots are mostly in the scenario that asks for detailed (up to 40 word) answers. Not human-reviewed.
+
+Settings now in code: low reasoning effort (default), `REPLY_MAX_OUTPUT_TOKENS` 1200, optional `REPLY_SERVICE_TIER`. Re-run with
+`node --import ./scripts/ts-register.mjs --env-file=.env.local scripts/latency-replies.mjs --label x --reps 2 --out docs/evidence/x.json`.

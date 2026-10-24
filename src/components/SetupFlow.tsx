@@ -10,7 +10,7 @@ import type { AccessMode, AiMode, ProfileDraft, Relationship, SettingPlace, Spee
 import { SCAN_DEFAULTS } from '@/core/limits';
 import { BUILT_IN_PHRASES } from '@/core/phrases';
 import { BlinkCalibration, describeBrowCalibration, describeCalibration, type FaceMode } from './BlinkCalibration';
-import { SPEECH_PROVIDER_LABELS, audioStatusLabel, formatTime } from './labels';
+import { SPEECH_PROVIDER_LABELS, audioStatusLabel, formatTime, providerDisplayName } from './labels';
 import type { PreviewOutcome } from '@/runtime/useAudio';
 import { inNativeShell, isDemoMode } from '@/runtime/demo-mode';
 import css from './setup.module.css';
@@ -259,7 +259,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             </div>
           )}
 
-          <p className={css.altLead}>Other ways to choose — use whichever works best today:</p>
+          <details className="setup-alt" open={choice !== 'brow-blink' || undefined}>
+            <summary>Other ways to choose (auto-scan, keyboard or switch, touch)</summary>
           <div className={css.altGrid}>
             <label className={`choice${choice === 'blink' ? ` ${css.altChosen}` : ''}`}>
               <input type="radio" name="access" value="blink" checked={choice === 'blink'} onChange={() => setChoice('blink')} />
@@ -297,6 +298,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             </div>
           )}
           <p className="hint">Every method uses the same full-text review and a separate confirmation before anything is spoken.</p>
+          </details>
           {usesScan && (
             <div className="field">
               <label htmlFor={`${uid}-scan`}>Scan speed (seconds per item)</label>
@@ -330,7 +332,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
           <fieldset>
             <legend>Voice</legend>
             <div className={css.audioPanel}>
-              <h3>{SPEECH_PROVIDER_LABELS.elevenlabs}</h3>
+              <h2>{SPEECH_PROVIDER_LABELS.elevenlabs}</h2>
               <p className={css.providerLine} role="status">
                 {elevenConfigured
                   ? 'Configured on this server.'
@@ -339,8 +341,9 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                     : 'Checking the server…'}
               </p>
               <p className="hint">
-                The exact sentence you confirm is sent to ElevenLabs to create the audio; it is AI-generated speech.
-                Nothing is sent before you confirm. Camera images never leave this device.
+                {speakOnSelect
+                  ? 'In fast mode, suggested sentences are sent to ElevenLabs ahead of time so the chosen one plays instantly. It is AI-generated speech. Camera images never leave this device.'
+                  : 'The exact sentence you confirm is sent to ElevenLabs to create the audio; it is AI-generated speech. Nothing is sent before you confirm. Camera images never leave this device.'}
               </p>
               {elevenConfigured && (
                 <label className="choice">
@@ -377,7 +380,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             </div>
 
             <div className={css.basicVoice}>
-              <h3>{SPEECH_PROVIDER_LABELS.browser}</h3>
+              <h2>{SPEECH_PROVIDER_LABELS.browser}</h2>
               {!runtime.speechAvailable && (
                 <p className="warning">The basic device voice is not available in this browser. Confirmed messages will still be shown as text.</p>
               )}
@@ -400,7 +403,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <button type="button" className="btn" onClick={() => runtime.testVoice(voiceURI || null, rate)} disabled={!runtime.speechAvailable}>
                 Test basic voice
               </button>
-              <p className="hint">The test says: “{VOICE_TEST_TEXT}” It is not part of the conversation.</p>
+              <p className="hint">The test says: “{VOICE_TEST_TEXT}”</p>
             </div>
           </fieldset>
 
@@ -412,7 +415,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                 <strong>Live AI</strong>
                 <span className="hint">
                   {liveAvailable
-                    ? `Sends conversation text to ${serverStatus?.replies.provider ?? 'the configured service'}${serverStatus?.replies.model ? ` (model: ${serverStatus.replies.model})` : ''}.`
+                    ? `Sends conversation text to ${providerDisplayName(serverStatus?.replies.provider)}${serverStatus?.replies.model ? ` (model: ${serverStatus.replies.model})` : ''}.`
                     : serverStatus ? 'Not configured on this server.' : 'Checking the server…'}
                 </span>
               </span>
@@ -532,7 +535,13 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
           </details>
         </div>
 
-        <div className={`setup-actions ${css.actionsArea}`}>
+        <div className={`setup-actions launch-card ${css.actionsArea}`}>
+          <h2 className="launch-title">Ready when you are</h2>
+          <ul className="launch-summary">
+            <li>{choice === 'brow-blink' ? 'Eyebrows to move · long blink to choose' : choice === 'pointer' ? 'Touch to choose' : choice === 'blink' ? 'Auto-scan · long blink to choose' : 'Keyboard or switch'}</li>
+            <li>{speakOnSelect ? 'Speaks as soon as you choose' : 'Review, then confirm to speak'}</li>
+            <li>{aiMode === 'live' ? 'Live AI suggestions' : aiMode === 'fixture' ? 'Fixture demo suggestions' : 'No AI suggestions'} · {SPEECH_PROVIDER_LABELS[speechProvider]}</li>
+          </ul>
           <button type="submit" className="btn btn-primary btn-large" disabled={!canStart} aria-describedby={`${uid}-start-hint`}>
             {!isFaceMode(accessMode) ? 'Start session'
               : savedReady ? 'Start with saved calibration'
@@ -546,9 +555,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               : needsConsent ? 'Live AI needs cloud consent. '
                 : needsCode ? 'Enter the access code. '
                   : codeRejected ? 'The access code was not accepted. ' : ''}
-            Suggestions: {aiMode === 'live' ? 'Live AI' : aiMode === 'fixture' ? 'Fixture demo' : 'Local only'}.
-            {' '}Voice: {SPEECH_PROVIDER_LABELS[speechProvider]}.
-            {audio && !audio.unlocked ? ' Audio is not enabled yet — on iPad, tap “Enable audio & test voice” first or confirmed messages may stay silent.' : ''}
+            {audio && !audio.unlocked ? 'Tap “Enable audio & test voice” once so the voice can play.' : ''}
           </p>
         </div>
       </form>

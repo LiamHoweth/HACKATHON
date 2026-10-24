@@ -9,6 +9,8 @@ export async function transcribe(audio: File, cfg: ServerConfig, signal: AbortSi
   form.append('file', audio, audio.name);
   form.append('model', cfg.transcriptionModel);
   form.append('response_format', 'json');
+  if (cfg.transcriptionLanguage) form.append('language', cfg.transcriptionLanguage);
+  if (cfg.transcriptionPrompt) form.append('prompt', cfg.transcriptionPrompt);
   const timeout = AbortSignal.timeout(cfg.transcriptionTimeoutMs);
   try {
     const res = await fetch(`${cfg.transcriptionBaseUrl}/audio/transcriptions`, {

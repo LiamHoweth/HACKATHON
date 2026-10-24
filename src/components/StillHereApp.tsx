@@ -74,8 +74,6 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
         <header className="app-header">
           <div className="brand">
             <span className="wordmark">STILL HERE</span>
-            <span className="brand-sep" aria-hidden="true">·</span>
-            <span className="tagline">Your words. Your choice.</span>
           </div>
           <StatusBar runtime={runtime} />
           <div className="safety" role="group" aria-label="Safety controls">

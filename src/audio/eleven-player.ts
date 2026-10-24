@@ -8,7 +8,12 @@
 // States: idle → requesting → buffering → playing → completed | failed | interrupted | uncertain,
 // plus blocked (play() rejected by the browser's autoplay policy).
 import type { ApiErrorCode, ConfirmedUtterance, Id, SpeechRequest } from '@/core/types';
-import { ACCESS_HEADER, type SpeechPlaybackState } from '@/runtime/contract';
+import type { SpeechPlaybackState } from '@/runtime/contract';
+import {
+  getSharedSpeechCache, SPEECH_ENDPOINT, SPEECH_REQUEST_TIMEOUT_MS, speechRequestHeaders, type SpeechAudioCache,
+} from '@/audio/speech-prefetch';
+
+export { SPEECH_ENDPOINT, SPEECH_REQUEST_TIMEOUT_MS };
 
 export type ElevenEventKind = 'start' | 'end' | 'error' | 'interrupted' | 'uncertain';
 /**
@@ -52,6 +57,8 @@ export type ElevenPlayerDeps = {
    * iPad silent switch, <audio> does not.
    */
   unlockExtras?: () => void;
+  /** Prefetched audio (fast mode). Without it every utterance is requested on demand. */
+  cache?: SpeechAudioCache | null;
 };
 
 export type ElevenSnapshot = {
@@ -61,11 +68,8 @@ export type ElevenSnapshot = {
   lastConfirmToPlayMs: number | null;
 };
 
-export const SPEECH_ENDPOINT = '/api/speech';
 /** No `playing` event this long after the audio bytes arrived → uncertain (never replayed). */
 export const PLAYING_WATCHDOG_MS = 10_000;
-/** Client-side ceiling on the /api/speech request. */
-export const SPEECH_REQUEST_TIMEOUT_MS = 25_000;
 /** Started but no `ended` this long → uncertain. Generous: short AAC sentences only. */
 export const endWatchdogMs = (text: string) => Math.max(20_000, text.length * 250);
 export const NATURAL_VOICE_TEST_TEXT = 'This is the natural voice preview. It is not part of the conversation.';
@@ -350,38 +354,55 @@ export class ElevenPlayer {
   }
 
   private async run(job: Job, body: SpeechRequest, accessCode: string): Promise<void> {
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (accessCode) headers[ACCESS_HEADER] = accessCode;
+    const headers = speechRequestHeaders(accessCode);
     job.requestTimer = this.timers.setTimeout(() => {
       job.timedOut = true;
       job.ctrl.abort();
     }, SPEECH_REQUEST_TIMEOUT_MS);
 
-    let blob: Blob;
-    try {
-      const res = await this.fetchImpl(SPEECH_ENDPOINT, {
-        method: 'POST', headers, body: JSON.stringify(body), signal: job.ctrl.signal, cache: 'no-store',
-      });
+    // Fast mode: audio for exactly this text + voice may already be prefetched (or be in flight).
+    // The key is the exact confirmed text, so what plays is always what was confirmed. A miss, or a
+    // failed prefetch, falls through to the normal request below. Previews never use the cache.
+    let blob: Blob | null = null;
+    const cached = job.preview ? null : this.deps.cache?.lookup(body.exactText, body.voiceChoiceId) ?? null;
+    if (cached?.kind === 'hit') {
+      blob = cached.blob;
+    } else if (cached?.kind === 'pending') {
+      const onAbort = new Promise<null>((resolve) => job.ctrl.signal.addEventListener('abort', () => resolve(null), { once: true }));
+      try {
+        blob = await Promise.race([cached.promise, onAbort]);
+      } finally {
+        cached.release();
+      }
       if (!this.live(job)) return;
-      const type = res.headers?.get?.('content-type') ?? '';
-      if (!res.ok || !type.startsWith('audio/')) {
-        let code: ApiErrorCode | null = null;
-        try {
-          const json = (await res.json()) as { ok?: boolean; error?: { code?: ApiErrorCode } } | null;
-          code = json && json.ok === false && json.error?.code ? json.error.code : null;
-        } catch {
-          code = null;
-        }
+    }
+
+    if (!blob) {
+      try {
+        const res = await this.fetchImpl(SPEECH_ENDPOINT, {
+          method: 'POST', headers, body: JSON.stringify(body), signal: job.ctrl.signal, cache: 'no-store',
+        });
         if (!this.live(job)) return;
-        job.code = code;
-        this.fail(job, res.ok ? MESSAGES.noAudio : speechErrorMessage(code, res.status));
+        const type = res.headers?.get?.('content-type') ?? '';
+        if (!res.ok || !type.startsWith('audio/')) {
+          let code: ApiErrorCode | null = null;
+          try {
+            const json = (await res.json()) as { ok?: boolean; error?: { code?: ApiErrorCode } } | null;
+            code = json && json.ok === false && json.error?.code ? json.error.code : null;
+          } catch {
+            code = null;
+          }
+          if (!this.live(job)) return;
+          job.code = code;
+          this.fail(job, res.ok ? MESSAGES.noAudio : speechErrorMessage(code, res.status));
+          return;
+        }
+        blob = await res.blob();
+      } catch {
+        if (!this.live(job)) return; // stopped or superseded: a late result never plays
+        this.fail(job, speechErrorMessage(job.timedOut ? 'TIMEOUT' : 'NETWORK'));
         return;
       }
-      blob = await res.blob();
-    } catch {
-      if (!this.live(job)) return; // stopped or superseded: a late result never plays
-      this.fail(job, speechErrorMessage(job.timedOut ? 'TIMEOUT' : 'NETWORK'));
-      return;
     }
     if (!this.live(job)) return;
     this.clearRequestTimer(job);
@@ -516,7 +537,9 @@ function previewOutcome(job: Job): PreviewOutcome {
 
 function setPlaybackSession() {
   const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { audioSession?: { type: string } }) : null;
-  if (nav?.audioSession) nav.audioSession.type = 'playback';
+  // Never downgrade an open microphone: 'playback' makes WebKit refuse capture, which would
+  // silently deafen hands-free listening. play-and-record also plays through the speaker.
+  if (nav?.audioSession && nav.audioSession.type !== 'play-and-record') nav.audioSession.type = 'playback';
 }
 
 function defaultCreateAudio(): AudioLike | null {
@@ -549,6 +572,6 @@ function defaultUnlockExtras() {
 let shared: ElevenPlayer | null = null;
 export function getSharedElevenPlayer(): ElevenPlayer | null {
   if (typeof window === 'undefined') return null;
-  if (!shared) shared = new ElevenPlayer();
+  if (!shared) shared = new ElevenPlayer({ cache: getSharedSpeechCache() });
   return shared;
 }

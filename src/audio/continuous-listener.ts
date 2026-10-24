@@ -16,13 +16,15 @@ export const VAD = {
   sustainFactor: 2,
   minOnsetRms: 0.02,
   minSustainRms: 0.012,
-  /** Silence that ends an utterance. */
-  endSilenceMs: 900,
+  /** Silence that ends an utterance. Pauses between words stay under ~500 ms, so this cuts the wait without splitting sentences. */
+  endSilenceMs: 650,
   /** Shorter than this (loud time) is treated as a noise blip and dropped. */
   minSpeechMs: 450,
   maxUtteranceMs: 15_000,
   /** While nobody talks, restart the recorder this often so leading silence stays short. */
-  idleRestartMs: 4_000,
+  idleRestartMs: 2_000,
+  /** Speech-quality AAC/Opus bitrate: smaller uploads, no audible loss for transcription. */
+  audioBitsPerSecond: 48_000,
 };
 
 type Recorder = { rec: MediaRecorder; chunks: Blob[]; startedAt: number };
@@ -38,6 +40,7 @@ export class ContinuousListener {
   private format: { mimeType: string; ext: string } | null = null;
   private previousSession: string | null = null;
   private paused = false;
+  private startRun = 0;
   private floor = 0.01;
   private loudTicks = 0;
   private inSpeech = false;
@@ -55,28 +58,50 @@ export class ContinuousListener {
     if (this.status !== 'off' && this.status !== 'error') return true;
     if (!recordingSupported()) return this.fail('Listening is not available in this browser. Type instead.');
     this.set('starting');
+    const run = ++this.startRun;
+    // stop() (or a newer start()) while a permission prompt / resume is pending supersedes this run.
+    const superseded = () => this.startRun !== run || this.status !== 'starting';
     this.previousSession = enterRecordSession();
+    let stream: MediaStream;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
     } catch (err) {
+      if (superseded()) return false;
       const name = err instanceof DOMException ? err.name : '';
       this.teardown();
       return this.fail(name === 'NotAllowedError'
         ? 'Microphone permission was not given. Allow it in Settings, or type instead.'
         : 'Could not start the microphone. Type instead.');
     }
+    if (superseded()) {
+      stream.getTracks().forEach((t) => t.stop());
+      return false;
+    }
+    this.stream = stream;
+    let ctx: AudioContext | null = null;
     try {
       const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AC();
-      if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
-      const source = this.ctx.createMediaStreamSource(this.stream);
-      this.analyser = this.ctx.createAnalyser();
+      ctx = new AC();
+      this.ctx = ctx;
+      if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+      if (superseded()) {
+        stream.getTracks().forEach((t) => t.stop());
+        void ctx.close().catch(() => {});
+        return false;
+      }
+      const source = ctx.createMediaStreamSource(stream);
+      this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 1024;
       source.connect(this.analyser);
       this.buf = new Float32Array(this.analyser.fftSize);
     } catch {
+      if (superseded()) {
+        stream.getTracks().forEach((t) => t.stop());
+        void ctx?.close().catch(() => {});
+        return false;
+      }
       this.teardown();
       return this.fail('Could not start listening. Type instead.');
     }
@@ -103,6 +128,7 @@ export class ContinuousListener {
       this.dropRecorder();
       this.set('paused');
     } else {
+      this.ensureRecordSession();
       this.resetVad();
       this.restartRecorder();
       this.set('listening');
@@ -111,6 +137,7 @@ export class ContinuousListener {
 
   private tick(): void {
     if (!this.analyser || !this.buf || this.paused) return;
+    this.ensureRecordSession();
     if (this.ctx?.state === 'suspended') void this.ctx.resume().catch(() => {});
     this.analyser.getFloatTimeDomainData(this.buf);
     let sum = 0;
@@ -132,7 +159,8 @@ export class ContinuousListener {
         this.lastLoud = t;
         this.speechMs = VAD.onsetTicks * VAD.tickMs;
         this.set('hearing');
-      } else if (this.recorder && t - this.recorder.startedAt > VAD.idleRestartMs) {
+      } else if (this.recorder && this.loudTicks === 0 && t - this.recorder.startedAt > VAD.idleRestartMs) {
+        // Never swap recorders while a possible onset is building, or its first phoneme could be lost.
         this.restartRecorder();
       }
       return;
@@ -151,6 +179,13 @@ export class ContinuousListener {
     }
   }
 
+  /** The voice player may flip the session back to 'playback', which makes WebKit refuse capture. */
+  private ensureRecordSession() {
+    const session = typeof navigator !== 'undefined' ? (navigator as Navigator & { audioSession?: { type: string } }).audioSession : undefined;
+    if (!session || session.type === 'play-and-record') return;
+    try { session.type = 'play-and-record'; } catch { /* ignore */ }
+  }
+
   private resetVad() {
     this.inSpeech = false;
     this.loudTicks = 0;
@@ -160,13 +195,23 @@ export class ContinuousListener {
   private newRecorder(): Recorder | null {
     if (!this.stream) return null;
     try {
-      const rec = this.format ? new MediaRecorder(this.stream, { mimeType: this.format.mimeType }) : new MediaRecorder(this.stream);
+      const rec = this.createMediaRecorder(this.stream);
       const r: Recorder = { rec, chunks: [], startedAt: this.now() };
       rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) r.chunks.push(e.data); };
       rec.start();
       return r;
     } catch {
       return null;
+    }
+  }
+
+  /** Small bitrate when the browser accepts it; falls back to the browser defaults when it throws. */
+  private createMediaRecorder(stream: MediaStream): MediaRecorder {
+    const mimeType = this.format?.mimeType;
+    try {
+      return new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: VAD.audioBitsPerSecond });
+    } catch {
+      return mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
     }
   }
 
@@ -232,10 +277,42 @@ function extFor(mime: string): string {
 /** Transcripts the speech model tends to invent from noise or silence. */
 const HALLUCINATIONS = /^(thank you|thanks|thanks for watching|you|bye|okay|uh|um|hmm)[.!?]*$/i;
 
+/**
+ * Back-channel filler ("uh huh", "mm-hmm", "got it"...). A transcript made
+ * only of these (repeats allowed) is never a real partner line, whatever its
+ * duration. Deliberately excludes yes/no/yeah/sure/okay/hello/hey: those can be
+ * real answers to something the person asked, or greetings. Matched on normalized text (lowercase, punctuation
+ * and hyphens turned into spaces).
+ */
+const BACKCHANNEL_PHRASES = [
+  'uh huh',
+  'mm hmm',
+  'mm hm',
+  'mmhmm',
+  'mhm',
+  'hmm',
+  'oh',
+  'ah',
+  'wow',
+  'got it',
+  'i see',
+];
+const BACKCHANNEL_ONLY = new RegExp(`^(?:(?:${BACKCHANNEL_PHRASES.join('|')})(?:\\s+|$))+$`);
+
+function isBackchannelOnly(text: string): boolean {
+  const normalized = text
+    .toLowerCase()
+    .replace(/['\u2019]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return normalized !== '' && BACKCHANNEL_ONLY.test(normalized);
+}
+
 /** True when a transcript is worth submitting as a partner line. */
 export function usableTranscript(text: string, speechMs: number): boolean {
   const t = text.trim();
   if (!/[a-z0-9]/i.test(t)) return false;
+  if (isBackchannelOnly(t)) return false;
   if (speechMs < 1200 && HALLUCINATIONS.test(t)) return false;
   return true;
 }

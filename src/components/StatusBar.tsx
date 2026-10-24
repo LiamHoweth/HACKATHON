@@ -48,7 +48,7 @@ export function StatusBar({ runtime }: { runtime: StillHereRuntime }) {
   // Show the suggestion mode once; name the batch source only when it differs from the mode.
   const modeLabel = AI_MODE_LABELS[st.aiMode];
   const batchLabel = batch ? BATCH_SOURCE_LABELS[batch.source] : null;
-  const suggestions = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · this batch: ${batchLabel}` : modeLabel;
+  const suggestions = batchLabel && batchLabel !== modeLabel ? `${modeLabel} · these suggestions: ${batchLabel}` : modeLabel;
 
   const voice = st.speechProvider === 'elevenlabs'
     ? (runtime.audio && !runtime.audio.elevenLabsConfigured ? 'Natural (not configured)' : 'Natural')

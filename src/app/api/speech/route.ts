@@ -5,6 +5,8 @@ import { approvedVoiceId } from '@/server/elevenlabs/voices';
 import { checkAccess, clientKey, failure, rateLimit, readBoundedText } from '@/server/request-guards';
 import type { ApiError } from '@/core/types';
 
+const SPEECH_RATE_LIMIT_PER_MIN = 40;
+
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -52,7 +54,8 @@ export async function POST(request: Request) {
     log(id, 'UNAUTHORIZED', startedAt, chars);
     return failure(id, 'UNAUTHORIZED', access === 'throttled' ? 'Too many incorrect access codes. Wait and try again.' : access === 'denied' ? 'Access code required for natural voice.' : 'Natural voice on a deployed server requires APP_ACCESS_TOKEN to be configured.', 401, false);
   }
-  if (!rateLimit(`speech:${clientKey(request)}`, 20, 60_000)) {
+  // 40/min per client: fast mode prefetches the 3 suggestions of every turn plus the spoken line.
+  if (!rateLimit(`speech:${clientKey(request)}`, SPEECH_RATE_LIMIT_PER_MIN, 60_000)) {
     log(id, 'RATE_LIMITED', startedAt, chars);
     return failure(id, 'RATE_LIMITED', 'Too many requests. Wait a moment.', 429);
   }
