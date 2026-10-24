@@ -119,7 +119,8 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
           <TargetList targets={actions} runtime={runtime} layout="actions" className="action-row" />
         </nav>
         <BlinkHint runtime={runtime} />
-        {open && (
+        {/* Demo simplicity: the context line only appears when the person has guided the reply. */}
+        {open && guidanceParts.length > 0 && (
           <p className="board-context">
             <span className="meta-label">Active context:</span> {open.anchor.mode === 'reply' ? 'Reply' : 'Starting'}
             {' · '}{sourceLabel}

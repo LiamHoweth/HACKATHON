@@ -6,7 +6,7 @@ import type { RecordingStatus } from '@/core/state';
 import { activeWorkspace } from '@/core/targets';
 import { BlinkStatus, isFaceMode } from './BlinkStatus';
 import {
-  ACCESS_LABELS, AI_MODE_LABELS, BATCH_SOURCE_LABELS, personalizationLabel, storageLabel,
+  ACCESS_LABELS, AI_MODE_LABELS, BATCH_SOURCE_LABELS, personalizationLabel,
 } from './labels';
 
 function micShort(status: RecordingStatus): string {
@@ -63,10 +63,12 @@ export function StatusBar({ runtime }: { runtime: StillHereRuntime }) {
           {face && <span className="sr-only"> ({ACCESS_LABELS[st.accessMode]})</span>}
         </dd>
       </div>
-      <div className={`status-item status-primary${recording ? ' status-recording' : ''}`}>
-        <dt>Mic</dt>
-        <dd>{recording && <span className="rec-dot" aria-hidden="true" />}{micShort(state.recording.status)}</dd>
-      </div>
+      {state.recording.status !== 'idle' && (
+        <div className={`status-item status-primary${recording ? ' status-recording' : ''}`}>
+          <dt>Mic</dt>
+          <dd>{recording && <span className="rec-dot" aria-hidden="true" />}{micShort(state.recording.status)}</dd>
+        </div>
+      )}
       <div className="status-item status-primary">
         <dt>Voice</dt>
         <dd>{voice}</dd>
@@ -75,17 +77,12 @@ export function StatusBar({ runtime }: { runtime: StillHereRuntime }) {
         <dt>Suggestions</dt>
         <dd>{suggestions}</dd>
       </div>
-      <div className="status-item status-secondary">
-        <dt>Personalization</dt>
-        <dd>
-          {personalizationLabel(state)}
-          {pendingProposal ? ' · suggestion available' : ''}
-        </dd>
-      </div>
-      <div className="status-item status-secondary">
-        <dt>Storage</dt>
-        <dd>{storageLabel(state.storageStatus, st.persistOnDevice)}</dd>
-      </div>
+      {pendingProposal && (
+        <div className="status-item status-secondary">
+          <dt>Personalization</dt>
+          <dd>{personalizationLabel(state)} · suggestion available</dd>
+        </div>
+      )}
       {face && noWakeLock && (
         <div className="status-item status-tip">
           <dt className="sr-only">Tip</dt>

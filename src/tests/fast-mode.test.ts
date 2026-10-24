@@ -40,6 +40,16 @@ describe('fast mode (speak on select)', () => {
     expect(d.ws()!.status).toBe('generating');
   });
 
+  it('a partner line pulls the person out of a menu straight to the new suggestions', () => {
+    const d = fast();
+    d.act('quick');
+    expect(d.surface().kind).toBe('quick');
+    d.partner('Do you want water?');
+    expect(d.surface().kind).toBe('board');
+    expect(d.s.staged).toHaveLength(0);
+    expect(d.ws()!.status).toBe('generating');
+  });
+
   it('a partner line heard while speaking is answered when speech ends', () => {
     const d = fast();
     d.act('cand-0');

@@ -642,7 +642,7 @@ export function reducer(s: State, action: Action): State {
       // Fast mode (speakOnSelect) is conversational: the newest partner line replaces open
       // suggestions on the board at once (the old question is parked, not lost).
       const busy = s.settings.speakOnSelect
-        ? currentSurface(s).kind !== 'board' || !!s.review || !!s.speech
+        ? currentSurface(s).kind === 'compose' || !!s.review || !!s.speech
         : (ws && !ws.closed) || currentSurface(s).kind !== 'board' || !!s.review || !!s.speech || s.staged.length > 0;
       if (busy && s.staged.length >= LIMITS.stagedQueue) {
         return notice(s, `The waiting list is full (${LIMITS.stagedQueue}). Answer or dismiss waiting messages first.`, action.at);
@@ -654,6 +654,8 @@ export function reducer(s: State, action: Action): State {
       s = { ...s, conversation: [...s.conversation, { role: 'partner', value: turn }], nextSequence: s.nextSequence + 1 };
       if (busy) return notice({ ...s, staged: [...s.staged, turn.id] }, 'New partner message waiting. Your current work is unchanged.', action.at);
       s = acceptPartnerTurn(s, turn.id, action.at);
+      // Fast mode: leave any menu so the new suggestions are in front of the person at once.
+      if (s.settings.speakOnSelect && currentSurface(s).kind !== 'board') s = { ...s, stack: [{ kind: 'board' }] };
       return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: action.at };
     }
     case 'PARTNER_EDIT_TURN': {

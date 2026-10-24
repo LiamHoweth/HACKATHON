@@ -88,7 +88,7 @@ export const PARTNER_SOURCE_LABELS: Record<PartnerTurnSource, string> = {
 export const DELIVERY_LABELS: Record<Delivery, string> = {
   queued: 'Getting ready to speak',
   speaking: 'Speaking now',
-  completed: 'Spoken (playback reported complete)',
+  completed: 'Spoken',
   interrupted: 'Stopped before finishing',
   failed: 'Speech failed — shown here as text',
   uncertain: 'Playback status uncertain',
@@ -114,7 +114,7 @@ export const BLINK_STATUS_LABELS: Record<BlinkStatus, { text: string; tone: Blin
   ready: { text: 'Ready', tone: 'ok', icon: '◉' },
   closing: { text: 'Keep eyes closed…', tone: 'work', icon: '◐' },
   selected: { text: 'Selected', tone: 'ok', icon: '✓' },
-  cooldown: { text: 'Re-arming', tone: 'work', icon: '◔' },
+  cooldown: { text: 'One moment', tone: 'work', icon: '◔' },
   'face-lost': { text: 'Face lost — paused', tone: 'stop', icon: '◌' },
 };
 

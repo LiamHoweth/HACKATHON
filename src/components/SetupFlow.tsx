@@ -233,8 +233,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
         <p className="wordmark" aria-hidden="true">STILL HERE</p>
         <h1 id={`${uid}-title`}>Set up this session</h1>
         <p className="tagline">Your words. Your choice.</p>
-        <p className="principle">AI offers possible words. The person decides what to say. Nothing is spoken without review and a separate confirmation.</p>
-        <p className="muted">A helper can complete this form by touch. The microphone and camera are off. The camera turns on only after you choose face control and press “Turn on camera”.</p>
+        <p className="principle">AI offers possible words. The person decides what to say.</p>
+        <p className="muted">A helper sets this up by touch, once. Then the partner just talks, and the person answers with eyebrows and blinks.</p>
       </header>
 
       <form className={`setup-form ${css.setupForm}`} onSubmit={start} noValidate>
@@ -445,13 +445,15 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             )}
           </fieldset>
 
+          <details className="setup-more" open={needsConsent || undefined}>
+            <summary>More options: privacy, conversation context, profile</summary>
           <fieldset>
             <legend>Privacy and learning</legend>
             <label className="choice">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
               <span>
                 <strong>I consent to sending conversation text (and recorded partner audio, if used) to the configured cloud AI service</strong>
-                <span className="hint">Required for Live AI and for recording partner speech. The microphone stays off until a partner presses Talk.</span>
+                <span className="hint">Required for Live AI and for recording partner speech. During a session the microphone listens for the partner; the app pauses listening while it speaks.</span>
               </span>
             </label>
             {needsConsent && <p className="warning" role="status">Live AI needs this consent. Choose another source or give consent.</p>}
@@ -527,6 +529,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               <p className="hint">Fictional demo profile filled in. It does not turn on learning or saving.</p>
             )}
           </fieldset>
+          </details>
         </div>
 
         <div className={`setup-actions ${css.actionsArea}`}>

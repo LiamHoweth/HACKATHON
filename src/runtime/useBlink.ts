@@ -144,7 +144,7 @@ const STATUS_MESSAGES: Record<BlinkStatus, string> = {
   ready: 'Ready — blink deliberately to select',
   closing: 'Keep eyes closed…',
   selected: 'Selected',
-  cooldown: 'Re-arming…',
+  cooldown: 'Got it — one moment…',
   'face-lost': 'Face lost — paused. Look at the screen, then blink to resume.',
 };
 
@@ -309,7 +309,7 @@ export function composeFeedback(i: FeedbackInput): GestureFeedback {
   if (i.mode === 'brow-blink' && (i.browStatus === 'latched' || i.browStatus === 'rearming')) {
     return { kind: 'cooldown', label: 'Lower your eyebrows to re-arm' };
   }
-  if (i.status === 'cooldown' || i.status === 'selected') return { kind: 'cooldown', label: 'Re-arming — open your eyes' };
+  if (i.status === 'cooldown' || i.status === 'selected') return { kind: 'cooldown', label: 'Got it — open your eyes' };
   if (!i.calibrated) return { kind: 'face-detected', label: 'Face detected — calibrate to use gestures' };
   return i.mode === 'brow-blink'
     ? { kind: 'face-detected', label: 'Raise eyebrows to move · long blink to select' }
@@ -485,7 +485,7 @@ export class BlinkEngine {
     if (running) {
       if (this.stalled) message = 'Camera image stopped updating — selection held.';
       else if (status === 'cooldown' && g.lastDiscard === 'too-long') message = 'Closed too long — not selected. Open your eyes to re-arm.';
-      else if (status === 'cooldown' && g.awaitingOpen) message = 'Re-arming… open your eyes.';
+      else if (status === 'cooldown' && g.awaitingOpen) message = 'Got it — open your eyes.';
       else if (status === 'ready' && !this.requiredCalibrated() && !calibrating) message = 'Face found — calibrate before using face gestures.';
       else if (status === 'ready' && mode === 'brow-blink') message = 'Ready — raise eyebrows to move, long blink to select';
       if (this.faceCount > 1 && (status === 'ready' || status === 'cooldown' || status === 'closing' || status === 'selected')) {

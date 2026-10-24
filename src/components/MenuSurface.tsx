@@ -14,7 +14,7 @@ type MenuKind = Exclude<Surface['kind'], 'board' | 'review' | 'compose' | 'speak
 
 const HEADINGS: Record<MenuKind, { title: string; sub: string }> = {
   guide: { title: 'Guide my response', sub: 'Choose a direction or wording. New suggestions follow your guidance; you still choose and review.' },
-  quick: { title: 'Quick phrases', sub: 'Each phrase opens for review before it is spoken.' },
+  quick: { title: 'Quick phrases', sub: 'Choose a phrase to say it.' },
   initiate: { title: 'Start a conversation', sub: 'No question needed. Pick a kind of opener, or write your own.' },
   'initiate-topics': { title: 'Choose a topic', sub: 'Only approved interests and things actually said this session are listed.' },
   tools: { title: 'More tools', sub: 'Conversation history, preferences, and session controls.' },

@@ -90,7 +90,7 @@ function gestureLine(runtime: StillHereRuntime, ack: ReturnType<typeof useAccept
     return { icon: '◔', text: 'Relax your eyebrows', tone: 'work', coarse: 'ready' };
   }
   if (status === 'cooldown' || fb?.kind === 'cooldown') {
-    return { icon: '◔', text: 'Re-arming…', tone: 'work', coarse: 'ready' };
+    return { icon: '◔', text: 'Got it — one moment…', tone: 'work', coarse: 'ready' };
   }
   return {
     icon: '◉',
