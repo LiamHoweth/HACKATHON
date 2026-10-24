@@ -1409,3 +1409,23 @@ input[type="text"], input[type="number"], input[type="password"], select, textar
   .path-chip { border-color: CanvasText; }
   .is-scan .path-chip { border-color: HighlightText; color: HighlightText; }
 }
+
+/* ---------- Pending partner line (fast mode: partner spoke while you were busy) ---------- */
+.pending-partner {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--info-text);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  margin: 0 0 0.75rem;
+}
+.pending-partner-text {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.pending-partner-label {
+  font-weight: 700;
+}

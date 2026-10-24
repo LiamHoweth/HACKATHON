@@ -480,6 +480,12 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
       if (!s.staged.includes(cmd.turnId)) return s;
       return toBoard(acceptPartnerTurn(s, cmd.turnId, at), at);
     }
+    // Leave what the person is doing (drafts are kept) and answer every waiting partner line now.
+    case 'answer-pending': {
+      if (s.staged.length === 0 || s.speech || s.review) return s;
+      s = answerAllStaged(toBoard(s, at), at);
+      return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at };
+    }
     case 'history-dismiss-staged': {
       s = updatePartnerTurn(s, cmd.turnId, { dismissed: true });
       return { ...s, staged: s.staged.filter((x) => x !== cmd.turnId) };
@@ -674,12 +680,38 @@ function stopSpeech(s: State, at: number, answer = true): State {
 // own-words typing and every pause or confirmation dialog.
 const FAST_MODE_HOLD: Surface['kind'][] = ['compose', 'paused', 'end-confirm', 'compose-clear', 'confirm-change'];
 
-// Fast mode: once speech is over, answer the newest partner line heard meanwhile.
+// Answers the whole waiting list at once: every waiting partner line joins the context in
+// chronological order, the list is cleared, and one question opens for the newest line.
+function answerAllStaged(s: State, at: number): State {
+  const waiting = s.staged
+    .map((id) => partnerTurn(s, id))
+    .filter((t): t is PartnerTurn => !!t)
+    .sort((x, y) => x.sequence - y.sequence);
+  if (waiting.length === 0) return { ...s, staged: [] };
+  const newest = waiting[waiting.length - 1];
+  for (const t of waiting.slice(0, -1)) s = updatePartnerTurn(s, t.id, { acceptedForContext: true });
+  // acceptPartnerTurn bumps contextRevision and starts generation for the newest line.
+  return acceptPartnerTurn({ ...s, staged: [newest.id] }, newest.id, at);
+}
+
+// Fast mode: once speech is over, answer the partner lines heard meanwhile (all as context,
+// the newest as the question).
 function answerStaged(s: State, at: number): State {
   if (!s.settings.speakOnSelect || s.staged.length === 0 || s.review || s.speech) return s;
   if (currentSurface(s).kind !== 'board') return s;
-  s = acceptPartnerTurn(s, s.staged[s.staged.length - 1], at);
+  s = answerAllStaged(s, at);
   return { ...s, surfaceRevision: s.surfaceRevision + 1, surfaceOpenedAt: at };
+}
+
+// Fast mode: while the person is busy, a new partner line continues the newest waiting line
+// (one combined entry) instead of growing the waiting list. Null when it would not fit.
+function combineStaged(s: State, text: string, at: number): State | null {
+  const lastId = s.staged[s.staged.length - 1];
+  const turn = lastId ? partnerTurn(s, lastId) : null;
+  if (!turn || turn.dismissed || turn.acceptedForContext) return null;
+  if (turn.text.length + 1 + text.length > LIMITS.partnerInputChars) return null;
+  s = editPartnerTurnText(s, turn, `${turn.text} ${text}`, turn.source, at);
+  return notice(s, 'New partner message waiting. Your current work is unchanged.', at);
 }
 
 function endSession(s: State, at: number): State {
@@ -793,6 +825,10 @@ export function reducer(s: State, action: Action): State {
       const busy = fast
         ? FAST_MODE_HOLD.includes(currentSurface(s).kind) || !!s.review || !!s.speech
         : (ws && !ws.closed) || currentSurface(s).kind !== 'board' || !!s.review || !!s.speech || s.staged.length > 0;
+      if (fast && busy) {
+        const combined = combineStaged(s, text, action.at);
+        if (combined) return combined;
+      }
       if (busy && s.staged.length >= LIMITS.stagedQueue) {
         return notice(s, `The waiting list is full (${LIMITS.stagedQueue}). Answer or dismiss waiting messages first.`, action.at);
       }

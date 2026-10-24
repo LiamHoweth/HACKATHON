@@ -23,6 +23,13 @@ export function partnerText(s: State, turnId: string): string {
   return e ? e.value.text : '';
 }
 
+/** Newest partner line still waiting in s.staged, or null when nothing is pending. */
+export function newestStagedText(s: State): string | null {
+  const id = s.staged[s.staged.length - 1];
+  if (!id) return null;
+  return partnerText(s, id) || null;
+}
+
 export function parkedWorkspaces(s: State): Workspace[] {
   return Object.values(s.workspaces)
     .filter((w) => w.parked && !w.closed && w.id !== s.activeWorkspaceId)
@@ -184,6 +191,11 @@ function composeTargets(s: State, surface: Extract<Surface, { kind: 'compose' }>
     { id: 'c-delete', label: 'Delete', enabled: draft.length > 0, command: { type: 'compose-delete' }, region: 'keys' },
     { id: 'c-clear', label: 'Clear…', enabled: draft.length > 0, command: { type: 'open', surface: { kind: 'compose-clear' } }, region: 'keys', tone: 'quiet' },
     ...(surface.purpose === 'message' ? [open('c-quick', 'Quick phrases', { kind: 'quick', page: 0 }, { region: 'keys', tone: 'quiet' })] : []),
+    // Fast mode: the partner said something new while the person was typing. Placed at the end so
+    // it never displaces the keys the person scans to first; the draft is kept by the reducer.
+    ...(surface.purpose === 'message' && s.settings.speakOnSelect && s.staged.length > 0
+      ? [{ id: 'c-answer-new', label: 'Answer the new message', enabled: true, command: { type: 'answer-pending' }, region: 'keys', tone: 'quiet' } satisfies Target]
+      : []),
     back(surface.purpose === 'message' ? 'Back (keep draft)' : 'Back'),
   ];
 }

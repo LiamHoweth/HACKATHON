@@ -2,6 +2,7 @@
 
 import type { StillHereRuntime } from '@/runtime/contract';
 import { TargetList } from './TargetButton';
+import { PendingPartnerLine } from './Composer';
 import { SurfaceTitle } from './SurfaceTitle';
 import { DELIVERY_LABELS } from './labels';
 import { BlinkStatus, isFaceMode } from './BlinkStatus';
@@ -18,6 +19,7 @@ export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
 
   return (
     <div className="speaking">
+      <PendingPartnerLine state={state} />
       <SurfaceTitle>{delivery === 'failed' ? 'Your message (speech failed)' : 'Speaking'}</SurfaceTitle>
       {speech ? (
         <>

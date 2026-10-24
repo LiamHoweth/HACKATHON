@@ -225,6 +225,8 @@ export type Command =
   | { type: 'initiate'; category: InitiationCategory; seed: string | null }
   | { type: 'history-answer'; turnId: Id }
   | { type: 'history-dismiss-staged'; turnId: Id }
+  /** Leave what you're doing (drafts are kept) and answer the partner's pending message now. */
+  | { type: 'answer-pending' }
   | { type: 'history-return'; workspaceId: Id }
   | { type: 'history-dismiss-workspace'; workspaceId: Id }
   | { type: 'park-active' }

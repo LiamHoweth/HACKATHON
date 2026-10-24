@@ -3,6 +3,7 @@
 import type { StillHereRuntime } from '@/runtime/contract';
 import { anchorLabel } from '@/core/targets';
 import { TargetList } from './TargetButton';
+import { PendingPartnerLine } from './Composer';
 import { SurfaceTitle } from './SurfaceTitle';
 import { MESSAGE_SOURCE_LABELS } from './labels';
 import { BlinkHint } from './BlinkStatus';
@@ -15,6 +16,7 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
 
   return (
     <div className="review">
+      <PendingPartnerLine state={state} />
       <SurfaceTitle sub={reviewSub(state.settings.accessMode)}>
         Review your message
       </SurfaceTitle>
