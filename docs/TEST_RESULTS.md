@@ -70,3 +70,13 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 | Selection errors | Not measured |
 | Candidate vs. scanning-keyboard comparison | Not measured |
 | Preference effect on length | Not measured |
+
+## Native iPad demo app (2026-10-24, ~12:55 PM CT)
+
+| Check | Result | Evidence |
+|---|---|---|
+| `ipad-shell/` built, signed (team TA67BL3L69, device auto-registered), installed and launched on iPad Air 13" M2 (iPadOS 27.2) via `scripts/build-ipad-shell.sh` | Pass | devicectl install + launch output, commit aedf913 |
+| App loads the Railway app full screen in demo mode | Pass | device screenshot (setup screen) |
+| Audio unlocked with no tap ("Audio ready / Audio enabled") | Pass | device screenshot |
+| Built-in access code accepted (natural voice shows "Configured on this server", which /api/status reveals only for a valid code) | Pass | device screenshot |
+| Camera permission, live gestures, audible speech in the app | Not yet run | needs a person in front of the iPad |
