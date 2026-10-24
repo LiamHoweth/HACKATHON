@@ -1,0 +1,71 @@
+{
+  "ranAt": "2026-10-24T17:37:31.440Z",
+  "script": "scripts/elevenlabs-smoke.mjs",
+  "base": "http://localhost:3000",
+  "target": "local",
+  "envPresence": {
+    "ELEVENLABS_API_KEY": true,
+    "ELEVENLABS_VOICE_ID": true,
+    "ELEVENLABS_ALLOWED_VOICE_IDS": true,
+    "ELEVENLABS_MODEL_ID": true,
+    "ELEVENLABS_TRANSPORT": false,
+    "ELEVENLABS_OUTPUT_FORMAT": false,
+    "ELEVENLABS_TIMEOUT_MS": false,
+    "ELEVENLABS_DAILY_CHAR_BUDGET": false,
+    "APP_ACCESS_TOKEN": false
+  },
+  "accessCodeSent": false,
+  "appVoices": {
+    "status": 200,
+    "code": "OK",
+    "count": 3,
+    "defaultVoiceId": "iP95p4xoKVk53GoZ742B"
+  },
+  "budget": {
+    "maxLines": 5,
+    "maxChars": 200,
+    "lines": 1,
+    "chars": 22,
+    "charsAttempted": 22
+  },
+  "lines": [
+    {
+      "n": 1,
+      "text": "Hey, how was your day?",
+      "chars": 22,
+      "file": "docs/evidence/tts/1-hey-how-was-your-day.mp3",
+      "httpStatus": 200,
+      "ok": true,
+      "errorCode": null,
+      "contentType": "audio/mpeg",
+      "modelHeader": "eleven_v4_turbo",
+      "bytes": 28883,
+      "looksLikeMp3": true,
+      "headersMs": 541,
+      "requestToBytesMs": 542,
+      "humanListening": "not reviewed",
+      "listeningNotes": ""
+    }
+  ],
+  "summary": {
+    "attempted": 1,
+    "succeeded": 1,
+    "medianRequestToBytesMs": 542,
+    "maxRequestToBytesMs": 542,
+    "models": [
+      "eleven_v4_turbo"
+    ]
+  },
+  "humanListening": "not reviewed",
+  "listener": {
+    "who": "not recorded",
+    "device": "not recorded",
+    "output": "not recorded",
+    "comparedWithBrowserVoice": "not recorded"
+  },
+  "notes": [
+    "requestToBytesMs is measured by this script from sending POST /api/speech to receiving the last MP3 byte. It includes the app server and ElevenLabs, not iPad playback; it is not confirmation-to-sound latency (TTS-10).",
+    "HTTP 200 with MP3 bytes proves the request path only. Word fidelity and naturalness need a human listening pass; see docs/evidence/tts/README.md.",
+    "Characters are charged per attempted request, including failures after the provider was contacted."
+  ]
+}
