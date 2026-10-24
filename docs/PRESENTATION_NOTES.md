@@ -56,3 +56,11 @@ AI offers possible words; the person decides what to say. On an iPad: raise your
 - [VERIFIED] Still Here now installs as a native iPad app (development build, WKWebView shell). It opens straight into the app with audio already unlocked and the access code built in; camera/microphone are pre-granted for the app's own site and auto-lock is off. One-command rebuild: `scripts/build-ipad-shell.sh`.
 - [NOT YET] Gestures and audible speech inside the installed app.
 - Talking point: no App Store needed for a demo; a free/dev signing build runs on the registered iPad (7-day profile on a free team).
+
+## 1:15 PM — Conversational mode (commit c5519d0)
+- [VERIFIED, unit tests + deployed] Hands-free partner listening: the partner just talks; each utterance is detected, transcribed and becomes the partner line automatically. Listening pauses while Still Here speaks, so it never hears itself.
+- [VERIFIED, unit tests + deployed] Fast mode: the top suggestion is highlighted first; one long blink speaks it immediately (no review step). Review + separate confirmation is still available with one setup checkbox.
+- [VERIFIED, unit tests + deployed] Multiple faces: tracking locks onto one face (most central and longest in frame) and keeps working when someone leans in.
+- [NOT YET] Tested end to end on the iPad with real voices and faces.
+- Talking point: time from partner question to spoken reply = transcription + suggestions + one blink + voice (~0.6 s).
+- Earlier fix (1:04 PM): the microphone failed on iPad because a "playback" audio session blocks capture; recording now switches to play-and-record.
