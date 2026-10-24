@@ -171,6 +171,22 @@ describe('fast mode (speak on select)', () => {
     expect(d.s.staged).toHaveLength(1);
   });
 
+  it('Pause during speech does not start new suggestions behind the pause screen', () => {
+    const d = fast();
+    d.act('cand-0');
+    d.speech('start');
+    d.partner('Wait, one more thing?');
+    const gens = d.generates().length;
+    d.dispatch({ type: 'SAFETY_PAUSE', at: d.tick() });
+    expect(d.surface().kind).toBe('paused');
+    expect(d.generates().length).toBe(gens);
+    expect(d.s.staged).toHaveLength(1);
+    d.act('pa-resume');
+    expect(d.surface().kind).toBe('board');
+    expect(d.s.staged).toHaveLength(0);
+    expect(d.ws()!.status).toBe('generating');
+  });
+
   it('a partner line heard while speaking is answered after Stop too', () => {
     const d = fast();
     d.act('cand-0');

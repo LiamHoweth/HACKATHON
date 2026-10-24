@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Still Here: Stage Card</title>
+<style>
+  @page { size: Letter landscape; margin: 0.3in; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; color: #000; font-size: 12pt; line-height: 1.2; }
+  header { background: #000; color: #fff; padding: 6px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+  header h1 { margin: 0; font-size: 20pt; }
+  header .rule { font-size: 14pt; font-weight: 800; color: #ffe066; }
+  .cols { display: flex; gap: 10px; margin-top: 8px; }
+  .col { flex: 1; border: 3px solid #000; border-radius: 10px; padding: 6px 10px 8px; }
+  .col h2 { margin: 0 0 5px; font-size: 17pt; padding: 3px 8px; color: #fff; border-radius: 6px; }
+  .p h2 { background: #0a4fa8; } .o h2 { background: #1a6b2e; } .h h2 { background: #a82a0a; }
+  .rule-box { background: #ffe066; border: 2px solid #000; border-radius: 6px; padding: 4px 8px; font-weight: 700; margin-bottom: 6px; }
+  .beat { margin: 5px 0; padding-top: 4px; border-top: 2px solid #000; }
+  .beat:first-of-type { border-top: 0; }
+  .beat b.t { font-size: 11pt; letter-spacing: .5px; text-transform: uppercase; display: block; }
+  .say { font-size: 15.5pt; font-weight: 800; line-height: 1.15; }
+  ul { margin: 2px 0 0 18px; padding: 0; } li { margin: 2px 0; }
+  .g { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  .g td { border: 2px solid #000; padding: 3px 6px; font-size: 12.5pt; }
+  .g td:first-child { font-weight: 800; background: #dff3e3; width: 56%; }
+  .warn { background: #ffe066; border: 2px solid #000; border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-weight: 700; }
+  .chk { list-style: none; margin-left: 0; } .chk li::before { content: "\2610  "; font-weight: 800; }
+  table.f { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .f td { border: 2px solid #000; padding: 2px 6px; font-size: 11pt; vertical-align: top; }
+  .f td:first-child { font-weight: 800; background: #fde3dc; width: 34%; }
+  code { font-family: Menlo, monospace; font-size: 10.5pt; background: #eee; border: 1px solid #000; border-radius: 3px; padding: 0 3px; }
+  footer { margin-top: 8px; font-size: 11pt; font-weight: 700; text-align: center; }
+</style>
+</head>
+<body>
+<header><h1>Still Here: Stage Card</h1><span class="rule">AI offers possible words. The person decides what to say.</span></header>
+
+<div class="cols">
+
+<div class="col p">
+  <h2>1. PARTNER (talk only)</h2>
+  <div class="rule-box">Stand close. Speak normally. One sentence. A follow-up within ~20 s merges into the same question. Don't count aloud.</div>
+  <div class="beat"><b class="t">Beat 1 (0:15)</b><div class="say">"Are you coming to dinner tonight?"</div></div>
+  <div class="beat"><b class="t">Beat 2 (0:50) after the voice stops</b><div class="say">"What time should we meet?"</div></div>
+  <div class="beat"><b class="t">Beat 3 (1:15) then silent</b><div class="say">"Let's skip dinner and just stay in. Okay?"</div></div>
+  <div class="beat"><b class="t">Beat 4 (1:55) someone leans in</b><div class="say">"Can I get you anything to drink?"</div></div>
+  <div class="warn">Noisy hall or wrong transcript? Helper taps Stop listening. Type your line under "Type or record instead".</div>
+</div>
+
+<div class="col o">
+  <h2>2. OPERATOR (face only)</h2>
+  <table class="g">
+    <tr><td>Eyebrows &frac12; s</td><td>NEXT</td></tr>
+    <tr><td>Long blink (~1 s)</td><td>SELECT &amp; speak</td></tr>
+    <tr><td>Long blink while speaking</td><td>STOP</td></tr>
+    <tr><td>Normal blinks</td><td>nothing</td></tr>
+  </table>
+  <div class="beat"><b class="t">Beat 1</b>Wait for 3 suggestions (top is lit). One long blink.</div>
+  <div class="beat"><b class="t">Beat 2</b>One raise = one step to #2. Long blink.</div>
+  <div class="beat"><b class="t">Beat 3</b>Raise ____x to Guide my response, blink. Raise ____x to Disagree, blink. Blink to speak.</div>
+  <div class="beat"><b class="t">Beat 4</b>Long blink on top suggestion. Ignore the second face.</div>
+  <div class="warn">Face lost / Paused: look back at the screen, long blink on Resume.<br>Missed raise or blink: once more, slower. Max twice.</div>
+</div>
+
+<div class="col h">
+  <h2>3. HELPER / IF IT BREAKS</h2>
+  <b>T-5 CHECK</b>
+  <ul class="chk">
+    <li>Volume up, silent mode off</li>
+    <li>App open, ready screen</li>
+    <li>Tap Start with saved calibration</li>
+    <li>On the Mac: <code>node scripts/smoke-deployed.mjs</code> = 6/6 PASS</li>
+  </ul>
+  <table class="f">
+    <tr><td>No suggestions after ~8 s</td><td>Check Wi-Fi. Tap Pause and type, or None of these.</td></tr>
+    <tr><td>No sound</td><td>Volume / silent switch. More tools, Controls, basic voice.</td></tr>
+    <tr><td>Noisy room</td><td>Stop listening, then type the partner line.</td></tr>
+    <tr><td>Gestures flaky</td><td>Tap answers directly (touch works everywhere).</td></tr>
+    <tr><td>App crash</td><td>Reopen app. Else Safari private tab: https://api-production-18038.up.railway.app + code from the Mac (projector off): <code>cut -d= -f2 .env.railway.local</code></td></tr>
+  </table>
+  <div class="warn">Switch, then say what happened. Never show or say the code.</div>
+</div>
+
+</div>
+<footer>Engineering prototype. Not tested with AAC users. Don't say: instant, first, faster than typing, offline, clinically validated.</footer>
+</body>
+</html>

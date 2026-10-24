@@ -5,7 +5,7 @@
 //
 //   node scripts/e2e-latency.mjs [--base https://api-production-18038.up.railway.app]
 //        [--env-file .env.railway.local] [--passes 2] [--out docs/evidence/e2e-latency-<HHMM>.json]
-//        [--md docs/evidence/E2E_LATENCY.md] [--dry-run]
+//        [--md docs/evidence/E2E_LATENCY-<HHMM>.md] [--dry-run]
 //
 // Per question and pass: POST /api/transcribe (T1), POST /api/replies (T2), POST /api/speech for
 // the first suggestion (T3 = full MP3, plus time to first byte). Pass 1 requests only the first
@@ -18,7 +18,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 
@@ -45,7 +45,8 @@ const base = arg('--base', 'https://api-production-18038.up.railway.app').replac
 const passes = Math.max(1, Math.min(2, Number(arg('--passes', 2)) || 2));
 const hhmm = new Date().toLocaleString('sv-SE', { timeZone: 'America/Chicago' }).slice(11, 16).replace(':', '');
 const outPath = resolve(ROOT, arg('--out', `docs/evidence/e2e-latency-${hhmm}.json`));
-const mdPath = resolve(ROOT, arg('--md', 'docs/evidence/E2E_LATENCY.md'));
+const mdPath = resolve(ROOT, arg('--md', `docs/evidence/E2E_LATENCY-${hhmm}.md`));
+if (basename(mdPath) === 'E2E_LATENCY.md') { console.error('Refusing to overwrite the E2E_LATENCY.md baseline; pick another --md path.'); process.exit(2); }
 
 const baseUrl = new URL(base);
 const localHost = ['localhost', '127.0.0.1', '[::1]'].includes(baseUrl.hostname);

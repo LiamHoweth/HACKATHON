@@ -414,7 +414,8 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
       if (s.recording.status === 'recording') s = addEffects(s, { kind: 'discard-recording' });
       return push(s, { kind: 'paused' }, at);
     }
-    case 'resume': return pop(s, at);
+    // Fast mode: on resume, answer a partner line that waited during the pause (if nothing is open).
+    case 'resume': return answerStaged(pop(s, at), at);
     case 'end-session': return endSession(s, at);
     case 'initiate': {
       s = parkActive(s);
@@ -569,12 +570,14 @@ function rememberFailure(next: State, before: State, delivery: 'failed' | 'uncer
   return { ...next, lastFailedSpeech: { utteranceId: u.id, text: u.exactText, source, delivery } };
 }
 
-function stopSpeech(s: State, at: number): State {
+// `answer`: false when pausing — staged partner lines wait until the person resumes.
+function stopSpeech(s: State, at: number, answer = true): State {
   if (!s.speech) return currentSurface(s).kind === 'speaking' ? pop(s, at) : s;
   const { utterance, afterStack } = s.speech;
   s = setDelivery(s, utterance.id, 'interrupted');
   s = addEffects({ ...s, speech: null }, { kind: 'stop-speech', utteranceId: utterance.id });
-  return answerStaged(setStack(s, afterStack, at), at);
+  s = setStack(s, afterStack, at);
+  return answer ? answerStaged(s, at) : s;
 }
 
 // Fast mode keeps these surfaces in front of a new partner line (it waits instead):
@@ -796,7 +799,7 @@ export function reducer(s: State, action: Action): State {
     }
     case 'SAFETY_PAUSE': {
       if (s.phase !== 'active' || currentSurface(s).kind === 'paused') return s;
-      if (s.speech) s = stopSpeech(s, action.at);
+      if (s.speech) s = stopSpeech(s, action.at, false);
       if (s.recording.status === 'recording') s = addEffects(s, { kind: 'discard-recording' });
       return push(s, { kind: 'paused' }, action.at);
     }
