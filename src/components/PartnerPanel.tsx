@@ -4,8 +4,18 @@ import { useId, useState } from 'react';
 import type { StillHereRuntime } from '@/runtime/contract';
 import { LIMITS } from '@/core/limits';
 import { DELIVERY_LABELS } from './labels';
+import type { ContinuousListening } from '@/runtime/useContinuousListening';
 
-export function PartnerPanel({ runtime }: { runtime: StillHereRuntime }) {
+const LISTEN_LABELS = {
+  off: 'Not listening',
+  starting: 'Starting the microphone…',
+  listening: 'Listening — just talk',
+  hearing: 'Hearing you…',
+  paused: 'Paused while Still Here speaks',
+  error: 'Listening stopped',
+} as const;
+
+export function PartnerPanel({ runtime, listening }: { runtime: StillHereRuntime; listening?: ContinuousListening }) {
   const { state, partner } = runtime;
   const uid = useId();
   const [text, setText] = useState('');
@@ -48,6 +58,21 @@ export function PartnerPanel({ runtime }: { runtime: StillHereRuntime }) {
       </div>
       <div id={`${uid}-body`} className="partner-body" hidden={collapsed}>
         <p className="hint">For the person talking with the user. Typing always works.</p>
+
+        {listening?.available && (
+          <section className={`listen listen-${listening.enabled ? listening.status : 'off'}`} aria-label="Hands-free listening">
+            <p className="listen-status" role="status">
+              <span className="listen-dot" aria-hidden="true" />
+              {listening.enabled ? LISTEN_LABELS[listening.status] : 'Hands-free listening is off'}
+              {listening.transcribing > 0 && <span className="listen-sub"> · Transcribing…</span>}
+            </p>
+            {listening.message && <p className="warning">{listening.message}</p>}
+            {listening.lastHeard && <p className="listen-heard">Heard: “{listening.lastHeard}”</p>}
+            <button type="button" className="btn btn-small btn-quiet" onClick={() => listening.setEnabled(!listening.enabled)}>
+              {listening.enabled ? 'Stop listening' : 'Listen hands-free'}
+            </button>
+          </section>
+        )}
 
         <form onSubmit={send} className="partner-form">
           <label htmlFor={`${uid}-say`}>Type what you said</label>

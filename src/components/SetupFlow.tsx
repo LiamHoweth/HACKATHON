@@ -44,6 +44,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const [chosenAiMode, setChosenAiMode] = useState<AiMode>(DEFAULT_SETTINGS.aiMode);
   const [consent, setConsent] = useState(false);
   const [sessionLearning, setSessionLearning] = useState(false);
+  // Fast, conversational mode: one selection speaks at once. On by default for the demo.
+  const [speakOnSelect, setSpeakOnSelect] = useState(true);
   const [persistChoice, setPersistChoice] = useState<boolean | null>(null);
   const [measurement, setMeasurement] = useState(false);
   const [relationship, setRelationship] = useState<Relationship | ''>('');
@@ -164,6 +166,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
     language: voices.find((v) => v.voiceURI === voiceURI)?.lang ?? DEFAULT_SETTINGS.language,
     scope: { relationship: relationship || null, setting: place || null },
     demoProfile: isDemoProfile,
+    speakOnSelect,
   });
 
   const enterSession = (mode: AccessMode) => {
@@ -313,6 +316,17 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
 
         {/* Wide landscape: this group forms the right column. DOM (reading) order is unchanged. */}
         <div className={css.optionsArea}>
+          <fieldset>
+            <legend>Speaking</legend>
+            <label className="choice">
+              <input type="checkbox" checked={speakOnSelect} onChange={(e) => setSpeakOnSelect(e.target.checked)} />
+              <span>
+                <strong>Speak as soon as I choose (fastest)</strong>
+                <span className="hint">One long blink on a suggestion speaks it right away. The top suggestion is highlighted first. Turn off to review and confirm each message with a second blink.</span>
+              </span>
+            </label>
+          </fieldset>
+
           <fieldset>
             <legend>Voice</legend>
             <div className={css.audioPanel}>

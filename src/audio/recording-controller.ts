@@ -46,7 +46,7 @@ function extFor(mime: string): string {
 // 'play-and-record' only while recording and put the previous type back afterwards.
 type AudioSessionNav = Navigator & { audioSession?: { type: string } };
 
-function enterRecordSession(): string | null {
+export function enterRecordSession(): string | null {
   const session = typeof navigator !== 'undefined' ? (navigator as AudioSessionNav).audioSession : undefined;
   if (!session) return null;
   const previous = session.type;
@@ -58,7 +58,7 @@ function enterRecordSession(): string | null {
   return previous;
 }
 
-function restoreAudioSession(previous: string | null) {
+export function restoreAudioSession(previous: string | null) {
   const session = typeof navigator !== 'undefined' ? (navigator as AudioSessionNav).audioSession : undefined;
   if (!session || previous === null) return;
   try {

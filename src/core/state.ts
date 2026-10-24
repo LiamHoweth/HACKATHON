@@ -105,6 +105,8 @@ export type Settings = {
   language: string;
   scope: Scope;
   demoProfile: boolean;
+  /** Fast mode: selecting a suggestion or quick phrase speaks it at once (no review/confirm step). */
+  speakOnSelect: boolean;
 };
 
 export type StorageStatus = 'unknown' | 'empty' | 'loaded' | 'corrupt' | 'unavailable' | 'saved' | 'write-failed' | 'session-only';
@@ -263,6 +265,7 @@ export const DEFAULT_SETTINGS: Settings = {
   language: 'en-US',
   scope: { relationship: null, setting: null },
   demoProfile: false,
+  speakOnSelect: false,
 };
 
 export const EMPTY_GUIDANCE = (scope: Scope): Guidance => ({ intent: null, wording: [], userTopicOrSeed: null, scope });

@@ -15,6 +15,7 @@ import { PartnerPanel } from './PartnerPanel';
 import { CameraPreview } from './CameraPreview';
 import { GestureFeedback } from './GestureFeedback';
 import { isFaceMode } from './BlinkStatus';
+import { useContinuousListening } from '@/runtime/useContinuousListening';
 
 const FINE_POINTER_QUERY = '(hover: hover) and (pointer: fine)';
 function subscribeFinePointer(onChange: () => void): () => void {
@@ -42,6 +43,8 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
   const surface = currentSurface(state);
   const surfaceRef = useRef<HTMLElement>(null);
   const surfaceKey = `${state.stack.length}:${JSON.stringify(surface)}`;
+  // Hands-free partner listening: on by default whenever recording is allowed.
+  const listening = useContinuousListening(runtime);
 
   // On a surface change, move focus to the new surface heading only if focus was in the
   // communication surface (or nowhere). Never steal focus from the partner's text fields.
@@ -121,7 +124,7 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
           {face && <CameraPreview runtime={runtime} />}
           <GestureFeedback runtime={runtime} />
         </section>
-        <PartnerPanel runtime={runtime} />
+        <PartnerPanel runtime={runtime} listening={listening} />
       </div>
     </div>
   );

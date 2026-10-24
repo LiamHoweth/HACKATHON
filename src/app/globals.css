@@ -554,6 +554,14 @@ label { font-weight: 600; }
   font-weight: 900; font-size: 1.2rem; letter-spacing: 0.04em;
   color: var(--rec); border: 3px solid var(--rec); border-radius: 10px; padding: 0.5rem 0.75rem;
 }
+.listen { display: grid; gap: 0.4rem; justify-items: start; padding: 0.6rem 0.75rem; border: 3px solid var(--border); border-radius: 10px; }
+.listen-status { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.1rem; }
+.listen-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--muted); flex: none; }
+.listen-listening, .listen-hearing { border-color: var(--rec); }
+.listen-listening .listen-dot, .listen-hearing .listen-dot { background: var(--rec); }
+.listen-hearing .listen-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--rec) 35%, transparent); }
+.listen-sub { font-weight: 600; color: var(--muted); }
+.listen-heard { font-size: 0.95rem; color: var(--muted); }
 .transcript { display: grid; gap: 0.5rem; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 10px; }
 .partner-recent { padding-top: 0.75rem; border-top: 2px solid var(--border-soft); }
 .partner-recent h3 { font-size: 1rem; color: var(--muted); margin-bottom: 0.4rem; }

@@ -251,11 +251,12 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
       if (!ws?.batch) return s;
       const c = ws.batch.candidates.find((x) => x.id === cmd.candidateId);
       if (!c) return s;
-      return openReview(s, {
+      s = openReview(s, {
         workspaceId: ws.id, originatingBatchId: ws.batch.id, originatingCandidateId: c.id,
         source: ws.batch.source, exactText: c.text,
         selectedByEventId: a.eventId, selectedByInputCycleId: a.cycleId, returnSurface: 'board',
       }, { kind: 'candidate', workspaceId: ws.id, batchId: ws.batch.id, candidateId: c.id }, [{ kind: 'board' }], at);
+      return s.settings.speakOnSelect ? confirmSpeak(s, a, true) : s;
     }
     case 'none-of-these': {
       if (!ws?.batch) return s;
@@ -315,11 +316,12 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
     case 'quick-phrase': {
       const ph = s.savedPhrases.find((p) => p.id === cmd.phraseId);
       if (!ph) return s;
-      return openReview(s, {
+      s = openReview(s, {
         workspaceId: null, originatingBatchId: null, originatingCandidateId: null,
         source: 'saved-phrase', exactText: ph.text,
         selectedByEventId: a.eventId, selectedByInputCycleId: a.cycleId, returnSurface: 'previous',
       }, { kind: 'phrase', phraseId: ph.id }, stackWithout(s.stack, ['quick']), at);
+      return s.settings.speakOnSelect ? confirmSpeak(s, a, true) : s;
     }
     case 'quick-page': return replaceTop(s, { kind: 'quick', page: cmd.page }, at);
     case 'compose-group':
@@ -488,12 +490,14 @@ function turnKeyOf(anchor: Anchor): Id {
 }
 
 // Fresh, separate confirmation of the exact reviewed text. The only path to speech.
-function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State {
+// `instant` (settings.speakOnSelect) lets the selecting gesture also confirm, for the fast demo
+// flow: the snapshot is still frozen first, so exactly the selected text is spoken.
+function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>, instant = false): State {
   const r = s.review;
   if (!r) return s;
   const snap = r.snapshot;
   if (snap.sessionEpoch !== s.sessionEpoch) return s;
-  if (a.cycleId === snap.selectedByInputCycleId || a.eventId === snap.selectedByEventId) return s;
+  if (!instant && (a.cycleId === snap.selectedByInputCycleId || a.eventId === snap.selectedByEventId)) return s;
   const at = a.at;
   const utterance: ConfirmedUtterance = {
     id: newId(), reviewId: snap.id, exactText: snap.exactText,
@@ -635,7 +639,11 @@ export function reducer(s: State, action: Action): State {
       const text = action.text.trim().slice(0, LIMITS.partnerInputChars);
       if (!text) return s;
       const ws = activeWorkspace(s);
-      const busy = (ws && !ws.closed) || currentSurface(s).kind !== 'board' || !!s.review || !!s.speech || s.staged.length > 0;
+      // Fast mode (speakOnSelect) is conversational: the newest partner line replaces open
+      // suggestions on the board at once (the old question is parked, not lost).
+      const busy = s.settings.speakOnSelect
+        ? currentSurface(s).kind !== 'board' || !!s.review || !!s.speech
+        : (ws && !ws.closed) || currentSurface(s).kind !== 'board' || !!s.review || !!s.speech || s.staged.length > 0;
       if (busy && s.staged.length >= LIMITS.stagedQueue) {
         return notice(s, `The waiting list is full (${LIMITS.stagedQueue}). Answer or dismiss waiting messages first.`, action.at);
       }
@@ -694,8 +702,15 @@ export function reducer(s: State, action: Action): State {
       switch (action.kind) {
         case 'start':
           return metric(setDelivery(s, action.utteranceId, 'speaking'), 'playback-start', at);
-        case 'end':
-          return metric(leave(setDelivery(s, action.utteranceId, 'completed')), 'playback-end', at);
+        case 'end': {
+          let done = metric(leave(setDelivery(s, action.utteranceId, 'completed')), 'playback-end', at);
+          // Fast mode: answer what the partner said while the app was speaking.
+          if (done.settings.speakOnSelect && done.staged.length > 0 && currentSurface(done).kind === 'board' && !done.review) {
+            done = acceptPartnerTurn(done, done.staged[done.staged.length - 1], at);
+            done = { ...done, surfaceRevision: done.surfaceRevision + 1, surfaceOpenedAt: at };
+          }
+          return done;
+        }
         case 'interrupted':
           return leave(setDelivery(s, action.utteranceId, 'interrupted'));
         case 'error':

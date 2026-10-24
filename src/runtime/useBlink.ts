@@ -140,7 +140,7 @@ const STATUS_MESSAGES: Record<BlinkStatus, string> = {
   'permission-denied': 'Camera permission was not given. Allow the camera in the browser, or use keyboard or switch.',
   starting: 'Starting camera…',
   'no-face': 'Position your face in view',
-  'multiple-faces': 'More than one face — selection held',
+  'multiple-faces': 'More than one face — selection held', // legacy: the engine now follows one face instead
   ready: 'Ready — blink deliberately to select',
   closing: 'Keep eyes closed…',
   selected: 'Selected',
@@ -488,6 +488,9 @@ export class BlinkEngine {
       else if (status === 'cooldown' && g.awaitingOpen) message = 'Re-arming… open your eyes.';
       else if (status === 'ready' && !this.requiredCalibrated() && !calibrating) message = 'Face found — calibrate before using face gestures.';
       else if (status === 'ready' && mode === 'brow-blink') message = 'Ready — raise eyebrows to move, long blink to select';
+      if (this.faceCount > 1 && (status === 'ready' || status === 'cooldown' || status === 'closing' || status === 'selected')) {
+        message = `${this.faceCount} faces — following the centre one`;
+      }
     }
     const browOn = running && mode === 'brow-blink' && this.browRunning;
     const browStatus: BrowStatus = browOn ? this.brow.status : 'disabled';
@@ -1044,10 +1047,22 @@ export class BlinkEngine {
   // ===== Frames =====
   /** Per-frame entry point (detector callback). Public so tests can drive the engine with synthetic frames. */
   readonly onFrame = (raw: RawBlinkFrame) => {
+    if (raw.switched) {
+      // The followed face is now a different person: feed one dropout frame so any in-progress
+      // closure/raise is discarded and the brow machine needs a fresh stable-face period, then
+      // process the real frame a hair later (timestamps must stay strictly increasing).
+      this.processFrame({ t: raw.t, faces: 0, score: null, brow: null, faceCount: raw.faceCount });
+      this.processFrame({ ...raw, t: raw.t + 0.01, switched: false });
+      return;
+    }
+    this.processFrame(raw);
+  };
+
+  private processFrame(raw: RawBlinkFrame) {
     this.lastFrameAt = this.nowMs(); // processing time; raw.t may be the earlier capture time
     this.stalled = false;
     this.lastT = raw.t;
-    this.faceCount = raw.faces;
+    this.faceCount = raw.faceCount ?? raw.faces;
     const single = raw.faces === 1 && raw.score !== null;
     this.smoothed = single ? smoothScore(this.smoothed, raw.score as number) : null;
     const browSingle = raw.faces === 1 && raw.brow !== null && raw.brow !== undefined;
@@ -1068,7 +1083,7 @@ export class BlinkEngine {
       this.browRunning = false;
     }
     this.publish();
-  };
+  }
 
   // ===== Calibration driver =====
   private resetCalibrator(stage: CalibrationStage) {

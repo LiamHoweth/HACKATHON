@@ -13,12 +13,23 @@
 // with its camera capture time (performance timeline) instead of the later processing time, so
 // closure onsets line up better with what was highlighted. Timestamps stay strictly increasing.
 import { FaceLandmarker, FilesetResolver, type FaceLandmarkerResult } from '@mediapipe/tasks-vision';
+import { FaceSelector, type FaceSelection } from './face-selector';
 
 /**
  * One processed camera frame. `score` is the eye-closure score (0 open … 1 closed); `brow` is the
  * raw (unsmoothed) both-brow raise score 0..1. Both are null when no face / blendshapes.
  */
-export type RawBlinkFrame = { t: number; faces: number; score: number | null; brow: number | null };
+export type RawBlinkFrame = {
+  t: number;
+  /** Faces handed to the gesture machines: 1 when a face is being followed this frame, else 0 (or the real count from legacy callers). */
+  faces: number;
+  score: number | null;
+  brow: number | null;
+  /** Faces actually visible in the camera frame (display only). Defaults to `faces`. */
+  faceCount?: number;
+  /** The followed face changed to a different person on this frame: drop any in-progress gesture. */
+  switched?: boolean;
+};
 
 export type BlinkDetectorOptions = {
   onFrame: (frame: RawBlinkFrame) => void;
@@ -74,13 +85,24 @@ export function browRaiseFromCategories(cats: readonly Category[]): number | nul
   return finite01(Math.max(inner, (outerL + outerR) / 2));
 }
 
-/** Face count plus eye-closure and brow-raise scores for the first face. */
-export function faceSignalsFromResult(result: FaceLandmarkerResult): { faces: number; score: number | null; brow: number | null } {
+/** Face count plus eye-closure and brow-raise scores for the face at `index` (default: the first). */
+export function faceSignalsFromResult(result: FaceLandmarkerResult, index = 0): { faces: number; score: number | null; brow: number | null } {
   const faces = result.faceLandmarks?.length ?? 0;
   if (faces === 0) return { faces, score: null, brow: null };
-  const cats = result.faceBlendshapes?.[0]?.categories;
+  const cats = result.faceBlendshapes?.[index]?.categories;
   if (!cats || cats.length === 0) return { faces, score: null, brow: null };
   return { faces, score: eyeClosureFromCategories(cats), brow: browRaiseFromCategories(cats) };
+}
+
+/**
+ * Engine frame for one detection result, following the single face chosen by `selection`.
+ * Several visible faces still report `faces: 1` (the followed one); `faceCount` keeps the real number.
+ * No followed face (none visible, or the locked face briefly missing) reports `faces: 0`.
+ */
+export function selectedFaceFrame(result: FaceLandmarkerResult, selection: FaceSelection): Omit<RawBlinkFrame, 't'> {
+  if (selection.index === null) return { faces: 0, score: null, brow: null, faceCount: selection.count, switched: selection.switched };
+  const { score, brow } = faceSignalsFromResult(result, selection.index);
+  return { faces: 1, score, brow, faceCount: selection.count, switched: selection.switched };
 }
 
 /** Eye-closure score for the first face (kept for existing callers). */
@@ -114,7 +136,7 @@ async function createLandmarker(wasmBase: string, modelPath: string, cpuOnly = f
   const options = (delegate: 'GPU' | 'CPU') => ({
     baseOptions: { modelAssetPath: modelPath, delegate },
     runningMode: 'VIDEO' as const,
-    numFaces: 2, // needed to notice a second face; one-face mode cannot establish exclusivity
+    numFaces: 3, // several faces are tracked so FaceSelector can follow one (longest in frame, most central)
     outputFaceBlendshapes: true,
     outputFacialTransformationMatrixes: false,
   });
@@ -141,6 +163,7 @@ export class BlinkDetector {
   private lastFrameT = -Infinity;
   private rebuilding = false;
   private rebuiltOnCpu = false;
+  private readonly selector = new FaceSelector();
 
   private constructor(
     private landmarker: FaceLandmarker,
@@ -261,7 +284,8 @@ export class BlinkDetector {
         const result = this.landmarker.detectForVideo(v, ts);
         const t = frameTimestamp(now, this.captureTime, this.lastFrameT);
         this.lastFrameT = t;
-        frame = { t, ...faceSignalsFromResult(result) };
+        const selection = this.selector.select((result.faceLandmarks ?? []).map((landmarks) => ({ landmarks })), t);
+        frame = { t, ...selectedFaceFrame(result, selection) };
         this.consecutiveErrors = 0;
       } catch (e) {
         this.consecutiveErrors += 1;
