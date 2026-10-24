@@ -10,16 +10,21 @@ export function serverConfig() {
   const env = process.env;
   const aiProvider = (env.AI_PROVIDER ?? '').trim().toLowerCase();
   const anthropicKey = (env.ANTHROPIC_API_KEY ?? '').trim();
+  const openaiKey = (env.OPENAI_API_KEY ?? '').trim();
   const replyModel = (env.REPLY_MODEL ?? '').trim();
   const transcriptionProvider = (env.TRANSCRIPTION_PROVIDER ?? '').trim().toLowerCase();
-  const transcriptionKey = (env.TRANSCRIPTION_API_KEY ?? '').trim();
+  // An OpenAI transcription provider may reuse OPENAI_API_KEY.
+  const transcriptionKey = (env.TRANSCRIPTION_API_KEY ?? '').trim() || (transcriptionProvider === 'openai' ? openaiKey : '');
   const transcriptionModel = (env.TRANSCRIPTION_MODEL ?? '').trim();
+  const providerKey = aiProvider === 'anthropic' ? anthropicKey : aiProvider === 'openai' ? openaiKey : '';
   return {
     aiProvider,
     anthropicKey,
+    openaiKey,
     replyModel,
     replyFallbacks: (env.REPLY_FALLBACKS ?? 'default').trim().toLowerCase() !== 'off',
-    repliesConfigured: aiProvider === 'anthropic' && anthropicKey.length > 0 && replyModel.length > 0,
+    replyReasoningEffort: (env.REPLY_REASONING_EFFORT ?? '').trim().toLowerCase(),
+    repliesConfigured: providerKey.length > 0 && replyModel.length > 0,
     transcriptionProvider,
     transcriptionKey,
     transcriptionModel,
