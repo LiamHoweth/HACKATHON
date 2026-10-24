@@ -25,7 +25,7 @@ Keep 01 title and 07 close wording. **Add a new slide 2 "Imagine"** (illustrativ
 ## 1. Title
 
 - **Title:** Still Here
-- **On-slide text:** Your words. Your choice. Be part of the conversation while it's still happening. SASEHacks for Good, October 24, 2026.
+- **On-slide text:** Your words. Your choice. Be part of the conversation while it's still happening. Liam Howeth · Richard Oduma · SASEHacks for Good, October 24, 2026.
 - **Core value message (used on slides 1, 5 and 19):** Still Here gives people who cannot speak or use their hands a way to take part in a real, back-and-forth conversation: keeping up as it happens, in their own words, as naturally as possible. Line on slides: "Be part of the conversation while it's still happening." Language rules: person-first and non-pitying. Say "keep up with the conversation", "answer in the moment", "join in, not just respond later". Never say "suffer", "victims", "normal people", "despite their disability", "voiceless", "trapped".
 - **Visual:** Clean title card. Small iPad outline at right showing the board with two reply cards. Atkinson Hyperlegible type.
 - **Speaker notes (15 s):** "Hi, we're the Still Here team. Before we show you anything technical, we want you to imagine something."

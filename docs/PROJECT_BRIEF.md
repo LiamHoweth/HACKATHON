@@ -11,7 +11,7 @@ Status: event and idea selected (Still Here, **iPad eyebrow NEXT + long-blink SE
 | Event and official rules URL | SASEHacks for Good, University of Oklahoma. Official rules URL not recorded in the repo |
 | Start, end, and submission deadline (include timezone) | Saturday 2026-10-24. Hacking began 09:00 CT; submission and return to Gallogly for judging at 17:15 CT (from the supplied event briefing). Our planning targets, not official deadlines: feature freeze 15:30 CT, submission verification 17:00 CT |
 | Theme / track / judging criteria | "For Good" (social impact). Specific track and judging criteria not recorded |
-| Team size and eligibility | Liam Howeth (University of Oklahoma, computer engineering). Eligibility unconfirmed |
+| Team size and eligibility | Liam Howeth and Richard Oduma (University of Oklahoma). Eligibility unconfirmed |
 | Pre-event work and existing-code policy | Briefing says new project code must be written after 09:00 CT. All `src/` code was written after 09:00 on 2026-10-24. The generic repo foundation (no app code) was committed 08:49–09:08 CT. Liam to confirm this is permitted |
 | AI tools, generated assets, and disclosure policy | Unconfirmed. AI use is disclosed in [AI_USAGE.md](AI_USAGE.md); Liam to confirm the event's rule |
 | Required submission materials and hosting duration | Unconfirmed; draft in [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md) |

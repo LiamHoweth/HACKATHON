@@ -176,7 +176,7 @@ add("Opening", async (pres, sec) => {
   else T(s, "Still Here", { x: 0.6, y: 1.25, w: 4.6, h: 1.0, fontSize: 54, bold: true, color: HEX.white, valign: "bottom" });
   T(s, "Your words. Your choice.", { x: 0.6, y: 2.35, w: 4.6, h: 0.5, fontSize: 24, bold: true, color: HEX.mint });
   T(s, "Be part of the conversation while it's still happening.", { x: 0.6, y: 2.95, w: 4.3, h: 0.75, fontSize: 18, color: "E6E8EB" });
-  T(s, "SASEHacks for Good  ·  October 24, 2026", { x: 0.6, y: 4.6, w: 4.6, h: 0.3, fontSize: 12, color: "9AA0A8" });
+  T(s, "Liam Howeth  ·  Richard Oduma  ·  SASEHacks for Good", { x: 0.6, y: 4.6, w: 4.6, h: 0.3, fontSize: 12, color: "9AA0A8" });
   await screenshot(s, path.join(SCREENS, "02-board-highlight.png"), 5.4, 1.05, 4.2, 3.6, { dark: true, alt: "Still Here board on iPad: partner question and two reply cards" });
   s.addNotes("Hi, we're the Still Here team. Before we show you anything technical, we want you to imagine something.\n\n[Screenshot: current build, Live AI replies; the yellow highlight was applied by script for the capture, not reached by blink input.]");
 });
@@ -543,7 +543,7 @@ add("Trust", async (pres, sec) => {
     }
   }
   footnote(s, "Tests prove logic, not reliability. Smoke test 6/6 was for the 13:50 deploy.", { y: 5.0 });
-  s.addNotes("Everything here was built today, starting at 9 AM: face control with calibration, hands-free listening, AI suggestions, natural voice, a native iPad app and a Railway backend. We have 586 passing automated tests. And we're clear about what we haven't proven: we haven't measured gesture reliability on people, and no AAC user has tested it yet.\n\n[Re-run node scripts/smoke-deployed.mjs against the current deploy before citing 6/6 for it. Built with Claude Code under Liam's direction.]");
+  s.addNotes("Everything here was built today, starting at 9 AM: face control with calibration, hands-free listening, AI suggestions, natural voice, a native iPad app and a Railway backend. We have 586 passing automated tests. And we're clear about what we haven't proven: we haven't measured gesture reliability on people, and no AAC user has tested it yet.\n\n[Re-run node scripts/smoke-deployed.mjs against the current deploy before citing 6/6 for it. Built with Claude Code under the team's direction.]");
 });
 
 // 16. Related work
