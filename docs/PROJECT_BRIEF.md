@@ -52,3 +52,4 @@ Status: general setup only. The team has not selected an event, idea, or stack. 
 | Date | Decision and reason | Human owner / PR |
 | --- | --- | --- |
 | 2026-10-24 | Prepare a general collaboration foundation; choose the event, idea, and stack later. | Liam / setup request |
+| 2026-10-24 | Liam approved Claude pushing working checkpoints directly to `main` during the hackathon (while `main` is unprotected); otherwise use PRs. | Liam / Claude Code chat |

@@ -7,3 +7,4 @@ Each entry should identify the tool, contribution, human review, and validation.
 | Date | Tool | Contribution / affected area | Human review | Validation |
 | --- | --- | --- | --- | --- |
 | 2026-10-24 | Codex | General repository docs, shared AI ground rules, GitHub templates, and repository hygiene script/workflow. No application implementation. | Pending review of the setup PR | See setup PR for exact commands and results. |
+| 2026-10-24 | Claude Code | `CLAUDE.md` tooling section, `.claude/` project settings, launch stub, and kickoff/checkpoint/demo-check/pitch skills. No application implementation. | Liam approved push in chat | `python3 scripts/check_repo.py`, `git diff --check`, JSON validation. |

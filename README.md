@@ -32,6 +32,7 @@ After selecting a stack, the first implementation PR must document prerequisites
 | [AI usage](docs/AI_USAGE.md) | Concise disclosure of meaningful AI assistance |
 | [Demo checklist](docs/DEMO.md) | Demo rehearsal and submission preparation |
 | [AGENT_NOTES.md](AGENT_NOTES.md) | Current technical handoff notes |
+| [CLAUDE.md](CLAUDE.md), `.claude/` | Claude Code entry file, project settings, and hackathon skills |
 
 ## Working agreements
 
