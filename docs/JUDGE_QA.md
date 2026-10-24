@@ -1,16 +1,19 @@
 # Judge Q&A
 
-Refreshed **2026-10-24, about 13:50 CT**, for the current product: the installed iPad app with **fast mode on by default** (one long blink speaks the highlighted suggestion), **hands-free partner listening**, and natural-voice **prefetch**. Sources: [PRESENTATION_NOTES.md](PRESENTATION_NOTES.md), [manual/QUICK_GUIDE.md](manual/QUICK_GUIDE.md), [REHEARSAL.md](REHEARSAL.md), [TEST_RESULTS.md](TEST_RESULTS.md), [PERFORMANCE.md](PERFORMANCE.md), [REFERENCES.md](REFERENCES.md). `docs/evidence/E2E_LATENCY.md` does not exist yet. If it appears, replace the latency answer with its numbers and conditions.
+Refreshed **2026-10-24, about 14:00 CT**, for the current product: the installed iPad app with **fast mode on by default** (one long blink speaks the highlighted suggestion), **hands-free partner listening**, and natural-voice **prefetch**. Sources: [PRESENTATION_NOTES.md](PRESENTATION_NOTES.md), [manual/QUICK_GUIDE.md](manual/QUICK_GUIDE.md), [REHEARSAL.md](REHEARSAL.md), [TEST_RESULTS.md](TEST_RESULTS.md), [PERFORMANCE.md](PERFORMANCE.md), [REFERENCES.md](REFERENCES.md). Latency numbers come from `docs/evidence/E2E_LATENCY.md` (before and after the 13:50 CT deploy).
 
 **How to read the flags.** An answer marked **[NOT YET]** depends on something built but not verified. Say it with its caveat, or do not say it. Refresh these after the 3:30 PM rehearsal:
 
-| Item | Status at 13:50 CT |
+| Item | Status at 14:00 CT |
 | --- | --- |
 | Hands-free conversation, mic, audible reply, in the installed iPad app | Verified (team manual test, about 1:20 PM). Not a reliability study |
 | Eyebrow and blink reliability (the 20-raise / 20-blink `/trial` run) | **[NOT YET]** not run, no numbers |
-| One-blink speak timing end to end | **[NOT YET]** not measured live |
-| Voice prefetch makes playback sooner | **[NOT YET]** unit-tested only. Do not say "instant" |
-| Multi-face lock (follows the central, longest-present face) | **[NOT YET]** unit-tested only |
+| Faster replies, casual college-student style, voice "Will", prefetch, follow-ups merge, redesigned UI | **Deployed** (Railway 157e3e90 at 13:50 CDT, CSS 1fd48c97 at 13:54). Deployed smoke test 6/6 PASS. Native app reinstalled and launched on the iPad |
+| Partner stops to suggestions on screen | Measured from a Mac against the deployed server: median 3.8 s, p90 5.8 s (was 5.1 s and 7.8 s). Synthetic speech, excludes gesture time, not iPad-measured |
+| One-blink speak timing end to end | **[NOT YET]** not measured live on the iPad |
+| Voice prefetch audible on the iPad | **[NOT YET]** Mac-measured voice fetch about 0.63 s; blink to voice is about 0 only if reading plus blinking takes longer than that. Not verified on the iPad. Do not say "instant" |
+| Multi-face lock (follows the central, longest-present face) | **[NOT YET]** unit-tested only, not on the iPad |
+| Follow-ups merge | Browser walkthrough 5/5 pass (dev server, Touch + Fixture). **[NOT YET]** on the iPad |
 | Camera frames never leave the iPad | By design. The device network check (SYS-13) was **not run** |
 | AAC users, SLPs, clinical anything | **[NOT YET]** none. Do not imply otherwise |
 
@@ -49,9 +52,9 @@ Refreshed **2026-10-24, about 13:50 CT**, for the current product: the installed
 
 | Question | Answer |
 | --- | --- |
-| **How fast is it, from the partner's question to a spoken reply?** | We have **not measured the whole chain** and will only quote the stopwatch time from the demo run. The parts we measured: the app waits 650 ms of silence to end an utterance (a constant), transcription took about 0.47 s median (n = 4, Mac to provider, synthetic clips), three suggestions took a median of 3.8 s (n = 14, range 2.35 to 6.43 s, synthetic prompts; 3.6 s in one call from the iPad), and a natural-voice clip took about 0.65 s to arrive (median 666 ms, n = 5, Mac; 623 ms in one call from the iPad), plus a deliberate blink of about one second. Adding those is arithmetic, roughly 6 s, not a measurement, and suggestion generation dominates. Prefetch is meant to remove the voice wait but is **[NOT YET]** verified. |
+| **How fast is it, from the partner's question to a spoken reply?** | About 4 seconds from the partner finishing to suggestions on screen (median 3.8 s, p90 5.8 s; 10 runs, 40 calls, 0 failures), then the voice starts at the blink: about 0 delay with prefetch if reading plus blinking takes longer than the roughly 0.63 s voice fetch, 0.63 s without prefetch. Before our speed changes it was a median of 5.1 s and p90 of 7.8 s. The suggestions call alone dropped from a median of 3.9 s to 2.5 s. **Conditions:** measured from a Mac on the venue network against the deployed server, with synthetic speech (macOS `say`), so it excludes the person's reading and gesture time and is **not** measured on the iPad (no on-device capture or playback). One 10-run sample per side, not a controlled A/B, so small differences are noise. Source: `docs/evidence/E2E_LATENCY.md`. We make no faster-than-typing claim. An OpenAI priority tier measured 1.8 s median for the replies call alone, but it costs more and is not enabled. |
 | **How reliable is eyebrow and blink detection?** | **[NOT YET]** measured. The logic passes unit and synthetic-frame tests, and face tracking costs about 12 to 15 ms per frame on a Mac (0.8 s to start on the iPad GPU). We built a `/trial` page to count misses and inadvertent commands on the iPad, but it has not been run, so we give no accuracy numbers. Lighting, glasses, camera angle and fatigue will matter. |
-| **Is the voice natural? Is it cloned?** | It uses ElevenLabs `eleven_v4_turbo` from our server with a prebuilt voice (default Chris), disclosed as AI-generated, and no one's voice is cloned. Five test lines all returned audio in about 0.45 to 0.8 s each. Team members have heard replies on the iPad, but we have no listener ratings, so we say "natural-sounding" as our impression, not a measured score. |
+| **Is the voice natural? Is it cloned?** | It uses ElevenLabs `eleven_v4_turbo` from our server with a prebuilt voice (default "Will", a young male voice; Jessica and Chris are also available), disclosed as AI-generated, and no one's voice is cloned. Five test lines all returned audio in about 0.45 to 0.8 s each. Team members have heard replies on the iPad, but we have no listener ratings, so we say "natural-sounding" as our impression, not a measured score. |
 | **What if the voice or the audio fails?** | The text stays on screen and a labeled basic device voice is available under More tools, Controls, Voice. It does not switch silently, and Safari blocking audio shows "Audio blocked" rather than pretending. The installed app unlocks audio at launch. |
 | **What does a conversation cost? (estimate)** | Rough estimate, not measured, and we have not reviewed price sheets, so we give no dollar figure. Each exchange is one transcription call, one reply call, and in fast mode about three prefetched sentences, perhaps 100 to 200 characters of speech (a guess), against 40 to 70 if only the chosen one were synthesized. At the 60,000-character daily budget that is on the order of 300 to 600 exchanges a day (arithmetic from our guess). Prefetch spends extra voice characters for speed. |
 
@@ -67,7 +70,7 @@ Refreshed **2026-10-24, about 13:50 CT**, for the current product: the installed
 
 | Question | Answer |
 | --- | --- |
-| **Has anyone who uses AAC tested it? Is it clinically validated?** | No, to both. No AAC user, person with ALS, or clinician has tested it, and it is not a medical device. Testing so far is engineer trials, automated tests (433 passing at 13:05 CT, synthetic and mocked), and a team manual test of the hands-free flow on the iPad. |
+| **Has anyone who uses AAC tested it? Is it clinically validated?** | No, to both. No AAC user, person with ALS, or clinician has tested it, and it is not a medical device. Testing so far is engineer trials, automated tests (514 passing plus 2 expected fail after the 13:50 CT deploy, synthetic and mocked), and a team manual test of the hands-free flow on the iPad. |
 | **How is it deployed? Is it on the App Store?** | It is a native iPad app, a WKWebView shell that loads our Railway backend, development-signed and installed directly on one registered iPad. It is not on the App Store or TestFlight, and a free signing profile expires after 7 days. The same app also runs in Safari as the backup. |
 | **What would clinical deployment need?** | Co-design and evaluation with AAC users and speech-language pathologists, measured reliability across people and conditions, an accessibility review, a privacy and retention review of each provider, and regulatory advice. None of that has been done. |
 | **What are the next steps?** | First, user testing with AAC users and SLPs, plus the measured reliability trial and an end-to-end latency study on venue and home Wi-Fi. Then a personal or custom voice (with that person's consent), and on-device transcription and suggestion models to cut latency and cloud exposure. Those are plans, not built (**[NOT YET]**). |

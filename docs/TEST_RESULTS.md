@@ -109,3 +109,18 @@ Scope labels: "Mac" means run from a Mac against the deployed server or provider
 - Audio prefetch (the latency script measured speech time alone and in parallel, not prefetch inside the app)
 - College-student reply style
 - Redesigned UI on the iPad
+
+## After deploy (13:50–13:56)
+
+Scope labels as above. Deployed build: Railway 157e3e90 at 13:50 CDT, CSS follow-up 1fd48c97 at 13:54 CDT.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Deployed smoke test (`scripts/smoke-deployed.mjs`) | 6/6 PASS. Scope: Mac to deployed server. Live suggestions for "Are you coming to dinner tonight?": "Yeah, I'm coming tonight." / "I'm not coming tonight." / "What time is dinner?" | Smoke run output |
+| End-to-end latency after deploy (10 runs, 40 calls, 0 failures). Partner stops -> suggestions: median 3.8 s (was 5.1 s), p90 5.8 s (was 7.8 s). `/api/replies` median 2.5 s (was 3.9 s). Blink -> voice about 0 with prefetch, 0.63 s without. | Measured. Scope: Mac, synthetic speech, excludes gesture time, not iPad-measured. One sample per side, not a controlled A/B. | `docs/evidence/E2E_LATENCY.md`, `docs/evidence/e2e-latency-1354.json` |
+| Unit tests (`npx vitest run`) | 514 passed, 2 expected fail. Supersedes the 13:44 CT result (503 passed, 1 failed) | Console output |
+| Follow-ups merge browser walkthrough (dev server, Touch + Fixture mode) | 5/5 pass. Scope: browser, not the iPad | Walkthrough run |
+| Native app reinstalled on the iPad and launched | Done. Launch only, no gameplay check | Install output |
+| Optional: OpenAI priority tier, replies call alone | 1.8 s median, 2.7 s p90. Not enabled (costs more) | Measurement run |
+
+Still not verified live on the iPad: multi-face lock, one-blink speak timing, audible prefetch, follow-ups merge on device.

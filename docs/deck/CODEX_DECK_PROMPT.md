@@ -125,3 +125,31 @@ Tags: [VERIFIED] observed or measured; [SYNTHETIC] unit tests only; [NOT YET] bu
 - Demo slide notes: beats and times from `docs/REHEARSAL.md` (3:00 total): Problem 0:00-0:15; Beat 1 question and spoken reply 0:15-0:50; Beat 2 follow-up (raise once, blink) 0:50-1:15; Beat 3 Guide my response then Disagree 1:15-1:55; Beat 4 multi-face lean-in 1:55-2:25 (cut first if flaky); Close 2:25-3:00. The pitch slot is 5:15 PM; rehearsal is about 3:30 PM.
 - Evidence slide "Not yet" column, from the JUDGE_QA status table: 20-raise/20-blink `/trial` reliability and false positives, live one-blink timing, prefetch benefit, multi-face live, camera-stays-on-device network check (SYS-13 not run), AAC users or clinicians. Verified column adds hands-free conversation and the installed app.
 - Keep the "Do not say" list in the speaker notes: instant, faster than typing, first, zero retention, camera never leaves the iPad as verified, offline, tested with AAC users.
+
+## Late update (2:00 PM CT) — final numbers
+
+This supersedes the "[FILL AFTER 3:15 RE-RUN]" placeholders and the "in progress" notes above. Source: `docs/evidence/E2E_LATENCY.md`. Deployed 13:50 CDT (Railway 157e3e90), CSS follow-up 13:54 CDT; the native app is reinstalled on the iPad. Tag the numbers [VERIFIED, Mac].
+
+**Conditions to print on the timeline slide:** measured from a Mac against the deployed server, synthetic speech (macOS `say`), 10 runs per side, 0 failures. Excludes the person's gesture and reading time. Not measured on the iPad. One sample per side, not a controlled A/B. Keep "We make no faster-than-typing claim."
+
+| Step | Before (median / p90) | After (median / p90) |
+|---|---|---|
+| Partner stops -> 3 suggestions on screen | 5.1 s / 7.8 s | 3.8 s / 5.8 s |
+| 3 suggestions call (`/api/replies`) | 3.9 s / 6.6 s | 2.5 s / 4.4 s |
+| Blink -> voice, with prefetch | about 0 | about 0 (only if reading plus blinking takes longer than the 0.63 s voice fetch) |
+| Blink -> voice, without prefetch | 0.69 s / 0.80 s | 0.63 s / 0.72 s |
+
+Headline line for the slide: "About 4 seconds from the partner finishing to suggestions on screen, and the voice starts the instant they blink (Mac-measured)." Say "about 0 with prefetch", never "instant".
+
+Optional note (not enabled): OpenAI priority tier measured 1.8 s median / 2.7 s p90 for the replies call alone; it costs more.
+
+**Sample suggestions (new casual style, live deployed server)** for the partner line "Are you coming to dinner tonight?":
+1. "Yeah, I'm coming tonight."
+2. "I'm not coming tonight."
+3. "What time is dinner?"
+
+Also from the latency run: "How are you feeling today?" -> "I'm feeling pretty good today." / "I'm not feeling great today." / "I'm not sure how I'm feeling yet."
+
+**Other facts now true:** deployed smoke test 6/6 PASS; 514 unit tests passed plus 2 expected fail; follow-ups merge browser walkthrough 5/5 pass (dev server, Touch + Fixture); voice is "Will" (young male); replies now use a casual college-student style (remove "in progress").
+
+**Still NOT YET live on the iPad (keep in the "Not yet" column):** multi-face lock, one-blink speak timing, audible prefetch, follow-ups merge on device, redesigned UI on device.

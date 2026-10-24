@@ -84,5 +84,15 @@ Current test count: see TEST_RESULTS.md / latest commit (487+ passing at 2:30 PM
 - [config set; applies on next deploy] Voice switched to "Will" (young, male, conversational ElevenLabs voice); Jessica and Chris remain available.
 - [VERIFIED] New tooling: scripts/smoke-deployed.mjs (6/6 PASS pre-deploy) and scripts/e2e-latency.mjs.
 - [VERIFIED] Native app pre-built and signed (profile valid to Oct 2027).
-- Talking point: "From question to spoken reply in about N seconds — [FILL after re-run]"
+- Talking point: "About 4 seconds from the partner finishing to suggestions on screen, and the voice starts the instant they blink (Mac-measured)." [VERIFIED, Mac; synthetic speech, excludes gesture time, not iPad-measured]
 - Talking point: "The person never loses their place: follow-ups join the question."
+
+## 1:55 PM — Deployed: speed + merge + redesign
+- [VERIFIED, deployed] Railway deployment 157e3e90 at 13:50 CDT, CSS follow-up 1fd48c97 at 13:54 CDT. Native iPad app reinstalled and launched with the new build.
+- [VERIFIED, Mac -> deployed server, synthetic speech, excludes gesture time, not iPad-measured] Latency, before -> after (docs/evidence/E2E_LATENCY.md, 10 runs each, 0 failures): partner stops -> suggestions median 5.1 s -> 3.8 s, p90 7.8 s -> 5.8 s; /api/replies median 3.9 s -> 2.5 s. Blink -> voice about 0 with prefetch (0.63 s without). One 10-run sample per side, not a controlled A/B.
+- [VERIFIED] Smoke test of the deployed server: 6/6 PASS. Unit tests: 514 passed + 2 expected fail.
+- [VERIFIED, live deployed server] Casual college-student replies. For "Are you coming to dinner tonight?": "Yeah, I'm coming tonight." / "I'm not coming tonight." / "What time is dinner?".
+- [VERIFIED, dev server, Touch + Fixture mode, browser] Follow-ups merge walkthrough: 5/5 pass. [NOT YET] merge on the iPad.
+- [VERIFIED, config deployed] Voice is now "Will" (young male). Jessica and Chris remain available.
+- [NOT YET live on iPad] Multi-face lock, one-blink speak timing, audible prefetch, merge on device, redesigned UI on device.
+- [MEASURED, not enabled] OpenAI priority tier: replies call 1.8 s median / 2.7 s p90. Costs more, so it is off.
