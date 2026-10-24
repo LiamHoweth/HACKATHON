@@ -1,6 +1,6 @@
 # Product spec: Still Here
 
-This is the reconciled requirements summary. The authoritative brief is now Liam's **blink-first** master prompt, `Still_Here_Claude_Master_Prompt_BLINK_FIRST.md`, which supersedes `Still_Here_Claude_Master_Prompt_FINAL.md`. Neither is committed to this repository. Where this file and the code disagree, the code describes current behavior, and the difference belongs in [DECISIONS.md](DECISIONS.md).
+This is the reconciled requirements summary. The authoritative brief is now Liam's one-file **iPad gestures + ElevenLabs** prompt, `Still_Here_Claude_ONE_FILE_ElevenLabs_iPad_Implementation.md` (~12:00 CT), which supersedes the blink-first prompt and `Still_Here_Claude_Master_Prompt_FINAL.md`. None is committed to this repository. Where this file and the code disagree, the code describes current behavior, and the difference belongs in [DECISIONS.md](DECISIONS.md).
 
 Numeric thresholds below are prototype engineering defaults from [`src/core/limits.ts`](../src/core/limits.ts). They are not clinical findings.
 
@@ -9,7 +9,7 @@ Numeric thresholds below are prototype engineering defaults from [`src/core/limi
 - **Name:** Still Here. **Tagline:** Your words. Your choice.
 - **Principle:** AI offers possible words. The person decides what to say.
 - **Users we design for:** adults who understand the conversation and know what they want to express, but find speaking or typing slow or difficult (for example, some people with ALS). We assume nothing about comprehension, and we do not assume blinking or any other single input works for everyone.
-- **Primary input:** deliberate eye closure detected by a local webcam face-landmark model, over automatic scanning. Keyboard, single switch, and pointer are fully working fallbacks.
+- **Primary device and input:** iPad Safari in landscape. A both-eyebrow raise held at least 500 ms is NEXT (one step, no auto-scan). A calibrated long blink is SELECT. Review starts on Cancel; an eyebrow raise reaches Speak; a new long blink confirms. Detected by a local face-landmark model, with a small mirrored live preview at the top right. Auto-scan + blink, keyboard, single switch, and touch are working fallbacks. Eyebrow NEXT is in progress and not iPad-verified.
 - **Status:** hackathon prototype; not clinically validated and not tested with AAC users.
 
 ## Non-negotiable invariants
@@ -85,7 +85,9 @@ Numeric thresholds below are prototype engineering defaults from [`src/core/limi
 - Controls: use saved preferences, session adaptation, **Pause personalization**, remember on this device, clear session learning, and delete everything saved.
 
 ### Speech
-- One controller around browser `speechSynthesis`. Only a `ConfirmedUtterance` can be spoken.
+- **ElevenLabs is the required primary voice** (server-side `POST /api/speech`, `eleven_v4_turbo`, Text-to-Dialogue WebSocket or a docs-verified ElevenLabs HTTP fallback, MP3 blob first). In progress; not configured.
+- Browser `speechSynthesis` is the explicitly labeled **basic device voice** fallback. After a natural-voice failure it needs a fresh review and confirmation.
+- One audio controller. Only a `ConfirmedUtterance` can be spoken. iPad Safari needs a one-time Enable Audio touch.
 - Delivery states are queued, speaking, completed, interrupted, failed, and uncertain. Nothing is replayed automatically.
 - While speaking, the only target is **Stop speaking**. While paused, the only target is **Resume**.
 

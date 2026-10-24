@@ -9,6 +9,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Draw under the iPad home indicator / rounded corners; globals.css pads with env(safe-area-inset-*).
+  // Pinch-zoom stays allowed (no maximumScale / userScalable lock).
+  viewportFit: 'cover',
   colorScheme: 'light dark',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f5f4f0' },

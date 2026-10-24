@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { Target } from '@/core/state';
 import type { StillHereRuntime } from '@/runtime/contract';
-import { ClosureBar } from './BlinkStatus';
+import { ClosureBar, isFaceMode } from './BlinkStatus';
 import { BLINK_ARMED } from './labels';
 
 type Props = {
@@ -14,15 +14,17 @@ type Props = {
 
 /**
  * One registry target rendered as a native button. Pointer and native keyboard activation
- * both go through runtime.activate (the guarded ACTIVATE path). The switch-scanning
- * highlight is shown visually and with aria-current; it never moves DOM focus.
+ * both go through runtime.activate (the guarded ACTIVATE path). The gesture / scanning
+ * highlight is shown visually and with aria-current; it never moves DOM focus. In eyebrow mode
+ * the highlight moves only on an accepted eyebrow NEXT, never on a timer (runtime-owned).
  */
 export function TargetButton({ target: t, runtime, className }: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const highlighted = runtime.highlightedTargetId === t.id;
-  const held = highlighted && runtime.switchHeld;
-  const blinkMode = runtime.state.settings.accessMode === 'blink';
+  const blinkMode = isFaceMode(runtime.state.settings.accessMode);
   const blinkStatus = runtime.blink.status;
+  // Frozen on this target: a switch press, or a blink closure in progress (target snapshotted at onset).
+  const held = highlighted && (runtime.switchHeld || (blinkMode && blinkStatus === 'closing'));
 
   useEffect(() => {
     if (!highlighted || !ref.current) return;
@@ -73,7 +75,7 @@ function blinkBadge(t: Target, held: boolean, status: StillHereRuntime['blink'][
 type ListProps = {
   targets: Target[];
   runtime: StillHereRuntime;
-  layout?: 'stack' | 'grid' | 'row' | 'keys';
+  layout?: 'stack' | 'grid' | 'row' | 'keys' | 'actions';
   label?: string;
   className?: string;
 };

@@ -14,18 +14,19 @@ The event's actual requirements in [the brief](PROJECT_BRIEF.md) control the sub
 ### Still Here specifics
 
 - [ ] `npm install && npm run dev` from a clean clone; `npm run check` passes and the result is recorded in [TEST_RESULTS.md](TEST_RESULTS.md).
-- [ ] Blink calibration completes on the demo laptop in the demo room's lighting. The blink reliability gate is recorded in [TEST_RESULTS.md](TEST_RESULTS.md), or the team has decided to demo with keyboard/switch and say so.
-- [ ] Browser network log checked during blink use (frames not uploaded; model/WASM from this origin) before any privacy claim.
+- [ ] Brow and blink calibration complete on the iPad in the demo room's lighting. The §24 iPad trial is recorded in [TEST_RESULTS.md](TEST_RESULTS.md), or the team has decided which fallback to demo and says so.
+- [ ] Network log checked during gesture use (frames not uploaded; model/WASM from this origin) before any privacy claim.
+- [ ] ElevenLabs configured (key and voice in Railway variables, never on screen), Enable Audio tapped, and the test line heard on the iPad. Otherwise the presenter says "natural voice not configured".
 - [ ] The source badge shows **Live AI** or **Fixture demo**, and the presenter says which one it is.
-- [ ] Full loop with **blinks only** after setup: partner question → None of these → Guide (Suggest an alternative) → select → review → separate blink on Speak → audible speech → history shows delivery status.
-- [ ] The same loop with the switch key only (fallback).
-- [ ] One long closure, or holding the switch key, on review does **not** speak. Normal blinking for a minute selects nothing.
+- [ ] Full loop with **eyebrows and blinks only** after setup: partner question → eyebrow NEXT → None of these → Guide (Suggest an alternative) → select → review on Cancel → eyebrow to Speak → new blink → audible ElevenLabs speech → history shows delivery status.
+- [ ] The same loop with auto-scan + blink, and with the switch key only (fallbacks).
+- [ ] A 2-second eyebrow hold moves one step. One long closure, or holding the switch key, on review does **not** speak. Normal talking and blinking for a minute selects and moves nothing.
 - [ ] Face lost mid-closure pauses and selects nothing. Resume works by blink.
 - [ ] Cancel on review returns without speaking; Stop interrupts speech and history shows "interrupted".
 - [ ] Quick phrase interrupts My words and the draft survives.
 - [ ] Start a conversation works without a partner question.
 - [ ] Local-only mode: Quick phrases and My words still work.
-- [ ] The voice is audible on the demo laptop; note the voice name and whether it is local.
+- [ ] The voice is audible on the iPad; note the ElevenLabs model and voice name (not the id), or that the basic device voice was used.
 - [ ] No `.env.local` values, API keys, or real personal data visible on screen or in the browser devtools.
 - [ ] The fictional demo profile, if used, is labeled fictional.
 - [ ] Claims in slides and Q&A match [PRESENTATION_LOG.md](PRESENTATION_LOG.md).
@@ -43,5 +44,5 @@ The event's actual requirements in [the brief](PROJECT_BRIEF.md) control the sub
 
 - [ ] Submit by 17:15 CT (planning target 17:00 CT verification). Liam submits; [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md) bracketed items resolved.
 - [ ] [AI_USAGE.md](AI_USAGE.md) includes today's Claude Code implementation work.
-- [ ] Limitations stated: not tested with AAC users, blink reliability (measured numbers or "not measured"), helper needed for camera permission if true, nothing else measured unless recorded.
+- [ ] Limitations stated: not tested with AAC users, eyebrow and blink reliability (measured numbers or "not measured"), not iPad-verified if true, helper needed for camera permission or Enable Audio if true, nothing else measured unless recorded.
 - [ ] Railway redeployed with the final build if the live URL is submitted.

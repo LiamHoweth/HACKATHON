@@ -12,6 +12,9 @@ import { Composer } from './Composer';
 import { PausedPanel, SpeakingPanel } from './SpeakingPanel';
 import { MenuSurface } from './MenuSurface';
 import { PartnerPanel } from './PartnerPanel';
+import { CameraPreview } from './CameraPreview';
+import { GestureFeedback } from './GestureFeedback';
+import { isFaceMode } from './BlinkStatus';
 
 export function StillHereApp({ runtime }: { runtime: StillHereRuntime }) {
   if (runtime.state.phase === 'setup') return <SetupFlow runtime={runtime} />;
@@ -39,50 +42,64 @@ function ActiveShell({ runtime }: { runtime: StillHereRuntime }) {
   const speaking = !!state.speech;
   const paused = surface.kind === 'paused';
 
+  const face = isFaceMode(state.settings.accessMode);
+
+  // iPad landscape: two independent columns. Left: header, notice, communication surface (the
+  // only scrolling region for cards). Right (slim): camera self-view + gesture/speech feedback at
+  // the top-right, partner panel below. The preview's space is reserved in the grid, so it can
+  // never cover response cards. Portrait and narrow widths stack (see globals.css).
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="brand">
-          <span className="wordmark">STILL HERE</span>
-          <span className="tagline">Your words. Your choice.</span>
-        </div>
-        <StatusBar runtime={runtime} />
-        <div className="safety" role="group" aria-label="Safety controls">
-          <button
-            type="button"
-            className="btn btn-safety"
-            disabled={paused}
-            onClick={() => dispatch({ type: 'SAFETY_PAUSE', at: performance.now() })}
-          >
-            Pause (Esc)
-          </button>
-          {speaking && (
+    <div className={`app mode-${state.settings.accessMode}`}>
+      <div className="app-main-col">
+        <header className="app-header">
+          <div className="brand">
+            <span className="wordmark">STILL HERE</span>
+            <span className="brand-sep" aria-hidden="true">·</span>
+            <span className="tagline">Your words. Your choice.</span>
+          </div>
+          <StatusBar runtime={runtime} />
+          <div className="safety" role="group" aria-label="Safety controls">
             <button
               type="button"
-              className="btn btn-safety btn-stop"
-              onClick={() => dispatch({ type: 'SAFETY_STOP', at: performance.now() })}
+              className="btn btn-safety"
+              disabled={paused}
+              onClick={() => dispatch({ type: 'SAFETY_PAUSE', at: performance.now() })}
             >
-              Stop speaking
+              Pause (Esc)
             </button>
+            {speaking && (
+              <button
+                type="button"
+                className="btn btn-safety btn-stop"
+                onClick={() => dispatch({ type: 'SAFETY_STOP', at: performance.now() })}
+              >
+                Stop speaking
+              </button>
+            )}
+          </div>
+        </header>
+
+        <div className="notice-region" aria-live="polite" aria-atomic="true">
+          {state.notice && (
+            <div className="notice">
+              <p>{state.notice.text}</p>
+              <button type="button" className="btn btn-quiet btn-small" onClick={() => dispatch({ type: 'DISMISS_NOTICE' })}>
+                Dismiss
+              </button>
+            </div>
           )}
         </div>
-      </header>
 
-      <div className="notice-region" aria-live="polite" aria-atomic="true">
-        {state.notice && (
-          <div className="notice">
-            <p>{state.notice.text}</p>
-            <button type="button" className="btn btn-quiet btn-small" onClick={() => dispatch({ type: 'DISMISS_NOTICE' })}>
-              Dismiss
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="app-body">
         <main ref={surfaceRef} className={`surface surface-${surface.kind}`} aria-label="Communication">
           <SurfaceView runtime={runtime} surface={surface} />
         </main>
+      </div>
+
+      <div className="app-side-col">
+        <section className="camera-dock" aria-label={face ? 'Camera and gesture feedback' : 'Voice status'}>
+          {face && <CameraPreview runtime={runtime} />}
+          <GestureFeedback runtime={runtime} />
+        </section>
         <PartnerPanel runtime={runtime} />
       </div>
     </div>

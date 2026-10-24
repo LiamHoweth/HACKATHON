@@ -1,0 +1,80 @@
+/* Setup + calibration styles owned by SetupFlow / BlinkCalibration. Uses globals.css tokens. */
+
+/* ---------- Access choice ---------- */
+
+.altGrid {
+  display: grid; gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-top: 0.25rem;
+}
+.altGrid :global(.choice) { border: 2px solid var(--border-soft); padding: 0.75rem 1rem; border-radius: 12px; }
+.altChosen { border-color: var(--border) !important; background: var(--surface-2); }
+.altLead { margin: 0.25rem 0 0; font-weight: 700; }
+.subRow { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 0.25rem 0 0.5rem 0.25rem; }
+.subRow label { display: inline-flex; gap: 0.4rem; align-items: center; font-weight: 600; }
+
+/* ---------- Voice / audio ---------- */
+
+.audioPanel {
+  display: grid; gap: 0.6rem; justify-items: start;
+  padding: 0.9rem 1rem; margin: 0.25rem 0 0.75rem;
+  border: 3px solid var(--accent); border-radius: 12px; background: var(--accent-soft);
+}
+.audioPanel h3 { font-size: 1.15rem; }
+.enableAudio { min-height: 64px; font-size: 1.2rem; padding-inline: 1.5rem; }
+.audioStatus {
+  display: inline-flex; gap: 0.45rem; align-items: center;
+  font-weight: 800; padding: 0.2rem 0.7rem; border-radius: 999px; border: 2px solid currentColor;
+}
+.tone-ok { color: var(--accent); }
+.tone-work { color: var(--info-text); }
+.tone-warn { color: var(--warn-text); }
+.tone-stop { color: var(--danger); }
+.tone-off { color: var(--muted); }
+.providerLine { font-weight: 700; }
+.basicVoice { display: grid; gap: 0.5rem; justify-items: start; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-soft); width: 100%; }
+
+/* ---------- Calibration preview ---------- */
+
+.splitLarge { grid-template-columns: minmax(0, 32rem) minmax(0, 1fr) !important; }
+.previewLarge { max-width: 32rem !important; }
+@media (max-width: 900px) {
+  .splitLarge { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+/* ---------- Brow meter (decorative; text lives in diagnostics) ---------- */
+
+.markNeutral { background: var(--muted); }
+.markRelease { background: var(--accent); }
+.markRaised { background: var(--danger); }
+
+/* ---------- 500 ms hold bar ---------- */
+
+.hold { display: grid; gap: 0.3rem; width: 100%; max-width: 32rem; }
+.holdLabel { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.95rem; color: var(--muted); }
+.holdTrack {
+  position: relative; height: 22px; border-radius: 999px; overflow: hidden;
+  background: var(--surface-2); border: 2px solid var(--border);
+}
+.holdFill { position: absolute; inset: 0 auto 0 0; background: var(--text); transition: width 60ms linear; }
+.holdFull .holdFill { background: var(--accent); }
+
+/* ---------- Practice ---------- */
+
+.ack {
+  display: inline-flex; gap: 0.4rem; align-items: center;
+  font-weight: 800; font-size: 1.15rem; color: var(--accent);
+  padding: 0.2rem 0.75rem; border: 2px solid var(--accent); border-radius: 999px;
+}
+.moveCount { font-size: 1.1rem; }
+.targetHold { position: absolute; left: 1rem; right: 1rem; bottom: 0.45rem; height: 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.18); overflow: hidden; }
+.targetHoldFill { display: block; height: 100%; background: currentColor; transition: width 60ms linear; }
+.helperNote { font-size: 0.95rem; color: var(--muted); }
+
+.reviewGrid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); width: 100%; }
+.reviewCard { display: grid; gap: 0.5rem; padding: 0.9rem 1rem; border: 2px solid var(--border-soft); border-radius: 12px; align-content: start; }
+.reviewCard h3 { font-size: 1.2rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .holdFill, .targetHoldFill { transition: none !important; }
+}

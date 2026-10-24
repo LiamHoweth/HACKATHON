@@ -387,6 +387,19 @@ function applyCommand(s: State, cmd: Command, a: Extract<Action, { type: 'ACTIVA
       return setStack(s, [{ kind: 'board' }, { kind: 'compose', purpose: 'message', group: null, seedFor: null }], at);
     }
     case 'stop-speech': return stopSpeech(s, at);
+    case 'review-basic-voice': {
+      const f = s.lastFailedSpeech;
+      if (!f) return s;
+      // A fresh review and a fresh, separate confirmation are required before any basic-voice repeat.
+      return openReview(s, {
+        workspaceId: null, originatingBatchId: null, originatingCandidateId: null,
+        source: f.source, exactText: f.text,
+        selectedByEventId: a.eventId, selectedByInputCycleId: a.cycleId, returnSurface: 'board',
+      }, { kind: 'basic-voice', originalUtteranceId: f.utteranceId }, [{ kind: 'board' }], at);
+    }
+    case 'dismiss-failed-speech': return { ...s, lastFailedSpeech: null };
+    case 'set-speech-provider':
+      return { ...s, settings: { ...s.settings, speechProvider: cmd.provider } };
     case 'pause': {
       if (s.recording.status === 'recording') s = addEffects(s, { kind: 'discard-recording' });
       return push(s, { kind: 'paused' }, at);
@@ -479,6 +492,8 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
     selectionEventId: snap.selectedByEventId, confirmationEventId: a.eventId,
     selectionCycleId: snap.selectedByInputCycleId, confirmationCycleId: a.cycleId,
     delivery: 'queued', sessionEpoch: s.sessionEpoch,
+    provider: r.origin.kind === 'basic-voice' ? 'browser' : s.settings.speechProvider,
+    voiceChoiceId: s.settings.voiceChoiceId,
   };
   let anchorTurnId: Id | null = null;
   if (r.origin.kind === 'candidate') {
@@ -510,6 +525,7 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
       if (s.activeWorkspaceId === w.id) s = { ...s, activeWorkspaceId: null };
     }
   }
+  if (r.origin.kind === 'basic-voice') s = { ...s, lastFailedSpeech: null };
   if (r.origin.kind === 'composed') {
     s = { ...s, drafts: { ...s.drafts, message: '' } };
     // An own-words reply answers the active question (quick phrases do not).
@@ -528,6 +544,15 @@ function confirmSpeak(s: State, a: Extract<Action, { type: 'ACTIVATE' }>): State
   s = addEffects(s, { kind: 'speak', utterance });
   s = metric(s, 'confirm', at, { source: snap.source, workspaceId: snap.workspaceId });
   return setStack(s, [...r.afterStack, { kind: 'speaking' }], at);
+}
+
+// After an ElevenLabs failure, offer a labeled basic-voice retry that needs its own new review and confirmation.
+function rememberFailure(next: State, before: State): State {
+  const u = before.speech?.utterance;
+  if (!u || u.provider !== 'elevenlabs') return next;
+  const turn = before.conversation.find((e) => e.role === 'user' && e.value.utteranceId === u.id);
+  const source = turn && turn.role === 'user' ? turn.value.source : 'user-composed';
+  return { ...next, lastFailedSpeech: { utteranceId: u.id, text: u.exactText, source } };
 }
 
 function stopSpeech(s: State, at: number): State {
@@ -664,9 +689,9 @@ export function reducer(s: State, action: Action): State {
         case 'interrupted':
           return leave(setDelivery(s, action.utteranceId, 'interrupted'));
         case 'error':
-          return notice(leave(setDelivery(s, action.utteranceId, 'failed')), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at);
+          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'failed')), s), `Speech failed. Your message is shown on screen: “${s.speech.utterance.exactText}”`, at);
         case 'uncertain':
-          return notice(leave(setDelivery(s, action.utteranceId, 'uncertain')), 'Speech status is uncertain. It was not replayed automatically.', at);
+          return notice(rememberFailure(leave(setDelivery(s, action.utteranceId, 'uncertain')), s), 'Speech status is uncertain. It was not replayed automatically.', at);
       }
       return s;
     }

@@ -4,7 +4,8 @@ import type { StillHereRuntime } from '@/runtime/contract';
 import { TargetList } from './TargetButton';
 import { SurfaceTitle } from './SurfaceTitle';
 import { DELIVERY_LABELS } from './labels';
-import { BlinkStatus } from './BlinkStatus';
+import { BlinkStatus, isFaceMode } from './BlinkStatus';
+import { EnableAudioButton, speechLine } from './GestureFeedback';
 
 export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
   const { state, targets } = runtime;
@@ -13,6 +14,7 @@ export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
     ? state.conversation.find((e) => e.role === 'user' && e.value.id === speech.userTurnId)
     : undefined;
   const delivery = turn && turn.role === 'user' ? turn.value.delivery : speech?.utterance.delivery;
+  const sp = speechLine(runtime);
 
   return (
     <div className="speaking">
@@ -21,6 +23,15 @@ export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
         <>
           <blockquote className="speaking-text" lang={state.settings.language}>{speech.utterance.exactText}</blockquote>
           <p className={`delivery delivery-${delivery ?? 'queued'}`} role="status">{delivery ? DELIVERY_LABELS[delivery] : ''}</p>
+          {sp && (
+            <p className={`speech-state gf-tone-${sp.tone}`}>
+              <span aria-hidden="true">{sp.icon} </span>{sp.text}
+              {sp.enable && <EnableAudioButton runtime={runtime} className="speech-enable" />}
+            </p>
+          )}
+          {(delivery === 'failed' || runtime.audio?.state === 'failed') && (
+            <p className="warning">The natural voice did not play. Show this text to your conversation partner. After this screen, “Say it with the basic device voice” is offered on the main screen; you review it again before anything is spoken.</p>
+          )}
           {!runtime.speechAvailable && <p className="warning">Speech output is unavailable here. Show this text to your conversation partner.</p>}
         </>
       ) : (
@@ -32,7 +43,7 @@ export function SpeakingPanel({ runtime }: { runtime: StillHereRuntime }) {
 }
 
 export function PausedPanel({ runtime }: { runtime: StillHereRuntime }) {
-  const blinkMode = runtime.state.settings.accessMode === 'blink';
+  const blinkMode = isFaceMode(runtime.state.settings.accessMode);
   const { blink } = runtime;
   if (!blinkMode) {
     return (
@@ -45,14 +56,14 @@ export function PausedPanel({ runtime }: { runtime: StillHereRuntime }) {
   return (
     <div className="paused paused-blink">
       <SurfaceTitle sub="Speech and recording are stopped. Your drafts and questions are kept.">
-        Paused. Look at the camera. When “Ready” shows, blink to Resume.
+        Paused. Look at the camera. When “Ready” shows, make a long blink to Resume.
       </SurfaceTitle>
       <div className="paused-status">
         <BlinkStatus blink={blink} variant="large" />
         <p className="paused-guidance">{pausedGuidance(blink.status, blink.message)}</p>
       </div>
       <TargetList targets={runtime.targets} runtime={runtime} layout="row" label="Paused controls" className="safety-targets" />
-      <p className="hint">Resume needs a new deliberate blink after tracking is stable. A helper can also click Resume or press Enter.</p>
+      <p className="hint">Resume needs a new long blink after tracking is stable again. A helper can also tap Resume or press Enter.</p>
     </div>
   );
 }
@@ -66,6 +77,6 @@ function pausedGuidance(status: StillHereRuntime['blink']['status'], message: st
     case 'unsupported': return 'The camera is not available. A helper can use keyboard or switch to Resume.';
     case 'off':
     case 'starting': return 'The camera is starting.';
-    default: return message || 'Tracking is stable. Wait for Resume to be highlighted, then blink.';
+    default: return message || 'Tracking is stable. Resume is highlighted; make a long blink to continue.';
   }
 }

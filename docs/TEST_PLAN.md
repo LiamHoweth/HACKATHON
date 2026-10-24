@@ -1,10 +1,10 @@
 # Test plan
 
-This maps the blink-first master prompt §29 acceptance IDs to tests. **"Written" means a test with that ID exists in `src/tests/`.** At 11:25 CT every written test passed (`npx vitest run`: 82/82 in 6 files, working tree after commit `5fd9d2d`). Official results are recorded by the integrator in [TEST_RESULTS.md](TEST_RESULTS.md).
+This maps the acceptance IDs in the governing brief (the one-file iPad gestures + ElevenLabs prompt, §29) to tests. **"Written" means a test with that ID exists in `src/tests/`.** At 11:50 CT every written test passed (`npm test`: 134/134 in 10 files, recorded in [TEST_RESULTS.md](TEST_RESULTS.md)). Official results are recorded by the integrator in TEST_RESULTS.
 
-Evidence types are kept separate. **Unit** tests run against the reducer or pure functions with injected IDs and clocks, with the provider mocked or not involved. **Synthetic** blink tests feed numeric eye-closure sequences with fake timestamps, and no camera is involved. **Browser** means the real rendered app. **Camera** means a real webcam and a real person. **Hardware** means real audio or switch hardware. **Live** means a real provider call with synthetic content. A mocked or synthetic test proves logic, not detection reliability, model compliance, or audible output.
+Evidence types are kept separate. **Unit** tests run against the reducer or pure functions with injected IDs and clocks, with the provider mocked or not involved. **Synthetic** gesture tests feed numeric eye-closure or brow-raise sequences with fake timestamps, and no camera is involved. **Browser** means the real rendered app on a desktop browser. **iPad** means the physical iPad in Safari with a real person at the front camera. **Hardware** means real audio or switch hardware. **Live** means a real provider call with synthetic content. A mocked or synthetic test proves logic, not detection reliability, model compliance, or audible output. A desktop browser pass is not an iPad pass.
 
-Test files at 11:25 CT: `reducer.test.ts`, `adaptation.test.ts`, `schemas.test.ts`, `api.test.ts` (mocked Anthropic SDK), `openai-provider.test.ts` (mocked fetch: strict schema, `store: false`, refusal, one repair, 429/401 mapping), and `audit-regressions.test.ts` (AUD-2, AUD-5). At 11:32 CT the blink engineers had added `blink-gesture.test.ts` and `blink-calibration.test.ts` (uncommitted). With them, 106/106 tests passed in 8 files.
+Test files at 11:50 CT: `reducer.test.ts`, `adaptation.test.ts`, `schemas.test.ts`, `api.test.ts` (mocked Anthropic SDK), `openai-provider.test.ts` (mocked fetch), `audit-regressions.test.ts`, `blink-gesture.test.ts`, `blink-calibration.test.ts`, `blink-detector-timestamp.test.ts`, and `scan-attribution.test.ts`. By 12:10 the other workstreams had added uncommitted `brow-gesture.test.ts`, `brow-calibration.test.ts`, `gesture-arbiter.test.ts`, `speech-api.test.ts`, `speech-authorization.test.ts`, and `eleven-player.test.ts`. **No run of them is recorded yet**, so "Written" below does not mean passing.
 
 ## A. Core communication and exact speech
 
@@ -86,28 +86,63 @@ Test files at 11:25 CT: `reducer.test.ts`, `adaptation.test.ts`, `schemas.test.t
 | ACCESS-07 | Speaking → only Stop; paused → only Resume | Unit | Written |
 | ACCESS-08 | Hidden tab does not replay missed ticks | Unit (scan controller) | Planned |
 | ACCESS-09 | All flows reachable via the same access method | Browser | Partial (switch/pointer browser passes) |
-| ACCESS-10 | **Blink adapter:** ordinary (short), long, and qualifying closures, plus stale, missing, out-of-order, and multiple-face sequences, behave safely. Calibration fails openly on overlap or a weak signal | Synthetic | Written (`blink-gesture.test.ts`, `blink-calibration.test.ts`; uncommitted) |
+| ACCESS-10 | **Blink adapter:** ordinary (short), long, and qualifying closures, plus stale, missing, out-of-order, and multiple-face sequences, behave safely. Calibration fails openly on overlap or a weak signal | Synthetic | Written (`blink-gesture.test.ts`, `blink-calibration.test.ts`; committed `2230926`, `08c6abc`) |
 | ACCESS-11 | **Blink adapter:** the target captured at closure onset is selected exactly once, even if the highlight would have moved. Reacquisition after face loss selects nothing by itself | Synthetic | Written (`blink-gesture.test.ts`, with a simulated integration). The real runtime wiring and the explicit Resume on the paused surface are not yet tested |
-| ACCESS-12 | Practice calibration on the real laptop camera. The operator chooses and confirms with two separate deliberate blinks, hands off all input devices | Camera | Not run |
-| ACCESS-13 | Blink reaches regenerate, guide, quick phrase, review, Cancel, Speak, My words, initiation, and recovery with no mouse-only menus | Camera + browser | Not run |
-| ACCESS-14 | Reading pause, active highlight, closure freeze, selection acknowledgment, cooldown, and face-lost status are visible and stable on the real UI | Camera + browser | Not run |
-| ACCESS-15 | Failing calibration switches openly to a usable alternate input. No fake blink selection. The prepared message is kept | Camera + browser (a forced failure is acceptable) | Not run |
+| ACCESS-12 | Practice calibration on the real camera (now the iPad front camera). The operator chooses and confirms with two separate deliberate blinks, hands off all input devices | iPad | Not run |
+| ACCESS-13 | Auto-scan + blink fallback reaches regenerate, guide, quick phrase, review, Cancel, Speak, My words, initiation, and recovery with no mouse-only menus (eyebrow mode: GEST-08) | iPad | Not run |
+| ACCESS-14 | Active highlight, closure freeze, selection acknowledgment, cooldown, and face-lost status are visible and stable on the real UI | iPad | Not run |
+| ACCESS-15 | Failing calibration (brow or blink) switches openly to a usable alternate input. No fake gesture. The prepared message is kept | iPad (a forced failure is acceptable) | Not run |
 
-## Blink reliability gate
+## G. iPad eyebrow and ElevenLabs
 
-This is the small demonstration gate from §24. It is a real-camera test, kept separate from synthetic tests. **Passing it does not validate use by people with ALS.** Record every trial, including misses, in [TEST_RESULTS.md](TEST_RESULTS.md). Until then every measure is **not measured**.
+Mandatory tests from brief §29 G. Use fake clocks and numeric frame sequences for GEST rows; physical iPad results are a separate evidence category.
 
-Setup to record: date and time, laptop and camera, browser, room and lighting, glasses yes/no, tester (team member, not an AAC user), calibration values accepted (minimum/maximum closure, cooldown, scan interval), and fixture or live source.
+| ID | Required behavior | Type | Status |
+| --- | --- | --- | --- |
+| GEST-01 | Brow continuously raised for 499 ms or less causes no navigation; progress only | Synthetic (fake clock) | Written (`brow-gesture.test.ts`, uncommitted; no run recorded) |
+| GEST-02 | Brow held ≥ 500 ms (allowing for frame sampling) causes exactly one `NAV_NEXT` | Synthetic | Written (`brow-gesture.test.ts`) |
+| GEST-03 | A 2-second sustained raise still moves one option in total | Synthetic | Written (`brow-gesture.test.ts`) |
+| GEST-04 | The next raise needs a neutral reset and cooldown; no carryover across a surface change | Synthetic + unit (reset on new surface) | Written (`brow-gesture.test.ts`) |
+| GEST-05 | Blink closure freezes the original target; accepted after calibrated reopening, as a distinct input cycle | Synthetic + unit | Written (`gesture-arbiter.test.ts`; blink alone also ACCESS-11) |
+| GEST-06 | Overlapping brow + blink never moves the target after closure onset and never produces two actions | Synthetic (arbiter) | Written (`gesture-arbiter.test.ts`) |
+| GEST-07 | Face loss, stale frame, backgrounded tab, orientation change, and multiple-face ambiguity cancel pending actions | Synthetic + iPad | Synthetic part written (`brow-gesture.test.ts`, `gesture-arbiter.test.ts`; blink side ACCESS-10). Background and orientation on the iPad not run |
+| GEST-08 | Every menu, initiation, memory, keyboard, and recovery surface is reachable with eyebrow NEXT and blink SELECT | Unit (target registry) + iPad | Planned |
+| IPAD-01 | Small mirrored live preview at the top right is real, not recorded or uploaded, and can be hidden | iPad + network log (SYS-13) | Not run |
+| IPAD-02 | "Eyebrow raise detected — Next" appears only after a committed NEXT, never while progress is under 500 ms | Unit (arbiter feedback) + iPad | Planned |
+| IPAD-03 | Review defaults to Cancel; eyebrow NEXT moves to Speak; a **second** deliberate blink authorizes playback | Unit + iPad | Unit written (`speech-authorization.test.ts`; also CORE-03/06). iPad not run |
+| TTS-01 | ElevenLabs requires the server-held key; browser bundles and network traffic never contain it | Unit (route) + build grep + network log | Unit written (`speech-api.test.ts`). Build grep and network log not run |
+| TTS-02 | `eleven_v4_turbo` uses the Text-to-Dialogue WebSocket, never the standard TTS stream-input WebSocket | Unit (adapter URL/schema, mocked) | Written (`speech-api.test.ts`). Live: not run (the docs disagree on v4 ids for this socket) |
+| TTS-03 | No unconfirmed suggestion triggers an ElevenLabs request; exactly the reviewed text is sent | Unit (reducer + route, mocked) | Written (`speech-api.test.ts`, `speech-authorization.test.ts`, `eleven-player.test.ts`) |
+| TTS-04 | One utterance ID plays at most once across rerenders, races, and callbacks | Unit (speech controller) | Written (`eleven-player.test.ts`, `speech-authorization.test.ts`) |
+| TTS-05 | Stop interrupts playback, invalidates late provider results, and never auto-replays | Unit + iPad | Unit written (`eleven-player.test.ts`, `speech-authorization.test.ts`). iPad not run |
+| TTS-06 | Provider 401/403, 429 quota, timeout, malformed audio, and unavailable voice return safe errors | Unit (mocked) | Written (`speech-api.test.ts`) |
+| TTS-07 | Basic device voice fallback is explicitly labeled and needs a new review and confirmation when speech may have partly played | Unit (reducer) | Written (`speech-authorization.test.ts`, `eleven-player.test.ts`) |
+| TTS-08 | iPad Safari: one Enable Audio touch, then blink-confirmed audible playback without another touch, or flagged unverified | iPad | Not run |
+| TTS-09 | Five naturalness lines (below), with real listener notes | iPad + listeners | Not run |
+| TTS-10 | Confirmation-to-sound latency, completion/errors, and character usage are observed, not taken from vendor figures | iPad | Not measured |
+
+**TTS-09 lines** (chosen before testing, from the brief): "Hey, how was your day?" · "I don't agree with that." · "Please don't change my medication." · "Only if I get to pick the movie." · "I'll be there at 3:15, Dr. Lee." For each, note the negation, name, number, question rise, and humor, and whether any word was dropped or changed. Record the listener count and device. No naturalness score unless listeners gave one.
+
+## iPad acceptance trial (§24)
+
+A real-device test, kept separate from synthetic tests. **Passing it does not validate use by people with ALS.** Record every trial, including misses, in [TEST_RESULTS.md](TEST_RESULTS.md). Until then every measure is **not measured**.
+
+Setup to record: date and time, iPad model and iPadOS version, Safari, origin (Railway HTTPS), orientation, room and lighting, glasses yes/no, device angle and distance, tester (team member, not an AAC user), accepted calibration values (brow thresholds, hold 500 ms, release and cooldown; blink minimum/maximum closure and cooldown), AI source (live or fixture), and voice (ElevenLabs model and voice name, or basic device voice).
 
 | Part | Procedure | Measures |
 | --- | --- | --- |
-| A. Intentional selections | 20 trials. Before each, the operator states which target they intend. They blink deliberately when it is highlighted | Correct selections. **Missed gestures** (intended, nothing selected). **False selections** (wrong target, or a selection with no intent) |
-| B. Ordinary blinking | 2 minutes of normal reading and conversation on the board and on review, without trying to select | **False selections** and **false confirmations** (Speak reached without a second deliberate closure). The target is 0, and any occurrence must be reported |
-| C. Confirmation | Within part A, every selection that reaches review must need a separate blink on Speak | **False confirmations**. Confirm that one long closure never both selects and confirms |
-| D. Tracking loss/recovery | Look away or leave the frame mid-closure, then return. Add a second face if practical | Gesture discarded? App paused? Explicit Resume needed? No selection transferred? |
-| E. Timing | From the event timestamps or a screen recording | **Gesture duration** (closure start to reopen), **scan wait** (target becomes intended → highlighted), and time from highlight to committed selection. Report median and range with n |
+| A. Eyebrow NEXT | 20 distinct deliberate raises, each announced beforehand. Include a few short (< 500 ms) attempts and a few 2-second holds | Committed NEXTs, **missed NEXTs**, **inadvertent NEXTs**, extra steps from long holds |
+| B. Long-blink SELECT | 20 selections on an announced target | Correct selections, **missed selections**, **wrong-target selections** |
+| C. Normal movement | 2 minutes of normal talking, reading, and blinking without trying to select | **Inadvertent NEXTs**, **false selections**, **false confirmations**, **unintended speech**. Target 0; report any |
+| D. Face-loss recovery | Look away or leave the frame mid-raise and mid-closure, then return. Rotate the iPad once if practical | Gesture discarded? Paused? Explicit Resume needed? Nothing transferred? |
+| E. Hands-free conversation | After one setup touch: 3 turns, including one None of these/guidance regeneration and one independent message, each confirmed by a separate blink on Speak | Turns completed, actions per turn, whether ElevenLabs audio was heard on each, any "Audio blocked" state |
+| F. Timing | From event timestamps or a screen recording | Raise onset to committed NEXT; closure start to reopen; confirmation to first audible sound. Median and range with n |
 
-Decision rule (for the team, not a clinical threshold): if parts B or C produce any false confirmation, or part A misses many intended selections, the live demo uses keyboard/switch and the presenter says blink is experimental. The team records the decision and the reason in [DECISIONS.md](DECISIONS.md).
+Decision rule (for the team, not a clinical threshold): any false confirmation or unintended speech in parts C or E, or many missed commands in A or B, means the live demo uses the tested fallback (auto-scan + blink, keyboard/switch, or touch) and the presenter says the eyebrow path is experimental. Record the decision in [DECISIONS.md](DECISIONS.md).
+
+### Earlier laptop blink gate (superseded)
+
+The blink-first brief planned a 20-selection laptop-webcam gate. It was never run. Its blink parts are folded into parts B–D above.
 
 ## F. APIs, audio, privacy
 
@@ -125,14 +160,14 @@ Decision rule (for the team, not a clinical threshold): if parts B or C produce 
 | SYS-10 | Recording stops before speech; app speech never becomes a partner turn | Unit (reducer `discard-recording`) + hardware | Planned |
 | SYS-11 | End session releases media and cancels work | Unit | Partially covered by CORE-11 |
 | SYS-12 | Remote requests refused without `APP_ACCESS_TOKEN` | Unit (route) | Written (`api.test.ts`) |
-| SYS-13 | Camera frames are not uploaded; model/WASM load only from this origin | Browser network log during blink use | Not run (required before any "local only" claim) |
+| SYS-13 | Camera frames are not uploaded; model/WASM load only from this origin | Network log during gesture use (iPad via Web Inspector, or desktop Safari) | Not run (required before any "local only" claim) |
 | SYS-14 | Responses use `cache-control: no-store` | Unit (route) | Planned |
 
 ## Browser and live scenarios (§30)
 
 - Browser sequence: three turns, one rejected batch, guidance, quick interruption, parked question, composed message, initiation, cancelled review, stop speech, mic denial, cloud failure, End session. Status: planned.
 - Live synthetic scenarios 1–14 from §30: run 14/14 with valid batches (see [TEST_RESULTS.md](TEST_RESULTS.md)). Human judgments are not recorded yet.
-- Hands-free sequence for the demo (camera): calibrate → partner question → None of these → Guide → select → review → separate blink on Speak → Quick phrases → Start a conversation → face-lost recovery. Status: not run.
+- Hands-free iPad sequence for the demo: calibrate → Enable Audio → partner question → eyebrow NEXT through options → blink None of these → Guide → select → review on Cancel → eyebrow to Speak → new blink → ElevenLabs audio → Start a conversation → face-lost recovery. Status: not run.
 
 ## Audit regressions and provider tests
 

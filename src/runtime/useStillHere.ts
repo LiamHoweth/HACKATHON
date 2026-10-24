@@ -1,28 +1,33 @@
 'use client';
 // Browser runtime: owns the reducer, executes effects, drives scanning/switch input, speech,
 // recording, storage, and server status. Implements StillHereRuntime (src/runtime/contract.ts).
-// Blink (primary input): useBlink owns the camera and gesture machine; this hook snapshots the
-// target highlighted at closure onset, freezes scanning while the eyes are closed, and commits
-// that snapshot through the same guarded ACTIVATE on a valid 'select'.
+// Face input: useBlink owns the camera, the gesture machines and the ONE gesture arbiter; this
+// hook is the arbiter's single command handler. 'brow-blink' (default): NO scanning timer — the
+// highlight starts on the surface's first (safe) target and moves one step (wrapping) only on an
+// accepted NAV_NEXT (eyebrow, or Tab/ArrowRight). 'blink': timed auto-scan as before. In both,
+// the target highlighted at blink-closure onset is snapshotted (attributeClosure), the highlight
+// is frozen while the eyes are closed, and an accepted SELECT commits that snapshot through the
+// same guarded ACTIVATE (source 'blink').
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Action, InputSource, Settings, State } from '@/core/state';
 import { initialState } from '@/core/state';
 import type { ProfileDraft } from '@/core/types';
 import { newId, reducer } from '@/core/reducer';
 import { targetsFor } from '@/core/targets';
-import { ACCESS_HEADER, type BlinkGestureEvent, type ServerStatus, type StillHereRuntime, type TranscriptDraftState, type VoiceInfo } from './contract';
-import { CALIBRATING_STAGES, useBlink } from './useBlink';
+import { ACCESS_HEADER, type ServerStatus, type StillHereRuntime, type TranscriptDraftState, type VoiceInfo } from './contract';
+import { CALIBRATING_STAGES, useBlink, type FaceCommandEvent, type FaceCommandResult } from './useBlink';
 import { EffectsRunner } from './effects-runner';
 import {
-  ACQUIRE_HOLD_MAX_MS, acquireHoldActive as isAcquireHoldActive, attributeClosure, nextAcquireHold, ScanController,
+  ACQUIRE_HOLD_MAX_MS, acquireHoldActive as isAcquireHoldActive, ATTRIBUTION_TIMING, attributeClosure, nextAcquireHold, ScanController,
   type AcquireHold, type HighlightLogEntry,
 } from '@/access/scan-controller';
-import { InputController, isScanMode } from '@/access/input-controller';
+import { hasHighlight, InputController, isFaceMode, isManualNavMode } from '@/access/input-controller';
 import type { ScanConfig } from '@/access/scan-controller';
 import { SpeechController, type SynthLike } from '@/audio/speech-controller';
 import { getSynth, speakVoiceTest, subscribeVoices } from '@/audio/voices';
 import { recordingSupported } from '@/audio/recording-controller';
 import * as store from '@/adaptation/preference-store';
+import { useAudio } from './useAudio';
 
 const ACCESS_KEY = 'still-here:access';
 const now = () => performance.now();
@@ -182,9 +187,12 @@ export function useStillHere(): StillHereRuntime {
   useIsoLayoutEffect(() => {
     armingRef.current = new Map(targets.map((t) => [t.id, !!t.requiresArming]));
   });
-  const scanning = isScanMode(state.settings.accessMode) && state.phase === 'active';
-  // Blink in use but no stable single face yet: do not cycle choices before input is possible.
-  const blinkAcquiring = blink.active && blink.cameraOn
+  // A highlight exists in switch / blink auto-scan (timed) and brow-blink (manual) modes.
+  const scanning = hasHighlight(state.settings.accessMode) && state.phase === 'active';
+  const manualNav = isManualNavMode(state.settings.accessMode) && state.phase === 'active';
+  // Blink auto-scan in use but no stable single face yet: do not cycle choices before input is
+  // possible. (Manual stepping has no timer, so nothing to hold.)
+  const blinkAcquiring = !manualNav && blink.active && blink.cameraOn
     && (blink.status === 'starting' || blink.status === 'no-face' || blink.status === 'multiple-faces');
   // The acquisition hold is released after ACQUIRE_HOLD_MAX_MS or by any keyboard switch press,
   // and re-applies on the next acquisition episode.
@@ -217,10 +225,11 @@ export function useStillHere(): StillHereRuntime {
       held: scanning && (switchHeld || blinkHeld || acquireHoldActive),
       pin: blinkHeld ? blinkPinRef.current : null,
       hidden,
+      manual: manualNav,
     };
     lastScanCfgRef.current = cfg;
     scanRef.current.update(cfg);
-  }, [scanning, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, blinkHeld, acquireHoldActive, hidden]);
+  }, [scanning, manualNav, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, blinkHeld, acquireHoldActive, hidden]);
 
   useEffect(() => {
     return () => {
@@ -236,6 +245,14 @@ export function useStillHere(): StillHereRuntime {
       type: 'ACTIVATE', targetId, eventId: newId(), cycleId: newId(),
       surfaceRevision: s.surfaceRevision, sessionEpoch: s.sessionEpoch, source, at: now(),
     });
+  }, []);
+
+  /** One manual step (brow-blink). Refused while a switch press or blink closure holds the highlight. */
+  const stepHighlight = useCallback((): string | null => {
+    const s = stateRef.current;
+    if (s.phase !== 'active' || !isManualNavMode(s.settings.accessMode)) return null;
+    if (switchHeldRef.current || blinkPinRef.current !== null) return null;
+    return scanRef.current?.next() ?? null;
   }, []);
 
   useEffect(() => {
@@ -259,13 +276,17 @@ export function useStillHere(): StillHereRuntime {
         if (held) setAcquireHold((h) => nextAcquireHold(h, { type: 'switch-press' }));
       },
       onSafetyPause: () => dispatch({ type: 'SAFETY_PAUSE', at: now() }),
+      // Keyboard NAV_NEXT fallback (brow-blink only; the controller filters mode/editable/repeat).
+      onNavNext: () => {
+        stepHighlight();
+      },
     });
     return input.attach(window);
-  }, []);
+  }, [stepHighlight]);
 
-  // ---- Blink gestures → the same guarded ACTIVATE ----
+  // ---- Face gestures (arbiter output) → the same guarded ACTIVATE / manual step ----
   const blinkUsable = blink.active && !CALIBRATING_STAGES.has(blink.calibrator.stage);
-  const blinkSubscribe = blink.subscribe;
+  const blinkEngine = blink.engine;
   useIsoLayoutEffect(() => {
     blinkUsableRef.current = blinkUsable;
   });
@@ -274,7 +295,7 @@ export function useStillHere(): StillHereRuntime {
     const freeze = (targetId: string) => {
       blinkPinRef.current = targetId;
       setBlinkHeld(true);
-      // Freeze immediately (before the next render) so the highlight cannot advance mid-closure.
+      // Freeze immediately (before the next render) so the highlight cannot move mid-closure.
       const cfg = lastScanCfgRef.current;
       if (cfg && cfg.active) scanRef.current?.update({ ...cfg, held: true, pin: targetId });
     };
@@ -283,53 +304,94 @@ export function useStillHere(): StillHereRuntime {
       blinkPinRef.current = null;
       setBlinkHeld(false);
     };
-    const onGesture = (e: BlinkGestureEvent) => {
+    const refused: FaceCommandResult = { applied: false, targetId: null };
+    const onCommand = (e: FaceCommandEvent): FaceCommandResult => {
       const s = stateRef.current;
-      const usable = blinkUsableRef.current && s.phase === 'active' && s.settings.accessMode === 'blink';
+      const usable = blinkUsableRef.current && s.phase === 'active' && isFaceMode(s.settings.accessMode);
       switch (e.type) {
-        case 'closure-start': {
+        case 'freeze': {
           blinkSnapRef.current = null;
-          if (!usable || switchHeldRef.current) return; // a keyboard switch press owns this cycle
-          if (!scanRef.current?.current) return;
-          // Detection lags the real eyelid onset: credit the previous highlight if it moved just
-          // before, and discard (no freeze, no selection) a guarded target that was not armed.
-          const a = attributeClosure(highlightLogRef.current, e.at, (id) => armingRef.current.get(id) ?? true);
-          if (!a.ok) return;
+          if (!usable || switchHeldRef.current) return refused; // a keyboard switch press owns this cycle
+          if (!scanRef.current?.current) return refused;
+          // Detection lags the real eyelid onset. Auto-scan: credit the previous highlight if the
+          // timer moved it just before. Manual stepping: the user moved it, so a closure right
+          // after a move is ambiguous and discarded. A guarded target that was not armed: discard.
+          const a = attributeClosure(
+            highlightLogRef.current, e.at, (id) => armingRef.current.get(id) ?? true, ATTRIBUTION_TIMING,
+            { onRecentChange: isManualNavMode(s.settings.accessMode) ? 'discard' : 'previous' },
+          );
+          if (!a.ok) return refused;
           blinkSnapRef.current = { targetId: a.targetId, surfaceRevision: a.surfaceRevision, cycleId: newId(), at: e.at };
           freeze(a.targetId);
-          return;
+          return { applied: true, targetId: a.targetId };
         }
-        case 'select': {
+        case 'unfreeze':
+          unfreeze();
+          return refused;
+        case 'accept': {
+          if (e.command === 'NAV_NEXT') {
+            if (!usable) return refused;
+            const id = stepHighlight();
+            return id ? { applied: true, targetId: id } : refused;
+          }
+          // SELECT: the arbiter sends accept BEFORE unfreeze; commit the closure-onset snapshot.
           const snap = blinkSnapRef.current;
           unfreeze();
-          if (!snap || !usable) return;
-          if (snap.surfaceRevision !== s.surfaceRevision) return; // a new screen opened mid-closure
-          if (lastSwitchActivateRef.current >= snap.at) return; // another input already acted
+          if (!snap || !usable) return refused;
+          if (snap.surfaceRevision !== s.surfaceRevision) return refused; // a new screen opened mid-closure
+          if (lastSwitchActivateRef.current >= snap.at) return refused; // another input already acted
           dispatch({
             type: 'ACTIVATE', targetId: snap.targetId, eventId: newId(), cycleId: snap.cycleId,
             surfaceRevision: snap.surfaceRevision, sessionEpoch: s.sessionEpoch, source: 'blink', at: now(),
           });
-          return;
+          return { applied: true, targetId: snap.targetId };
         }
-        case 'discard':
-          unfreeze();
-          return;
         case 'face-lost':
           unfreeze();
           if (usable) dispatch({ type: 'SAFETY_PAUSE', at: now() });
-          return;
-        case 'face-found':
-          return;
+          return refused;
       }
     };
-    return blinkSubscribe(onGesture);
-  }, [blinkSubscribe]);
+    blinkEngine.setCommandHandler(onCommand);
+    return () => blinkEngine.setCommandHandler(null);
+  }, [blinkEngine, stepHighlight]);
+
+  // New surface / revision / session: no gesture carries over. The arbiter's reset() does not
+  // emit 'unfreeze', so clear the local freeze here too.
+  const surfaceKey = `${state.surfaceRevision}:${state.sessionEpoch}:${state.settings.accessMode}`;
+  const [heldSurfaceKey, setHeldSurfaceKey] = useState(surfaceKey);
+  if (heldSurfaceKey !== surfaceKey) {
+    // Adjust during render (not in an effect) so the scan config never sees a stale freeze.
+    setHeldSurfaceKey(surfaceKey);
+    if (blinkHeld) setBlinkHeld(false);
+  }
+  useEffect(() => {
+    blinkSnapRef.current = null;
+    blinkPinRef.current = null;
+    blinkEngine.resetGestures();
+  }, [blinkEngine, surfaceKey]);
 
   // ---- Session, voice test, partner ----
+  const blinkStartCamera = blink.startCamera;
   const startSession = useCallback((settings: Settings, profileDraft: ProfileDraft | null) => {
     getRunner().dispose(); // stop any voice test / stale capture before the new epoch
     dispatch({ type: 'SETUP_START', settings, profileDraft, epoch: newId(), at: now() });
-  }, [getRunner]);
+    // Face modes: start the camera inside this click (wake lock + iPad camera policy). The
+    // effect below is the fallback; startCamera is a no-op when the camera is already on.
+    if (isFaceMode(settings.accessMode)) void blinkStartCamera();
+  }, [getRunner, blinkStartCamera]);
+
+  // A session in a face mode with a saved calibration needs the camera running (the main-screen
+  // preview never starts it). One automatic attempt per session epoch + mode, so a denied or
+  // unsupported camera is not re-requested in a loop.
+  const autoCameraKeyRef = useRef<string | null>(null);
+  const faceSessionKey = state.phase === 'active' && isFaceMode(state.settings.accessMode) && blink.active
+    ? `${state.sessionEpoch}:${state.settings.accessMode}` : null;
+  useEffect(() => {
+    if (!faceSessionKey || autoCameraKeyRef.current === faceSessionKey) return;
+    autoCameraKeyRef.current = faceSessionKey;
+    if (!blink.cameraOn && blink.status === 'off') void blinkStartCamera();
+  }, [faceSessionKey, blink.cameraOn, blink.status, blinkStartCamera]);
 
   const testVoice = useCallback((voiceURI: string | null, rate: number) => {
     if (stateRef.current.speech) return; // never talk over a conversational utterance
@@ -366,6 +428,7 @@ export function useStillHere(): StillHereRuntime {
     accessStore.set(v);
   }, []);
 
+  const audio = useAudio({ getState: () => stateRef.current, dispatch, serverStatus, accessCode });
   const canRecord = recordingApis && !!serverStatus?.transcription.configured && state.settings.cloudConsent;
 
   const partner = useMemo(
@@ -391,5 +454,6 @@ export function useStillHere(): StillHereRuntime {
     accessCode,
     setAccessCode,
     blink,
+    audio,
   };
 }

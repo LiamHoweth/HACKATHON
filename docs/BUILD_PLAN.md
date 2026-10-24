@@ -1,30 +1,31 @@
 # Build plan
 
-The governing brief is now the **blink-first** master prompt (`Still_Here_Claude_Master_Prompt_BLINK_FIRST.md`, supplied locally and not committed). It supersedes the earlier brief. Its gates (§34) are listed below in dependency order. A gate is **done** only when its checks are recorded in [TEST_RESULTS.md](TEST_RESULTS.md). Other status values are **partial**, **in progress**, and **not started**.
+The governing brief is now the one-file **iPad gestures + ElevenLabs** master prompt (`Still_Here_Claude_ONE_FILE_ElevenLabs_iPad_Implementation.md`, supplied locally and not committed). It supersedes the blink-first brief. Its gates (§34) are listed below in dependency order. A gate is **done** only when its checks are recorded in [TEST_RESULTS.md](TEST_RESULTS.md). Other status values are **partial**, **in progress**, and **not started**.
 
 Timeline (America/Chicago, Saturday 2026-10-24): hacking began at 09:00. Our planning targets are feature freeze at 15:30 and submission verification at 17:00. Official submission and judging are at 17:15.
 
-Last updated: 2026-10-24, 11:35 CT.
+Last updated: 2026-10-24, 12:10 CT.
 
 | Gate | Required working result | Status | Evidence / what is missing |
 | --- | --- | --- | --- |
-| 0 — Repository | Inspection, personalized identity and docs, concise CLAUDE.md, presentation log, real commands | Done | Docs reframed for blink-first at 11:30. The integrator owns CLAUDE.md and AGENT_NOTES.md (AGENT_NOTES still describes Anthropic as the live provider) |
-| 1 — Shared communication kernel | Typed partner message → validated suggestions → unified scanner → immutable review → fresh confirmation → exact speech; keyboard smoke test | Done (audible speech unconfirmed) | 82/82 unit/API tests. Browser fixture loop and switch-scanning pass with synthesized keys. Live OpenAI verified. A human listener has not confirmed audible speech |
-| 2 — **Primary blink access** | Real webcam tracking, calibration/tutorial, freeze at closure, deliberate-blink selection, cooldown, hands-free select plus a second-blink confirm on the actual UI | **In progress** | Uncommitted at 11:35: pinned MediaPipe assets, detector, pure gesture state machine, calibration logic with synthetic tests passing (ACCESS-10/11), and calibration/status components. **Not yet wired into the app runtime.** No real-webcam test yet |
-| 3 — Blink-operable agency | Regeneration, scanning composition, phrases, cancel/stop/pause/error recovery, all reachable with blinks; reliable alternate inputs | Partial | All of these work through the shared target registry with keyboard/switch/pointer (unit plus browser). They have not been operated with blinks |
-| 4 — Blink-operable conversation tools | Intent guidance, quick interruptions, parked questions/history, initiation, preserved drafts | Partial | Unit tests and a browser pass via pointer/scripted clicks. Blink operation not tested |
-| 5 — Consented adaptation | Session length feedback, approved preferences, scope/clear/disable/persistence, approvals reachable by blink | Partial | Unit tests and a browser pass in fixture mode. Reload persistence and blink reachability not tested |
-| 6 — Partner audio | Explicit recording, reviewed transcript, typed fallback, staged turns, echo prevention, blink-operable controls | Partial | Server transcription verified live with a synthetic clip. Browser microphone capture not exercised |
-| 7 — Final readiness | Real webcam and voice verification, tests/build, blink reliability numbers, live hands-free demo, synced docs, backup, transparent fallback | Not started | Starts by the 15:30 freeze. Also needs a Railway redeploy (latest deploy is 11:15, before the audit fixes) |
+| 0 — Repo reality | Inspection, personalization, CLAUDE.md, setup/test scripts, presentation log | Done (docs reframed for iPad at 12:05) | The integrator owns CLAUDE.md and AGENT_NOTES.md. AGENT_NOTES still describes blink-first |
+| 1 — Shared kernel | Contracts, typed input actions, three validated replies, review, fresh confirmation, speech authorization, backend proxy | Done (audible speech unconfirmed) | 134/134 tests at 11:50. Browser fixture loop and switch scanning pass with synthesized keys. Live OpenAI verified |
+| **2 — Main iPad gesture path** | Local front camera, neutral/raised/closed calibration, **500 ms eyebrow NEXT** with release rearm, long-blink SELECT, arbiter, small mirrored self-view, progress and accepted-gesture feedback, hands-free review | **In progress** | Blink SELECT machine and calibration committed with synthetic tests. Brow machine, brow calibration, arbiter, preview, and gesture feedback present but uncommitted; their test files (GEST-01 to 07) exist but no run is recorded. **No real camera test. Not iPad-verified** |
+| **3 — ElevenLabs natural voice** | Verified key/voice/model; secure Text-to-Dialogue WebSocket or a valid ElevenLabs alternative; audio on the iPad after setup; Stop; no duplicate or unconfirmed speech; labeled fallback | **In progress** | `POST /api/speech`, `GET /api/voices`, `src/server/elevenlabs/` (TTD WebSocket + HTTP), one audio player, and the labeled basic-voice path present but uncommitted. Mock test files (TTS-01 to 07, IPAD-03) exist, no run recorded. **No ElevenLabs key, so live voice is not configured and not verified** |
+| 4 — Conversation agency | None of these, guidance, scanning keyboard, phrases, initiation, parked questions, stale-result protection across gesture surfaces | Partial | Unit tests and browser passes with pointer/switch. Not operated with eyebrow/blink |
+| 5 — Consented context | Session observations, approved preferences, profiles, scoped memory UI, disable/clear | Partial | Unit tests and a fixture browser pass. Reload persistence and gesture reachability not tested |
+| 6 — Partner audio | Recording, reviewed transcript, typed fallback, echo prevention | Partial | Server transcription verified with a synthetic clip. Browser/iPad microphone not exercised |
+| 7 — Real verification | Type/lint/test/build, the iPad trial (§24), latency measurements, privacy/network check, evidence, rehearsed demo, transparent backup | Not started | Needs the ElevenLabs key, a redeploy, and the physical iPad. See [PROGRESS.md](PROGRESS.md#next-exact-actions) |
 
 ## Cut order if time runs short
 
-1. P2 items: advanced ranking, shorthand, alternate gestures (none started).
-2. Measurement export UI. Keep the reducer metric events and record the blink gate by hand.
-3. Partner audio in the demo. Keep typed partner input.
-4. Simplify the Preferences/Memory screen to a list with toggle and delete.
+1. P2 items: advanced ranking, shorthand, extra gesture variants, voice picker beyond one tested voice.
+2. Progressive audio streaming. Keep the MP3 blob ([D30](DECISIONS.md)).
+3. Measurement export UI. Keep the reducer metric events and record the iPad trial by hand.
+4. Partner audio in the demo. Keep typed partner input.
+5. Simplify the Preferences/Memory screen to a list with toggle and delete.
 
-**Do not cut** real-webcam calibration and the blink reliability gate merely because keyboard scanning works. If blink fails the gate, keep the keyboard/switch fallback and say openly that the webcam demo remains experimental. Never cut independent composition, review plus a separate confirmation, accurate source labels, or truthful docs.
+**Do not cut** the real iPad trial, the Enable Audio step, or the labeled basic-voice fallback because desktop tests pass. If eyebrow NEXT fails on the iPad, use auto-scan + blink (or keyboard/switch/touch) and say so. If ElevenLabs is unavailable, say "natural voice not configured" and use the labeled basic voice. Never cut independent composition, review plus a separate confirmation, accurate source and voice labels, or truthful docs.
 
 ## Per-gate routine
 

@@ -3,7 +3,7 @@ import type {
   AccessMode, AiMode, ApiResult, ApprovedPreference, ApprovedProfileEntry, Anchor, Candidate,
   ChoiceBatch, ConfirmedUtterance, ConversationEntry, Guidance, Id, InitiationCategory, Intent,
   PartnerTurnSource, PreferenceProposal, ProfileDraft, RejectedBatch, ReplyRequest, ReplyResponseData,
-  ReviewSnapshot, SavedPhrase, Scope, SessionObservation, StyleKey, StyleSetting, ApiError,
+  ReviewSnapshot, SavedPhrase, Scope, SessionObservation, StyleKey, StyleSetting, ApiError, SpeechProvider,
 } from './types';
 import { SCAN_DEFAULTS } from './limits';
 import { BUILT_IN_PHRASES } from './phrases';
@@ -68,7 +68,9 @@ export type Workspace = {
 export type ReviewOrigin =
   | { kind: 'candidate'; workspaceId: Id; batchId: Id; candidateId: Id }
   | { kind: 'composed' }
-  | { kind: 'phrase'; phraseId: Id };
+  | { kind: 'phrase'; phraseId: Id }
+  // Re-authorizing a message whose ElevenLabs playback failed, for the basic device voice.
+  | { kind: 'basic-voice'; originalUtteranceId: Id };
 
 export type ReviewState = {
   snapshot: ReviewSnapshot;
@@ -89,6 +91,10 @@ export type Settings = {
   readingPauseMs: number;
   voiceURI: string | null;
   rate: number;
+  /** Primary output. 'browser' is the explicitly labeled basic device voice. */
+  speechProvider: SpeechProvider;
+  /** Server-approved ElevenLabs voice choice (never a raw provider id from the client). */
+  voiceChoiceId: Id | null;
   aiMode: AiMode;
   cloudConsent: boolean;
   sessionAdaptation: boolean;
@@ -146,6 +152,8 @@ export type State = {
   drafts: Record<ComposePurpose, string>;
   review: ReviewState | null;
   speech: SpeechState | null;
+  /** Last confirmed message whose ElevenLabs playback failed or was uncertain; offers a labeled basic-voice retry. */
+  lastFailedSpeech: { utteranceId: Id; text: string; source: ReviewSnapshot['source'] } | null;
   contextRevision: number;
   preferenceRevision: number;
   approvedPreferences: ApprovedPreference[];
@@ -185,6 +193,9 @@ export type Command =
   | { type: 'refine-candidate'; mode: 'shorter' | 'different-tone' }
   | { type: 'edit-review-text' }
   | { type: 'stop-speech' }
+  | { type: 'review-basic-voice' }
+  | { type: 'dismiss-failed-speech' }
+  | { type: 'set-speech-provider'; provider: SpeechProvider }
   | { type: 'pause' }
   | { type: 'resume' }
   | { type: 'end-session' }
@@ -235,11 +246,13 @@ export type Action =
   | { type: 'DISMISS_NOTICE' };
 
 export const DEFAULT_SETTINGS: Settings = {
-  accessMode: 'blink',
+  accessMode: 'brow-blink',
   scanIntervalMs: SCAN_DEFAULTS.intervalMs,
   readingPauseMs: SCAN_DEFAULTS.readingPauseMs,
   voiceURI: null,
   rate: 1,
+  speechProvider: 'elevenlabs',
+  voiceChoiceId: null,
   aiMode: 'fixture',
   cloudConsent: false,
   sessionAdaptation: false,
@@ -271,6 +284,7 @@ export function initialState(epoch: Id = 'setup'): State {
     drafts: { message: '', seed: '', phrase: '' },
     review: null,
     speech: null,
+    lastFailedSpeech: null,
     contextRevision: 0,
     preferenceRevision: 0,
     approvedPreferences: [],

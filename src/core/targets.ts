@@ -41,6 +41,10 @@ function boardTargets(s: State): Target[] {
   const ws = activeWorkspace(s);
   const t: Target[] = [];
   const waiting = s.staged.length + parkedWorkspaces(s).length;
+  if (s.lastFailedSpeech) {
+    t.push({ id: 'speak-basic', label: 'Say it with the basic device voice', detail: 'The natural voice did not play. You will review it again first.', enabled: true, command: { type: 'review-basic-voice' }, region: 'primary' });
+    t.push({ id: 'dismiss-failed', label: 'Dismiss voice problem', enabled: true, command: { type: 'dismiss-failed-speech' }, region: 'primary', tone: 'quiet' });
+  }
   if (ws && !ws.closed) {
     if (ws.status === 'choosing' && ws.batch) {
       ws.batch.candidates.forEach((c, i) => t.push({
@@ -327,6 +331,9 @@ function controlsTargets(s: State): Target[] {
     { id: 'ct-slower', label: `Scan slower (now ${(iv / 1000).toFixed(2)}s)`, enabled: iv < SCAN_DEFAULTS.maxIntervalMs, command: { type: 'scan-speed', deltaMs: SCAN_DEFAULTS.stepMs }, region: 'menu' },
     { id: 'ct-faster', label: 'Scan faster', enabled: iv > SCAN_DEFAULTS.minIntervalMs, command: { type: 'scan-speed', deltaMs: -SCAN_DEFAULTS.stepMs }, region: 'menu' },
     open('ct-scope', `Who/where: ${describeScope(s.settings.scope)}`, { kind: 'scope' }, { region: 'menu' }),
+    s.settings.speechProvider === 'elevenlabs'
+      ? { id: 'ct-voice', label: 'Voice: natural (ElevenLabs)', detail: 'Switch to the basic device voice', enabled: true, command: { type: 'set-speech-provider', provider: 'browser' }, region: 'menu' }
+      : { id: 'ct-voice', label: 'Voice: basic device voice', detail: 'Switch to the natural voice', enabled: true, command: { type: 'set-speech-provider', provider: 'elevenlabs' }, region: 'menu' },
     { id: 'ct-measure', label: `Measurement mode: ${s.settings.measurement ? 'on' : 'off'}`, enabled: true, command: { type: 'toggle-flag', flag: 'measurement' }, region: 'menu' },
     open('ct-metrics', 'View measurements', { kind: 'metrics' }, { region: 'menu' }),
     open('ct-end', 'End session…', { kind: 'end-confirm' }, { region: 'menu', tone: 'quiet' }),

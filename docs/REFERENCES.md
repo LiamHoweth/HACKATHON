@@ -38,7 +38,14 @@ Several leads (VisioALS, Bobbai) describe webcam or eye-controlled interaction, 
 | `SpeechSynthesisVoice.localService` | <https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisVoice/localService> | Supplied reference |
 | WCAG 2.2 contrast (minimum) | <https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html> | Supplied reference; conformance not tested |
 | WCAG 2.2 keyboard | <https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html> | Supplied reference; conformance not tested |
-| MediaPipe Face Landmarker (web) | <https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker/web_js> | Used for the blink adapter (in progress). See "Blink detection assets" below |
+| MediaPipe Face Landmarker (web) | <https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker/web_js> | Used for eyebrow and blink detection. See "Blink detection assets" below |
+| ElevenLabs models | <https://elevenlabs.io/docs/overview/models> | Supplied reference (brief, checked by the brief's author 2026-10-24). `eleven_v4_turbo` preferred. Not yet checked against our account (no key) |
+| ElevenLabs Text-to-Dialogue WebSocket (v4 Turbo) | <https://elevenlabs.io/docs/eleven-api/guides/how-to/websockets/realtime-tdd>, <https://elevenlabs.io/docs/eleven-api/guides/how-to/websockets/tts-vs-ttd-websockets> | Supplied reference. The standard TTS stream-input WebSocket is not for v4 models |
+| ElevenLabs Text-to-Dialogue HTTP / Text-to-Speech stream | <https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert>, <https://elevenlabs.io/docs/api-reference/text-to-speech/stream> | Supplied reference (fallback transports) |
+| ElevenLabs voices and voice settings | <https://elevenlabs.io/docs/api-reference/voices/search>, <https://elevenlabs.io/docs/api-reference/voices/settings/get-default> | Supplied reference. Voice ids are account-specific |
+| ElevenLabs authentication, key scope and credit limits | <https://elevenlabs.io/docs/api-reference/authentication> | Supplied reference |
+| ElevenLabs retention / `enable_logging` / pricing | ElevenLabs official docs | **Not reviewed for this project.** Plan-dependent. Make no zero-retention claim |
+| iPad Safari audio playback policy | Current WebKit/Safari documentation and the actual iPad | Not reviewed. Test on the device; a camera gesture may not count as a user touch |
 | Claude Code memory / subagents | <https://code.claude.com/docs/en/memory>, <https://code.claude.com/docs/en/sub-agents> | Development tooling only |
 | GitHub CLI `gh repo edit` | <https://cli.github.com/manual/gh_repo_edit> | Not used yet; remote metadata unchanged |
 
@@ -49,7 +56,7 @@ Several leads (VisioALS, Bobbai) describe webcam or eye-controlled interaction, 
 | `@mediapipe/tasks-vision` (JS API and WASM runtime in `public/wasm`) | 1.1.1, pinned exactly in `package.json` | npm, copied by `scripts/copy-mediapipe-assets.mjs` | Apache-2.0 (from the package's `license` field) | Present locally. Hashes in `public/models/README.md` |
 | `face_landmarker.task` (face detector, landmarks, blendshapes) | `float16/1` | `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`, downloaded 2026-10-24, SHA-256 recorded | Apache-2.0, as recorded by the blink engineer. **To confirm against Google's model card** before the license is stated publicly | Present locally |
 
-The eye-closure signal comes from the model's blendshape outputs (eye-blink coefficients). These are facial-gesture estimates. They are not gaze, identity, or emotion, and we have no evidence that they are clinically validated. We have not verified that the model behaves well across skin tones, glasses, or lighting. That would need its model card and our own testing.
+The eye-closure and brow-raise signals come from the model's blendshape outputs (`eyeBlinkLeft`/`eyeBlinkRight`; `browInnerUp`, `browOuterUpLeft`, `browOuterUpRight`). These are facial-gesture estimates. They are not gaze, identity, or emotion, and we have no evidence that they are clinically validated. We have not verified that the model behaves well across skin tones, glasses, or lighting. That would need its model card and our own testing.
 
 ## Deferred research consideration: Chicago Face Database
 

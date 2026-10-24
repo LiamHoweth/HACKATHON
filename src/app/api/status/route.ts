@@ -18,6 +18,11 @@ export async function GET(request: Request) {
         provider: cfg.repliesConfigured && reveal ? cfg.aiProvider : null,
         model: cfg.repliesConfigured && reveal ? cfg.replyModel : null,
       },
+      speech: {
+        configured: cfg.speechConfigured,
+        provider: cfg.speechConfigured ? 'elevenlabs' : null,
+        model: cfg.speechConfigured && reveal ? cfg.elevenLabsModelId : null,
+      },
       transcription: { configured: cfg.transcriptionConfigured, provider: cfg.transcriptionConfigured ? cfg.transcriptionProvider : null },
       fixturesEnabled: cfg.fixturesEnabled,
       accessRequired: cfg.accessToken.length > 0 || production,

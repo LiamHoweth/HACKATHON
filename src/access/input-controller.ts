@@ -1,6 +1,8 @@
-// Global keyboard handling (capture phase). In scanning modes (switch, and blink where the key
-// is the fallback switch), Space/Enter is a press/release switch: snapshot at press, ignore
-// repeats, commit once on release, then cool down.
+// Global keyboard handling (capture phase). In highlight modes (switch, blink auto-scan, and
+// brow-blink where the key is the fallback switch), Space/Enter is a press/release switch:
+// snapshot at press, ignore repeats, commit once on release, then cool down. In 'brow-blink'
+// (manual eyebrow stepping) Tab / ArrowRight outside editable fields is the keyboard NAV_NEXT
+// fallback: one step per physical key press, repeats ignored, native focus move prevented.
 import type { AccessMode } from '@/core/types';
 import { SCAN_DEFAULTS } from '@/core/limits';
 
@@ -15,13 +17,39 @@ export type InputDeps = {
   onSwitchActivate: (snap: { targetId: string; surfaceRevision: number; cycleId: string }) => void;
   onHeldChange: (held: boolean) => void;
   onSafetyPause: () => void;
+  /** Keyboard NAV_NEXT fallback (brow-blink mode only). One call per physical key press. */
+  onNavNext?: () => void;
   now?: () => number;
   cooldownMs?: number;
 };
 
-/** Modes in which the automatic scanner runs and Space/Enter act as a switch. */
+/** Modes in which the automatic (timed) scanner runs. */
 export function isScanMode(mode: AccessMode): boolean {
   return mode === 'switch' || mode === 'blink';
+}
+
+/** Manual stepping: the highlight moves only on accepted NAV_NEXT (eyebrow or keyboard). */
+export function isManualNavMode(mode: AccessMode): boolean {
+  return mode === 'brow-blink';
+}
+
+/** Modes with a scanning highlight (timed or manual), where Space/Enter act as a switch. */
+export function hasHighlight(mode: AccessMode): boolean {
+  return isScanMode(mode) || isManualNavMode(mode);
+}
+
+/** Face-gesture modes (camera input). */
+export function isFaceMode(mode: AccessMode): boolean {
+  return mode === 'blink' || mode === 'brow-blink';
+}
+
+type KeyLike = Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'ctrlKey' | 'metaKey' | 'altKey'>;
+
+/** Keyboard NAV_NEXT key: Tab (without Shift) or ArrowRight, no Ctrl/Meta/Alt. */
+export function isNavNextKey(e: KeyLike): boolean {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  if (e.key === 'Tab' || e.code === 'Tab') return !e.shiftKey;
+  return e.key === 'ArrowRight' || e.code === 'ArrowRight';
 }
 
 const SWITCH_KEYS = new Set(['Space', 'Enter', 'NumpadEnter']);
@@ -86,11 +114,19 @@ export class InputController {
       if (!e.repeat && !inPartner) this.deps.onSafetyPause();
       return;
     }
+    if (isNavNextKey(e) && isManualNavMode(this.deps.getMode()) && !isEditable(e.target)) {
+      // Keyboard NAV_NEXT: we own the key here (no native focus move), once per physical press.
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat || this.snapshot) return; // never step while a switch press is held
+      this.deps.onNavNext?.();
+      return;
+    }
     const key = switchKey(e);
     if (!key || isEditable(e.target)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-    if (!isScanMode(this.deps.getMode())) {
+    if (!hasHighlight(this.deps.getMode())) {
       // Any mode: a held key must not trigger repeated native clicks.
       if (e.repeat) e.preventDefault();
       return;
@@ -114,14 +150,14 @@ export class InputController {
     if (!key) return;
     const snap = this.snapshot;
     const ours = !!snap && snap.key === key;
-    if (!ours && (isEditable(e.target) || !isScanMode(this.deps.getMode()))) return;
+    if (!ours && (isEditable(e.target) || !hasHighlight(this.deps.getMode()))) return;
     e.preventDefault();
     e.stopPropagation();
     if (!snap || !ours) return;
     this.snapshot = null;
     this.armedAt = this.now() + this.cooldownMs;
     this.deps.onHeldChange(false);
-    if (snap.targetId && snap.surfaceRevision === this.deps.getSurfaceRevision() && isScanMode(this.deps.getMode())) {
+    if (snap.targetId && snap.surfaceRevision === this.deps.getSurfaceRevision() && hasHighlight(this.deps.getMode())) {
       this.deps.onSwitchActivate({ targetId: snap.targetId, surfaceRevision: snap.surfaceRevision, cycleId: snap.cycleId });
     }
   };

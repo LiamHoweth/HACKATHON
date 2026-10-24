@@ -98,6 +98,8 @@ h1, h2, h3 { line-height: 1.25; margin: 0; }
 p { margin: 0; }
 blockquote { margin: 0; }
 
+[hidden] { display: none !important; }
+
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -140,6 +142,7 @@ blockquote { margin: 0; }
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+  touch-action: manipulation;
 }
 .btn:hover:not(:disabled) { background: var(--surface-2); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -164,6 +167,7 @@ input[type="text"], input[type="number"], input[type="password"], select, textar
   min-height: 48px;
   width: 100%;
   max-width: 100%;
+  font-size: max(16px, 1em); /* >= 16px: iPad Safari does not zoom on focus */
 }
 textarea { resize: vertical; line-height: 1.4; }
 input[type="range"] { width: 100%; max-width: 28rem; accent-color: var(--accent); min-height: 44px; }
@@ -206,24 +210,45 @@ label { font-weight: 600; }
 .wordmark { font-weight: 900; letter-spacing: 0.14em; font-size: 1.3rem; }
 .tagline { color: var(--muted); font-weight: 600; }
 
-.app { min-height: 100vh; display: flex; flex-direction: column; }
-.app-header {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--surface);
-  border-bottom: 2px solid var(--border-soft);
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
+  grid-template-areas: "main side";
+  gap: 0 1rem;
+  padding:
+    env(safe-area-inset-top, 0px)
+    calc(env(safe-area-inset-right, 0px) + 1rem)
+    calc(env(safe-area-inset-bottom, 0px) + 0.75rem)
+    calc(env(safe-area-inset-left, 0px) + 1rem);
+  --side-w: clamp(17.5rem, 24vw, 22rem);
+  overflow-x: clip;
 }
-.brand { display: flex; flex-direction: column; gap: 0.1rem; }
+.app-main-col { grid-area: main; display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.app-side-col { grid-area: side; display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; padding-top: 0.6rem; }
+
+.app-header {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.25rem;
+  padding: 0.6rem 0 0.1rem;
+}
+.brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.5rem; flex: 1 1 100%; }
+.brand-sep { color: var(--muted); font-weight: 900; }
 .status-bar {
-  display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin: 0; flex: 1 1 28rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1.1rem; margin: 0; flex: 1 1 24rem;
   font-size: 0.95rem;
 }
 .status-item { display: flex; gap: 0.35rem; align-items: baseline; }
 .status-item dt { color: var(--muted); font-weight: 600; }
 .status-item dt::after { content: ":"; }
+.status-item dt.sr-only::after { content: none; }
 .status-item dd { margin: 0; font-weight: 700; }
+.status-secondary { font-size: 0.875rem; }
+.status-secondary dd { font-weight: 600; color: var(--muted); }
+.status-tip { font-size: 0.875rem; }
+.status-tip dd { font-weight: 600; color: var(--warn-text); }
 .status-recording dd { color: var(--rec); }
-.safety { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.safety { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; }
 
 .rec-dot {
   display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%;
@@ -232,31 +257,48 @@ label { font-weight: 600; }
 }
 @keyframes rec-pulse { 50% { opacity: 0.35; } }
 
-.notice-region { padding: 0 1.25rem; }
+.notice-region:empty { display: none; }
 .notice {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  margin-top: 0.75rem; padding: 0.6rem 0.9rem;
+  padding: 0.6rem 0.9rem;
   background: var(--info-bg); color: var(--info-text);
   border-radius: 10px; border-left: 5px solid currentColor;
 }
 
-.app-body {
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
-  gap: 1.25rem;
-  padding: 1.25rem;
-  align-items: start;
+/* iPad landscape (and wide desktop): fixed-height shell, only the surface and the partner
+   panel scroll. Cards stay large; the camera dock is reserved at the top-right. */
+@media (orientation: landscape) and (min-width: 1024px) and (min-height: 600px) {
+  .app { height: 100vh; height: 100dvh; }
+  .app-main-col, .app-side-col { min-height: 0; }
+  .app-main-col > .surface { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .app-side-col > .partner { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .app-side-col > .partner.is-collapsed { flex: 0 0 auto; }
 }
-@media (max-width: 960px) {
-  .app-body { grid-template-columns: minmax(0, 1fr); }
+
+/* Portrait / narrower: header and dock share the top row, everything else stacks. */
+@media (orientation: portrait), (max-width: 1023.98px), (max-height: 599.98px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "header dock" "notice notice" "main main" "side side";
+    gap: 0.75rem 1rem;
+  }
+  .app-main-col, .app-side-col { display: contents; }
+  .app-header { grid-area: header; align-self: start; }
+  .notice-region { grid-area: notice; }
+  .app-main-col > .surface { grid-area: main; }
+  .camera-dock { grid-area: dock; width: var(--side-w); margin-top: 0.6rem; }
+  .partner { grid-area: side; }
+}
+@media (max-width: 640px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "dock" "notice" "main" "side"; }
+  .camera-dock { width: auto; margin-top: 0; }
 }
 
 .surface {
   background: var(--surface);
   border: 2px solid var(--border-soft);
   border-radius: var(--radius);
-  padding: 1.25rem 1.5rem 0;
+  padding: 1rem 1.5rem 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -281,6 +323,7 @@ label { font-weight: 600; }
   padding: 0.75rem 1.1rem;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -470,12 +513,13 @@ label { font-weight: 600; }
   padding: 1rem 1.25rem 1.25rem;
   display: grid;
   gap: 0.9rem;
-  position: sticky;
-  top: 1rem;
   min-width: 0;
+  align-content: start;
 }
-@media (max-width: 960px) { .partner { position: static; } }
-.partner-title { font-size: 1.3rem; font-weight: 800; }
+.partner-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.partner-body { display: grid; gap: 0.9rem; }
+.partner-title { font-size: 1.15rem; font-weight: 800; }
+.partner.is-collapsed { padding-bottom: 1rem; }
 .partner-form { display: grid; gap: 0.4rem; }
 .partner-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .partner-mic { display: grid; gap: 0.6rem; padding-top: 0.75rem; border-top: 2px solid var(--border-soft); }
@@ -493,8 +537,6 @@ label { font-weight: 600; }
 /* ---------- Narrow screens / zoom ---------- */
 
 @media (max-width: 640px) {
-  .app-header { padding: 0.75rem 1rem; }
-  .app-body { padding: 0.75rem 1rem; gap: 1rem; }
   .surface { padding: 1rem 1rem 0; }
   .board-footer { margin: 0 -1rem; padding: 0.9rem 1rem 1rem; }
   .cal-split { grid-template-columns: minmax(0, 1fr); }
@@ -590,7 +632,7 @@ label { font-weight: 600; }
 }
 .board-footer .blink-hint { font-size: 0.95rem; }
 .blink-hint-local { color: var(--muted); font-weight: 500; }
-.review .blink-hint { margin-top: 0.25rem; }
+.review .blink-hint { margin-top: 1.5rem; } /* clear of the highlight ring + glow */
 
 /* ---------- Paused (blink) ---------- */
 
@@ -685,3 +727,122 @@ label { font-weight: 600; }
 .practice-feedback { font-size: 1.25rem; font-weight: 700; min-height: 1.6em; }
 
 .review-actions { margin-top: 0.75rem; }
+
+/* ===================================================================
+   iPad camera-aware layout: self-view dock, gesture feedback, action row
+   =================================================================== */
+
+/* ---------- Camera dock (top-right) ---------- */
+
+.camera-dock { display: grid; gap: 0.5rem; min-width: 0; }
+
+.camera-preview {
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 0.6rem;
+}
+.camera-preview-meta { display: grid; gap: 0.4rem; justify-items: end; text-align: right; flex: 1 1 auto; min-width: 0; }
+.camera-preview-caption { font-size: 0.85rem; font-weight: 600; color: var(--muted); line-height: 1.3; }
+.camera-preview-toggle { min-height: 44px; }
+.camera-preview-frame {
+  position: relative; flex: none;
+  width: clamp(140px, 13vw, 168px); aspect-ratio: 4 / 3;
+  border-radius: 12px; overflow: hidden; background: #000;
+  border: 3px solid var(--border);
+  pointer-events: none; /* the preview never takes a touch or a scan step */
+}
+/* Hidden: collapse with CSS only. The <video> stays mounted and attached. */
+.camera-preview.is-hidden .camera-preview-frame {
+  visibility: hidden; width: 1px; height: 1px; border-width: 0; margin-left: -0.6rem;
+}
+.camera-preview-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.camera-preview-off {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 0.4rem;
+  color: #fff; font-size: 0.85rem; font-weight: 700; text-align: center;
+}
+.tone-ring-ok .camera-preview-frame { border-color: var(--accent); }
+.tone-ring-work .camera-preview-frame { border-color: var(--info-text); }
+.tone-ring-warn .camera-preview-frame { border-color: var(--warn-text); border-style: dashed; }
+.tone-ring-stop .camera-preview-frame { border-color: var(--danger); border-style: dashed; }
+.tone-ring-off .camera-preview-frame { border-color: var(--border-soft); }
+
+/* ---------- Gesture + speech feedback ---------- */
+
+.gesture-feedback { display: grid; gap: 0.4rem; min-width: 0; }
+.gf-line {
+  display: grid; grid-template-columns: 1.4rem minmax(0, 1fr); align-items: center; gap: 0.15rem 0.45rem;
+  padding: 0.4rem 0.6rem; border-radius: 10px; border: 2px solid currentColor;
+  font-size: 0.95rem; font-weight: 700; line-height: 1.3;
+}
+.gf-icon { display: inline-flex; justify-content: center; font-size: 1.05em; }
+.gf-icon .progress-ring { width: 1.2em; height: 1.2em; }
+.gf-text { min-width: 0; }
+.gf-detail { display: block; font-weight: 500; font-size: 0.85rem; }
+/* Progress slot is always reserved so the line never jumps when a gesture starts. */
+.gf-progress { grid-column: 2; display: block; height: 8px; }
+.gf-enable { grid-column: 1 / -1; justify-self: start; }
+.gf-tone-off { color: var(--muted); background: var(--surface-2); }
+.gf-tone-ok { color: var(--accent); background: var(--accent-soft); }
+.gf-tone-work { color: var(--info-text); background: var(--info-bg); }
+.gf-tone-warn { color: var(--warn-text); background: var(--warn-bg); }
+.gf-tone-stop { color: var(--danger); background: var(--danger-soft); }
+.gf-line.is-ack { border-width: 3px; }
+
+.gesture-bar {
+  display: block; position: relative; width: 100%; height: 8px;
+  border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+.gesture-bar-fill { display: block; height: 100%; background: currentColor; transition: width 60ms linear; }
+
+/* ---------- Bottom hint line ---------- */
+
+.blink-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1rem; font-weight: 700; }
+.blink-hint-progress {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  width: 9rem; min-height: 1.2em; color: var(--info-text); font-size: 0.85rem;
+}
+.blink-hint-progress .gesture-bar { flex: 1; }
+
+/* ---------- Board (iPad) ---------- */
+
+.anchor .surface-title { font-size: 1.05rem; }
+.anchor-text { font-size: clamp(1.4rem, 1rem + 1vw, 1.9rem); }
+.candidates { gap: 0.8rem; }
+.candidate.target { min-height: 84px; padding: 0.9rem 1.35rem; }
+.candidate .target-label { font-size: clamp(1.5rem, 1.1rem + 0.9vw, 2rem); }
+
+.board-footer { padding: 0.85rem 1.5rem 1rem; gap: 0.55rem; }
+.board-footer .action-row + .blink-hint, .board-tools + .blink-hint { margin-top: 0.75rem; }
+.layout-actions { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 0.6rem; }
+.action-row .target { min-height: 60px; padding: 0.5rem 0.75rem; align-items: center; text-align: center; }
+.action-row .target-label { font-size: 1.1rem; }
+.action-row .target-detail { font-size: 0.85rem; }
+.board-context { font-size: 0.875rem; color: var(--muted); }
+.board-context .meta-label { color: var(--text); }
+
+.voice-problem {
+  display: grid; gap: 0.6rem; padding: 0.85rem 1rem;
+  border: 3px dashed var(--danger); border-radius: 12px; background: var(--danger-soft);
+}
+.voice-problem-head { font-weight: 800; color: var(--danger); }
+.voice-problem-text { font-size: 1.5rem; font-weight: 700; white-space: pre-wrap; }
+
+.speech-state {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem;
+  font-weight: 700; font-size: 1.2rem; padding: 0.5rem 0.8rem; border-radius: 10px; border: 2px solid currentColor;
+}
+
+/* Strongest signal: badge + ring on the highlighted target. Never moved by a timer in eyebrow mode. */
+.mode-brow-blink .target.is-blink-scan .blink-badge { font-size: 1.05rem; }
+
+@media (max-width: 640px) {
+  .board-footer { padding: 0.75rem 1rem 0.9rem; }
+  .camera-preview-frame { width: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gesture-bar-fill { transition: none !important; }
+}
+
+@media (forced-colors: active) {
+  .gf-line, .camera-preview-frame { border-color: CanvasText; }
+}

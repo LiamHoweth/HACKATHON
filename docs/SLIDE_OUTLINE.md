@@ -1,52 +1,53 @@
 # Slide outline
 
-Six parts (blink-first master prompt §33). Before presenting, reconcile every claim with [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md). Anything still marked "not run" or "not measured" there must be described that way on the slides. Do not use patient imagery, testimonials, pity framing, or sponsor logos. Use only real app screenshots, kept separate from diagrams.
+Six parts (governing iPad + ElevenLabs brief §33). Before presenting, reconcile every claim with [PRESENTATION_LOG.md](PRESENTATION_LOG.md) and [TEST_RESULTS.md](TEST_RESULTS.md). Anything still marked "not run", "not measured", or "not iPad-verified" there must be described that way on the slides. Do not use patient imagery, testimonials, pity framing, or sponsor logos. Use only real app screenshots, kept separate from diagrams.
 
-## 1. The conversational moment
+## 1. Human problem
 
-- What happens when you know what you want to say, but entering the words takes longer than the conversation allows?
-- A design problem, not a universal claim about AAC users.
+- What happens when you know what you want to say, but entering it takes longer than the conversation allows?
+- A design problem for some AAC users, not a universal claim. People who use AAC have plenty to say.
 
-*Speaker notes:* "We built Still Here to explore reducing that effort without taking away the person's choice." Connect it to humor, relationships, boundaries, and independence. No statistics unless a verified source is in [REFERENCES.md](REFERENCES.md).
+*Speaker notes:* "We built Still Here to explore reducing that effort while keeping every word under the person's control." Connect it to humor, relationships, boundaries, and independence. No statistics unless a verified source is in [REFERENCES.md](REFERENCES.md).
 
-## 2. Still Here
+## 2. Product
 
 - **AI offers possible words. The person decides what to say.**
-- Loop: partner question → three different possibilities → the highlight scans → a deliberate blink selects (or rejects, guides, or opens My words) → exact review → a **separate** blink to speak.
-- The person can also start conversations.
+- Partner question → three different possibilities → choose, reject ("None of these"), guide, or write your own → exact review → separate confirmation → spoken.
+- The person can also start conversations. Nothing is ever spoken automatically.
 
 *Speaker notes:* The AI cannot select, speak, or remember anything on its own.
 
-## 3. Live, hands-free blink demonstration
+## 3. Hands-free on iPad
 
-- Status line visible: blink control, camera local, mic state, live/fixture source.
-- Operator's hands away from the keyboard and mouse. The partner types.
-- Reject → guide → select → review → second blink → speak → start a conversation.
+- **Eyebrows up for half a second moves one item. A deliberate long blink selects. A fresh blink authorizes speech.**
+- Small live self-view at the top right, with accepted-gesture feedback ("Eyebrow raise detected — Next", "Blink detected — Selected").
+- Live demo: [DEMO_SCRIPT.md](DEMO_SCRIPT.md). Operator's hands away after one setup touch.
 
-*Speaker notes:* Follow [DEMO_SCRIPT.md](DEMO_SCRIPT.md). If blink fails, switch to keyboard/switch and say "blink is experimental". Say if a helper granted camera permission.
+*Speaker notes:* Say if a helper granted camera permission or tapped Enable Audio. If eyebrow detection fails, switch to auto-scan + blink and say "the eyebrow path is experimental".
 
-## 4. What we built (implemented contribution)
+## 4. Natural voice
 
-- One combination: blink selection over automatic scanning with individual calibration, semantic "None of these", explicit intent guidance, conversation continuity, and consent-gated personalization, all through one guarded selection engine.
-- List only items marked verified in the presentation log at presentation time.
+- ElevenLabs speaks **the exact confirmed sentence**: no added words, no paraphrase, no generic chatbot talking for the user.
+- Prebuilt AI voice, not a clone. Disclosed as AI-generated.
+- Fallback: an explicitly labeled basic device voice that needs a fresh confirmation.
 
-*Speaker notes:* Webcam and eye-controlled AAC already exist (see [REFERENCES.md](REFERENCES.md)). Our contribution is this working combination, not blink access or AAC itself.
+*Speaker notes:* Say this only if the voice was actually heard on the iPad. As of 12:05 CT: **not configured, live voice not verified.** Do not quote vendor latency as our latency.
 
-## 5. Engineering and evidence
+## 5. Engineering and measured evidence
 
-- Local MediaPipe face landmarker (pinned 1.1.1 assets served from the app). Eye-closure scoring only: no identity, no gaze.
-- Gesture safety: target frozen at closure onset, ordinary blinks ignored, minimum and maximum closure, cooldown, face lost → pause, multiple faces → hold.
-- One reducer and one target registry. Every input goes through the same guarded path. A fresh input cycle is required to confirm. Stale results are rejected.
-- Live AI: OpenAI Responses API, strict JSON schema, `store: false`, no tools.
-- Tests: the number from [TEST_RESULTS.md](TEST_RESULTS.md). **Blink reliability: the real gate numbers, or "not measured".**
+- Local MediaPipe face landmarker in Safari (pinned 1.1.1 assets from our origin). Brow-raise and eye-closure scores only: no identity, no gaze, no emotion.
+- Per-person calibration, hysteresis, a 500 ms monotonic hold, latch and rearm, and one arbiter that accepts at most one command per physical gesture.
+- One reducer and one target registry. Every input goes through the same guarded path. Review starts on Cancel. Confirmation needs a new input cycle.
+- Structured OpenAI generation (`gpt-6-astra`, strict JSON schema, `store: false`, no tools). ElevenLabs key held on the server only.
+- Tests: the number from [TEST_RESULTS.md](TEST_RESULTS.md) (134/134 at 11:50 CT). **iPad trial: real counts with n and conditions, or "not measured".**
 
-*Speaker notes:* Explain the model's narrow role. Give missed/false selection counts with n and conditions, never percentages from a tiny sample.
+*Speaker notes:* Give missed and false counts with n, never percentages from a tiny sample. Synthetic tests prove logic, not reliability.
 
-## 6. Limitations and next steps
+## 6. Limitations and future work
 
-- Not tested with AAC users. Not clinically validated. Blink is experimental, and one team tester is not a population.
-- Blinking does not work for everyone, so keyboard/switch/pointer stay first-class fallbacks.
-- Camera privacy claim: state only what the network-log check showed.
-- Next step (planned, not arranged): co-design and evaluation with AAC users and specialists.
+- AAC and facial-gesture access already exist (see [REFERENCES.md](REFERENCES.md)). Our contribution is this working combination.
+- Access needs differ. Not everyone can raise their eyebrows or blink on purpose, so auto-scan, switch, keyboard, and touch stay first-class.
+- Privacy: the camera stays on the iPad by design (state only what the network check showed). The confirmed sentence goes to ElevenLabs; we make no zero-retention claim.
+- Not clinically validated. Not tested with AAC users. Next step (planned, not arranged): evaluation and co-design with AAC users and specialists.
 
-*Speaker notes:* Close with: "AI offers possibilities. The person keeps authorship. Our next step is to evaluate this with AAC users and specialists, using their needs, not our assumptions, to guide the product."
+*Speaker notes:* Close with: "AI offers possibilities. The person keeps authorship. Our prototype uses simple calibrated facial gestures and a natural voice to explore less effortful conversation. The next step is evaluation and co-design with AAC users and specialists."

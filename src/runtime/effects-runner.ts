@@ -5,6 +5,7 @@ import type { Action, Effect, State } from '@/core/state';
 import type { ApiResult, Id, ReplyRequest, ReplyResponseData } from '@/core/types';
 import { ACCESS_HEADER, type TranscriptDraftState } from './contract';
 import { SpeechController } from '@/audio/speech-controller';
+import { getSharedElevenPlayer, type ElevenPlayer } from '@/audio/eleven-player';
 import { RecordingController, recordingSupported } from '@/audio/recording-controller';
 import { transcribe } from '@/audio/transcript-client';
 import * as store from '@/adaptation/preference-store';
@@ -23,6 +24,8 @@ export type RunnerDeps = {
   transcriptionConfigured: () => boolean;
   setTranscript: (t: TranscriptDraftState) => void;
   speech: SpeechController | null;
+  /** Natural-voice (ElevenLabs) player. Omitted → the page-wide shared player (also used by useAudio). */
+  eleven?: Pick<ElevenPlayer, 'speak' | 'stop' | 'cancelAll'> | null;
   newId: () => Id;
   now?: () => number;
   fetchImpl?: typeof fetch;
@@ -35,6 +38,10 @@ export class EffectsRunner {
   private lastSpeechEndAt = -Infinity;
   readonly recorder: RecordingController;
   private now: () => number;
+
+  private get eleven() {
+    return this.deps.eleven === undefined ? getSharedElevenPlayer() : this.deps.eleven;
+  }
 
   constructor(private deps: RunnerDeps) {
     this.now = deps.now ?? (() => performance.now());
@@ -69,6 +76,7 @@ export class EffectsRunner {
     }
     this.generations.clear();
     this.deps.speech?.cancelAll();
+    this.eleven?.cancelAll();
     this.recorder.discard();
     this.transcription?.ctrl.abort();
     this.transcription = null;
@@ -97,6 +105,20 @@ export class EffectsRunner {
         };
         // Never record over the app's own voice.
         if (this.recorder.status !== 'idle') this.discardRecording();
+        if (u.provider === 'elevenlabs') {
+          // Natural voice: exactly the confirmed text goes to /api/speech. Failures report 'error'
+          // (the reducer then offers the labeled basic-voice retry); never a silent fallback.
+          const eleven = this.eleven;
+          if (!eleven) {
+            report('error');
+            return;
+          }
+          this.deps.speech?.cancelAll(); // never overlap the basic voice
+          eleven.speak(u, { accessCode: this.deps.getAccessCode(), listener: (ev) => report(ev.kind), startedAt: this.now() });
+          return;
+        }
+        // Labeled basic device voice (browser speechSynthesis).
+        this.eleven?.cancelAll();
         if (!this.deps.speech) {
           report('error');
           return;
@@ -108,10 +130,12 @@ export class EffectsRunner {
       case 'stop-speech':
         this.lastSpeechEndAt = this.now();
         this.deps.speech?.stop(e.utteranceId);
+        this.eleven?.stop(e.utteranceId);
         return;
       case 'cancel-all-speech':
         this.lastSpeechEndAt = this.now();
         this.deps.speech?.cancelAll();
+        this.eleven?.cancelAll();
         return;
       case 'persist': {
         const s = getState();

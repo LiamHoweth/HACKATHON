@@ -17,6 +17,12 @@ export function serverConfig() {
   const transcriptionKey = (env.TRANSCRIPTION_API_KEY ?? '').trim() || (transcriptionProvider === 'openai' ? openaiKey : '');
   const transcriptionModel = (env.TRANSCRIPTION_MODEL ?? '').trim();
   const providerKey = aiProvider === 'anthropic' ? anthropicKey : aiProvider === 'openai' ? openaiKey : '';
+  // ElevenLabs speech (server-side only). The voice id is not the API key.
+  const elevenLabsKey = (env.ELEVENLABS_API_KEY ?? '').trim();
+  const elevenLabsVoiceId = (env.ELEVENLABS_VOICE_ID ?? '').trim();
+  const elevenLabsOutputFormat = (env.ELEVENLABS_OUTPUT_FORMAT ?? '').trim();
+  const elevenLabsAllowedVoiceIds = [elevenLabsVoiceId, ...(env.ELEVENLABS_ALLOWED_VOICE_IDS ?? '').split(',').map((v) => v.trim())]
+    .filter((v, i, all) => /^[A-Za-z0-9_-]{1,80}$/.test(v) && all.indexOf(v) === i);
   return {
     aiProvider,
     anthropicKey,
@@ -35,6 +41,16 @@ export function serverConfig() {
     transcriptionTimeoutMs: num(env.TRANSCRIPTION_TIMEOUT_MS, 20_000),
     maxAudioBytes: num(env.MAX_AUDIO_BYTES, 4_000_000),
     accessToken: (env.APP_ACCESS_TOKEN ?? '').trim(),
+    elevenLabsKey,
+    elevenLabsVoiceId,
+    elevenLabsModelId: (env.ELEVENLABS_MODEL_ID ?? '').trim() || 'eleven_v4_turbo',
+    // The route returns audio/mpeg, so only MP3 output formats are accepted.
+    elevenLabsOutputFormat: /^mp3_\d{4,6}_\d{2,3}$/.test(elevenLabsOutputFormat) ? elevenLabsOutputFormat : 'mp3_44100_128',
+    elevenLabsTimeoutMs: num(env.ELEVENLABS_TIMEOUT_MS, 15_000),
+    elevenLabsAllowedVoiceIds,
+    elevenLabsTransport: ((env.ELEVENLABS_TRANSPORT ?? '').trim().toLowerCase() === 'http' ? 'http' : 'ws') as 'ws' | 'http',
+    elevenLabsDailyCharBudget: num(env.ELEVENLABS_DAILY_CHAR_BUDGET, 20_000),
+    speechConfigured: elevenLabsKey.length > 0 && elevenLabsAllowedVoiceIds.includes(elevenLabsVoiceId),
   };
 }
 export type ServerConfig = ReturnType<typeof serverConfig>;

@@ -6,6 +6,7 @@ import { TargetList } from './TargetButton';
 import { SurfaceTitle } from './SurfaceTitle';
 import { MESSAGE_SOURCE_LABELS } from './labels';
 import { BlinkHint } from './BlinkStatus';
+import type { AccessMode } from '@/core/types';
 
 export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
   const { state, targets } = runtime;
@@ -14,11 +15,7 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
 
   return (
     <div className="review">
-      <SurfaceTitle
-        sub={state.settings.accessMode === 'blink'
-          ? 'Nothing is spoken until you select Speak. The highlight starts on Cancel; a new deliberate blink on Speak says it aloud.'
-          : 'Nothing is spoken until you select Speak.'}
-      >
+      <SurfaceTitle sub={reviewSub(state.settings.accessMode)}>
         Review your message
       </SurfaceTitle>
       {review ? (
@@ -36,4 +33,10 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
       <BlinkHint runtime={runtime} action="speak" />
     </div>
   );
+}
+
+function reviewSub(mode: AccessMode): string {
+  if (mode === 'brow-blink') return 'Nothing is spoken until you confirm Speak. The highlight starts on Cancel. Raise your eyebrows to move to Speak, then make a new long blink.';
+  if (mode === 'blink') return 'Nothing is spoken until you confirm Speak. The highlight starts on Cancel; a new long blink on Speak says it aloud.';
+  return 'Nothing is spoken until you select Speak.';
 }

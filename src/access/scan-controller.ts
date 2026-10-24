@@ -1,5 +1,9 @@
 // Single-switch scanning schedule. Exactly ONE timer. Highlight is separate from DOM focus.
 // Chained setTimeout (never setInterval) so missed ticks are never replayed.
+//
+// Manual mode (eyebrow NEXT, 'brow-blink'): NO timer at all. The highlight starts on the
+// surface's first (safe) target and moves exactly one step, wrapping, per accepted NAV_NEXT via
+// next(). The same onChange/highlight log feeds blink-closure attribution in both modes.
 
 export type ScanConfig = {
   active: boolean; // scanning mode (switch or blink) && phase === 'active'
@@ -11,7 +15,16 @@ export type ScanConfig = {
   /** While held, keep the highlight on this target (the blink closure-onset snapshot). */
   pin?: string | null;
   hidden: boolean; // document.hidden: pause
+  /** Manual stepping (eyebrow NEXT): never auto-advance; only next() moves the highlight. */
+  manual?: boolean;
 };
+
+/** One manual step: next index, wrapping. -1 (no targets) stays -1. */
+export function stepIndex(index: number, length: number): number {
+  if (length <= 0) return -1;
+  if (!Number.isInteger(index) || index < 0 || index >= length) return 0;
+  return (index + 1) % length;
+}
 
 type Clock = {
   now: () => number;
@@ -65,7 +78,22 @@ export class ScanController {
       this.set(null);
       return;
     }
-    const surfaceChanged = !prev || prev.surfaceRevision !== next.surfaceRevision || !prev.active;
+    const surfaceChanged = !prev || prev.surfaceRevision !== next.surfaceRevision || !prev.active || !!prev.manual !== !!next.manual;
+    if (next.manual) {
+      // Manual: never schedule. New surface → safe first target; same surface → keep or clamp.
+      this.clear();
+      this.remaining = null;
+      if (surfaceChanged) {
+        this.index = 0;
+        this.set(next.ids[0], true);
+        return;
+      }
+      const pinnedM = next.held && next.pin ? next.ids.indexOf(next.pin) : -1;
+      const keepM = pinnedM >= 0 ? pinnedM : this.highlighted ? next.ids.indexOf(this.highlighted) : -1;
+      this.index = keepM >= 0 ? keepM : Math.min(this.index, next.ids.length - 1);
+      this.set(next.ids[this.index]);
+      return;
+    }
     if (surfaceChanged) {
       // New surface: cancel schedule, safe start target, reading pause before the first advance.
       this.clear();
@@ -105,6 +133,19 @@ export class ScanController {
     }
   }
 
+  /**
+   * Manual mode only: move the highlight exactly one step (wrapping). Refused (returns null)
+   * when not in manual mode, inactive, held (blink closure / switch press) or hidden.
+   */
+  next(): string | null {
+    const cfg = this.cfg;
+    if (!cfg || !cfg.active || !cfg.manual || cfg.held || cfg.hidden || cfg.ids.length === 0) return null;
+    const cur = this.highlighted ? cfg.ids.indexOf(this.highlighted) : -1;
+    this.index = stepIndex(cur >= 0 ? cur : this.index, cfg.ids.length);
+    this.set(cfg.ids[this.index]); // a one-target surface logs nothing new (same id)
+    return cfg.ids[this.index];
+  }
+
   dispose(): void {
     this.clear();
     this.cfg = null;
@@ -114,6 +155,7 @@ export class ScanController {
 
   private schedule(ms: number) {
     const cfg = this.cfg;
+    if (cfg?.manual) return;
     if (!cfg || cfg.held || cfg.hidden) {
       if (cfg) this.remaining = ms; // deferred (e.g. the reading pause of a surface opened while held)
       return;
@@ -126,7 +168,7 @@ export class ScanController {
   private tick() {
     this.timer = null;
     const cfg = this.cfg;
-    if (!cfg || !cfg.active || cfg.held || cfg.hidden || cfg.ids.length === 0) return;
+    if (!cfg || !cfg.active || cfg.manual || cfg.held || cfg.hidden || cfg.ids.length === 0) return;
     // A very late tick (sleep, throttling: > 3x the expected delay) advances exactly one step and
     // restarts with a fresh full interval. Missed ticks are never replayed.
     this.lateTicks += this.clock.now() - this.due > 3 * this.dueDelay ? 1 : 0;
@@ -190,7 +232,17 @@ export const ATTRIBUTION_TIMING = {
 
 export type ClosureAttribution =
   | { ok: true; targetId: string; surfaceRevision: number; highlightedFor: number; credited: 'current' | 'previous' }
-  | { ok: false; reason: 'no-target' | 'surface-changed' | 'not-armed' };
+  | { ok: false; reason: 'no-target' | 'surface-changed' | 'not-armed' | 'ambiguous' };
+
+export type AttributionOptions = {
+  /**
+   * What to do when the highlight moved within recentChangeMs before the detected onset.
+   * 'previous' (auto-scan): credit the previous target (the timer moved it under the closure).
+   * 'discard' (manual eyebrow stepping): the user deliberately moved it, so crediting either
+   * target is a guess. Discard with reason 'ambiguous'.
+   */
+  onRecentChange: 'previous' | 'discard';
+};
 
 /**
  * Chooses the target a closure detected at `onsetAt` belongs to, from a highlight log ordered by
@@ -203,6 +255,7 @@ export function attributeClosure(
   onsetAt: number,
   requiresArming: (targetId: string) => boolean,
   timing: { recentChangeMs: number; armedDwellMs: number } = ATTRIBUTION_TIMING,
+  options: AttributionOptions = { onRecentChange: 'previous' },
 ): ClosureAttribution {
   let i = -1;
   for (let k = log.length - 1; k >= 0; k--) {
@@ -221,7 +274,9 @@ export function attributeClosure(
   let credited: 'current' | 'previous' = 'current';
   if (onsetAt - cur.at < timing.recentChangeMs) {
     const prev = i > 0 ? log[i - 1] : null;
-    if (prev && prev.rev === cur.rev && prev.id !== null) {
+    if (prev && prev.rev === cur.rev && prev.id !== null && options.onRecentChange === 'discard') {
+      return { ok: false, reason: 'ambiguous' };
+    } else if (prev && prev.rev === cur.rev && prev.id !== null) {
       pick = prev;
       since = prev.at;
       until = cur.at; // the previous target stopped being highlighted when the highlight moved

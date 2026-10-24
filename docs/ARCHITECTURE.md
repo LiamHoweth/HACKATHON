@@ -1,5 +1,7 @@
 # Architecture
 
+**12:05 CT update:** the governing brief is now iPad eyebrow NEXT + long-blink SELECT + ElevenLabs. In progress and uncommitted at 12:05: `src/access/brow-gesture.ts` (500 ms brow hold), `src/access/gesture-arbiter.ts` (the only emitter of accepted gesture commands), the speech contract in `src/runtime/contract.ts`, and a labeled basic-voice path in `src/core/`. A server route `POST /api/speech` (ElevenLabs) is planned but was not yet present. The rest of this file describes the code as of 11:30 CT, with blink committed since (`2230926`, `08c6abc`).
+
 This describes the code on 2026-10-24 at 11:30 CT. The kernel, runtime, UI, and server are integrated and tested (see [TEST_RESULTS.md](TEST_RESULTS.md)). The **blink access adapter** is being built. It is described here from its runtime contract and the uncommitted modules present at 11:35 (`src/access/blink-{detector,gesture,calibration}.ts`, `src/components/Blink{Calibration,Status}.tsx`). It was not yet wired into `useStillHere`. Check [PROGRESS.md](PROGRESS.md) for the latest status.
 
 ## Stack

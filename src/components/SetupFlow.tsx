@@ -6,13 +6,19 @@ import { VOICE_TEST_TEXT } from '@/runtime/contract';
 import { DEFAULT_SETTINGS } from '@/core/state';
 import type { Settings } from '@/core/state';
 import { RELATIONSHIPS, SETTINGS } from '@/core/types';
-import type { AccessMode, AiMode, ProfileDraft, Relationship, SettingPlace } from '@/core/types';
+import type { AccessMode, AiMode, ProfileDraft, Relationship, SettingPlace, SpeechProvider } from '@/core/types';
 import { SCAN_DEFAULTS } from '@/core/limits';
 import { BUILT_IN_PHRASES } from '@/core/phrases';
-import { BlinkCalibration, describeCalibration } from './BlinkCalibration';
-import { formatTime } from './labels';
+import { BlinkCalibration, describeBrowCalibration, describeCalibration, type FaceMode } from './BlinkCalibration';
+import { SPEECH_PROVIDER_LABELS, audioStatusLabel, formatTime } from './labels';
+import css from './setup.module.css';
 
-type FallbackMode = Exclude<AccessMode, 'blink'>;
+/** Setup groups keyboard and switch under one alternative; this is the choice inside it. */
+type KeySwitchMode = Extract<AccessMode, 'switch' | 'keyboard'>;
+type AccessChoice = 'brow-blink' | 'blink' | 'key-switch' | 'pointer';
+
+const isFaceMode = (m: AccessMode): m is FaceMode => m === 'brow-blink' || m === 'blink';
+const choiceOf = (m: AccessMode): AccessChoice => (m === 'switch' || m === 'keyboard' ? 'key-switch' : m);
 
 const DEMO_NAME = 'Sam (fictional)';
 const DEMO_INTERESTS = 'jazz, basketball, cooking';
@@ -21,11 +27,15 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const { state, serverStatus, voices } = runtime;
   const uid = useId();
 
-  const [useBlink, setUseBlink] = useState<boolean>(DEFAULT_SETTINGS.accessMode === 'blink');
-  const [fallbackMode, setFallbackMode] = useState<FallbackMode>(
-    DEFAULT_SETTINGS.accessMode === 'blink' ? 'switch' : DEFAULT_SETTINGS.accessMode,
+  const [choice, setChoice] = useState<AccessChoice>(choiceOf(DEFAULT_SETTINGS.accessMode));
+  const [keySwitchMode, setKeySwitchMode] = useState<KeySwitchMode>(
+    DEFAULT_SETTINGS.accessMode === 'keyboard' ? 'keyboard' : 'switch',
   );
   const [step, setStep] = useState<'form' | 'calibrate'>('form');
+  const [voiceChoiceId, setVoiceChoiceId] = useState<string>('');
+  const [preferBasicVoice, setPreferBasicVoice] = useState(false);
+  const [audioBusy, setAudioBusy] = useState(false);
+  const [audioResult, setAudioResult] = useState<string | null>(null);
   const [scanSeconds, setScanSeconds] = useState<number>(DEFAULT_SETTINGS.scanIntervalMs / 1000);
   const [voiceURI, setVoiceURI] = useState<string>('');
   const [rate, setRate] = useState<number>(DEFAULT_SETTINGS.rate);
@@ -50,16 +60,54 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const customPhrases = state.savedPhrases.filter((p) => !p.builtIn).length;
   const isDemoProfile = demoUsed && name === DEMO_NAME && interests === DEMO_INTERESTS;
 
-  const scanValid = Number.isFinite(scanSeconds)
-    && scanSeconds >= SCAN_DEFAULTS.minIntervalMs / 1000 && scanSeconds <= SCAN_DEFAULTS.maxIntervalMs / 1000;
+  const accessMode: AccessMode = choice === 'key-switch' ? keySwitchMode : choice;
+  // Scan speed only matters for modes where the highlight moves by itself.
+  const usesScan = accessMode === 'blink' || accessMode === 'switch';
+  const scanValid = !usesScan || (Number.isFinite(scanSeconds)
+    && scanSeconds >= SCAN_DEFAULTS.minIntervalMs / 1000 && scanSeconds <= SCAN_DEFAULTS.maxIntervalMs / 1000);
   const needsConsent = aiMode === 'live' && !consent;
-  const accessMode: AccessMode = useBlink ? 'blink' : fallbackMode;
   const codeRelevant = !!serverStatus?.accessRequired && aiMode === 'live';
   const needsCode = codeRelevant && runtime.accessCode.trim() === '';
   // The runtime refetches /api/status whenever the access code changes, so this updates by itself.
   const codeRejected = codeRelevant && !needsCode && serverStatus?.accessCodeValid === false;
   const canStart = scanValid && !needsConsent && !needsCode && !codeRejected;
   const savedCalibration = runtime.blink.calibration;
+  const savedBrow = runtime.blink.browCalibration;
+  // Brow-blink needs both saved calibrations; auto-scan + blink needs only the blink one.
+  const savedReady = accessMode === 'brow-blink' ? !!(savedCalibration && savedBrow) : !!savedCalibration;
+
+  // Speech output: ElevenLabs when the server reports it configured, else the labeled basic voice.
+  const audio = runtime.audio as StillHereRuntime['audio'] | undefined;
+  const elevenConfigured = !!(audio?.elevenLabsConfigured || serverStatus?.speech?.configured);
+  const speechProvider: SpeechProvider = elevenConfigured && !preferBasicVoice ? 'elevenlabs' : 'browser';
+  const naturalVoices = audio?.voices ?? [];
+  const audioLabel = audioStatusLabel(audio);
+
+  const enableAndTest = async () => {
+    // Runs directly inside the click/touch handler: iPad Safari only unlocks audio for a
+    // genuine user gesture (a helper may tap it). Camera gestures do not count.
+    if (!audio) {
+      setAudioResult('Audio setup is not available in this build yet. The basic device voice test is below.');
+      return;
+    }
+    setAudioBusy(true);
+    setAudioResult(null);
+    try {
+      const ok = await audio.enableAudio();
+      if (!ok) {
+        setAudioResult('The browser did not allow audio. Tap Enable audio again; check the mute switch and volume.');
+        return;
+      }
+      await audio.testNaturalVoice(voiceChoiceId || null);
+      setAudioResult(speechProvider === 'elevenlabs'
+        ? 'Audio enabled. Did you hear the natural voice test? If not, check volume and the silent switch, then tap again.'
+        : 'Audio enabled. The basic device voice will be used.');
+    } catch {
+      setAudioResult('The voice test failed. Confirmed messages will still be shown as text.');
+    } finally {
+      setAudioBusy(false);
+    }
+  };
 
   const useDemo = () => {
     setName(DEMO_NAME);
@@ -73,6 +121,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
     scanIntervalMs: Math.round(scanSeconds * 1000),
     voiceURI: voiceURI || null,
     rate,
+    speechProvider,
+    voiceChoiceId: speechProvider === 'elevenlabs' && voiceChoiceId ? voiceChoiceId : null,
     aiMode,
     cloudConsent: consent,
     sessionAdaptation: sessionLearning,
@@ -93,29 +143,49 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
 
   const openCalibration = () => {
     // Recalibrating from a finished or failed run starts a fresh pass.
-    if (runtime.blink.calibrator.stage !== 'consent') runtime.blink.calibrator.restart();
+    if (runtime.blink.calibrator.stage !== 'consent') runtime.blink.calibrator.restart(isFaceMode(accessMode) ? accessMode : 'brow-blink');
     setStep('calibrate');
   };
 
   const start = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canStart) return;
-    if (accessMode !== 'blink') return enterSession(accessMode);
-    if (savedCalibration) {
+    if (!isFaceMode(accessMode)) return enterSession(accessMode);
+    if (savedReady) {
       // Start the camera from this click so the browser permission prompt has a user gesture.
       void runtime.blink.startCamera();
-      return enterSession('blink');
+      return enterSession(accessMode);
     }
     openCalibration();
   };
 
-  if (step === 'calibrate') {
+  /** From calibration: switch to another method without blaming the person. */
+  const fallbackTo = (mode: AccessMode) => {
+    if (mode === 'blink') {
+      setChoice('blink');
+      // Auto-scan + blink needs only the blink calibration; use a saved one if present.
+      if (savedCalibration) return enterSession('blink');
+      runtime.blink.calibrator.restart('blink');
+      return;
+    }
+    runtime.blink.stopCamera();
+    if (mode === 'switch' || mode === 'keyboard') {
+      setChoice('key-switch');
+      setKeySwitchMode(mode);
+    } else {
+      setChoice(choiceOf(mode));
+    }
+    enterSession(mode);
+  };
+
+  if (step === 'calibrate' && isFaceMode(accessMode)) {
     return (
       <BlinkCalibration
         runtime={runtime}
-        scanIntervalMs={Math.round((scanValid ? scanSeconds : DEFAULT_SETTINGS.scanIntervalMs / 1000) * 1000)}
-        onComplete={() => enterSession('blink')}
-        onFallback={() => { runtime.blink.stopCamera(); enterSession('switch'); }}
+        mode={accessMode}
+        scanIntervalMs={Math.round((Number.isFinite(scanSeconds) && scanValid ? scanSeconds : DEFAULT_SETTINGS.scanIntervalMs / 1000) * 1000)}
+        onComplete={() => enterSession(accessMode)}
+        onFallback={fallbackTo}
         onBack={() => setStep('form')}
       />
     );
@@ -128,88 +198,161 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
         <h1 id={`${uid}-title`}>Set up this session</h1>
         <p className="tagline">Your words. Your choice.</p>
         <p className="principle">AI offers possible words. The person decides what to say. Nothing is spoken without review and a separate confirmation.</p>
-        <p className="muted">A helper can complete this form. The microphone and camera are off. The camera turns on only after you choose blink control and press “Turn on camera”.</p>
+        <p className="muted">A helper can complete this form by touch. The microphone and camera are off. The camera turns on only after you choose face control and press “Turn on camera”.</p>
       </header>
 
       <form className="setup-form" onSubmit={start} noValidate>
         <fieldset className="access-fieldset">
           <legend>How will you choose?</legend>
-          <label className={`choice choice-hero${useBlink ? ' is-chosen' : ''}`}>
-            <input type="radio" name="access" value="blink" checked={useBlink} onChange={() => setUseBlink(true)} />
+          <label className={`choice choice-hero${choice === 'brow-blink' ? ' is-chosen' : ''}`}>
+            <input type="radio" name="access" value="brow-blink" checked={choice === 'brow-blink'} onChange={() => setChoice('brow-blink')} />
             <span>
-              <strong className="choice-hero-title">Use eye blinks <span className="tag">Recommended</span></strong>
-              <span className="hint-strong">The highlight moves through the choices by itself. A deliberate, slightly longer blink selects. Ordinary blinks are ignored.</span>
-              <span className="hint">The camera image stays on this device. It detects eye closure only — not where you look, and not who you are. Nothing is recorded.</span>
-              <span className="hint">The browser will ask for camera permission; a helper may need to click Allow. Next comes a short guided calibration and practice.</span>
+              <strong className="choice-hero-title">Use eyebrows + blinks <span className="tag">Recommended</span></strong>
+              <span className="hint-strong">Raise both eyebrows and hold for half a second to move to the next option. Close your eyes in a long, deliberate blink to select.</span>
+              <span className="hint">Ordinary blinks are ignored. Holding your eyebrows up longer still moves only one step.</span>
+              <span className="hint">The camera image stays on this device. It detects eyebrow and eye movement only — not who you are, where you look, or emotions. Nothing is recorded.</span>
+              <span className="hint">The browser will ask for camera permission; a helper may need to tap Allow. Next comes a short guided calibration and practice.</span>
             </span>
           </label>
-          {useBlink && savedCalibration && (
+          {isFaceMode(accessMode) && savedReady && savedCalibration && (
             <div className="saved-cal info">
-              <p>Saved blink calibration from {formatTime(savedCalibration.calibratedAt)} ({describeCalibration(savedCalibration)}). You can use it or recalibrate.</p>
+              <p>
+                Saved calibration from {formatTime(savedCalibration.calibratedAt)} ({describeCalibration(savedCalibration)}
+                {accessMode === 'brow-blink' && savedBrow ? `, ${describeBrowCalibration(savedBrow)}` : ''}). You can use it or recalibrate.
+              </p>
             </div>
           )}
 
-          <label className={`choice choice-alt${!useBlink ? ' is-chosen' : ''}`}>
-            <input type="radio" name="access" value="other" checked={!useBlink} onChange={() => setUseBlink(false)} />
-            <span>
-              <strong>Use keyboard / switch / pointer instead</strong>
-              <span className="hint">No camera needed. The same review and separate confirmation apply.</span>
-            </span>
-          </label>
-          {!useBlink && (
-            <div className="sub-choices" role="radiogroup" aria-label="Alternative input">
+          <p className={css.altLead}>Other ways to choose — use whichever works best today:</p>
+          <div className={css.altGrid}>
+            <label className={`choice${choice === 'blink' ? ` ${css.altChosen}` : ''}`}>
+              <input type="radio" name="access" value="blink" checked={choice === 'blink'} onChange={() => setChoice('blink')} />
+              <span>
+                <strong>Auto-scan with blink</strong>
+                <span className="hint">The highlight moves by itself; a long, deliberate blink selects. Uses the camera, no eyebrow movement needed.</span>
+              </span>
+            </label>
+            <label className={`choice${choice === 'key-switch' ? ` ${css.altChosen}` : ''}`}>
+              <input type="radio" name="access" value="key-switch" checked={choice === 'key-switch'} onChange={() => setChoice('key-switch')} />
+              <span>
+                <strong>Keyboard / switch</strong>
+                <span className="hint">No camera. Switch scanning, or Tab and Enter on a keyboard.</span>
+              </span>
+            </label>
+            <label className={`choice${choice === 'pointer' ? ` ${css.altChosen}` : ''}`}>
+              <input type="radio" name="access" value="pointer" checked={choice === 'pointer'} onChange={() => setChoice('pointer')} />
+              <span>
+                <strong>Touch</strong>
+                <span className="hint">Tap choices directly (also mouse, trackpad, or head pointer). No camera.</span>
+              </span>
+            </label>
+          </div>
+          {choice === 'key-switch' && (
+            <div className={css.subRow} role="radiogroup" aria-label="Keyboard or switch">
               {([
-                ['switch', 'Switch scanning', 'Targets are highlighted in turn. Press Space or Enter (or a switch mapped to them) to choose.'],
-                ['keyboard', 'Keyboard', 'Tab to a control and press Enter or Space.'],
-                ['pointer', 'Pointer', 'Mouse, touch, trackpad, or head pointer.'],
-              ] as const).map(([value, label, hint]) => (
-                <label key={value} className="choice">
-                  <input type="radio" name="access-alt" value={value} checked={fallbackMode === value} onChange={() => setFallbackMode(value)} />
-                  <span><strong>{label}</strong><span className="hint">{hint}</span></span>
+                ['switch', 'Switch scanning — targets highlight in turn; press Space/Enter or a mapped switch'],
+                ['keyboard', 'Keyboard — Tab to a control, then Enter or Space'],
+              ] as const).map(([value, label]) => (
+                <label key={value}>
+                  <input type="radio" name="access-keyswitch" value={value} checked={keySwitchMode === value} onChange={() => setKeySwitchMode(value)} />
+                  {label}
                 </label>
               ))}
             </div>
           )}
-          <div className="field">
-            <label htmlFor={`${uid}-scan`}>Scan speed (seconds per item)</label>
-            <input
-              id={`${uid}-scan`} type="number" inputMode="decimal"
-              min={SCAN_DEFAULTS.minIntervalMs / 1000} max={SCAN_DEFAULTS.maxIntervalMs / 1000} step={0.25}
-              value={Number.isFinite(scanSeconds) ? scanSeconds : ''}
-              onChange={(e) => setScanSeconds(e.target.valueAsNumber)}
-              aria-describedby={`${uid}-scan-hint`} aria-invalid={!scanValid}
-            />
-            <p id={`${uid}-scan-hint`} className="hint">
-              How long the highlight stays on each item. Between {SCAN_DEFAULTS.minIntervalMs / 1000} and {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. New screens add a short reading pause. You can change this later in Controls.
-            </p>
-          </div>
+          <p className="hint">Every method uses the same full-text review and a separate confirmation before anything is spoken.</p>
+          {usesScan && (
+            <div className="field">
+              <label htmlFor={`${uid}-scan`}>Scan speed (seconds per item)</label>
+              <input
+                id={`${uid}-scan`} type="number" inputMode="decimal"
+                min={SCAN_DEFAULTS.minIntervalMs / 1000} max={SCAN_DEFAULTS.maxIntervalMs / 1000} step={0.25}
+                value={Number.isFinite(scanSeconds) ? scanSeconds : ''}
+                onChange={(e) => setScanSeconds(e.target.valueAsNumber)}
+                aria-describedby={`${uid}-scan-hint`} aria-invalid={!scanValid}
+              />
+              <p id={`${uid}-scan-hint`} className="hint">
+                How long the highlight stays on each item. Between {SCAN_DEFAULTS.minIntervalMs / 1000} and {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. New screens add a short reading pause. You can change this later in Controls.
+              </p>
+            </div>
+          )}
         </fieldset>
 
         <fieldset>
           <legend>Voice</legend>
-          {!runtime.speechAvailable && (
-            <p className="warning">Speech output is not available in this browser. Confirmed messages will be shown as text.</p>
-          )}
-          <div className="field">
-            <label htmlFor={`${uid}-voice`}>Voice</label>
-            <select id={`${uid}-voice`} value={voiceURI} onChange={(e) => setVoiceURI(e.target.value)}>
-              <option value="">Browser default voice</option>
-              {voices.map((v) => (
-                <option key={v.voiceURI} value={v.voiceURI}>
-                  {v.name} ({v.lang}) · {v.localService ? 'local' : 'network'}{v.default ? ' · default' : ''}
-                </option>
-              ))}
-            </select>
-            <p className="hint">“Local” voices are processed on this device. “Network” voices may send text to the browser vendor’s speech service.</p>
+          <div className={css.audioPanel}>
+            <h3>{SPEECH_PROVIDER_LABELS.elevenlabs}</h3>
+            <p className={css.providerLine} role="status">
+              {elevenConfigured
+                ? 'Configured on this server.'
+                : serverStatus || audio
+                  ? 'Not configured on this server — the basic device voice will be used, and it will be labeled.'
+                  : 'Checking the server…'}
+            </p>
+            <p className="hint">
+              The exact sentence you confirm is sent to ElevenLabs to create the audio; it is AI-generated speech.
+              Nothing is sent before you confirm. Camera images never leave this device.
+            </p>
+            {elevenConfigured && (
+              <label className="choice">
+                <input type="checkbox" checked={preferBasicVoice} onChange={(e) => setPreferBasicVoice(e.target.checked)} />
+                <span>
+                  <strong>Use the basic device voice instead</strong>
+                  <span className="hint">Keeps message text on this device’s speech engine. It sounds more robotic.</span>
+                </span>
+              </label>
+            )}
+            {speechProvider === 'elevenlabs' && naturalVoices.length > 0 && (
+              <div className="field">
+                <label htmlFor={`${uid}-nvoice`}>Natural voice</label>
+                <select id={`${uid}-nvoice`} value={voiceChoiceId} onChange={(e) => setVoiceChoiceId(e.target.value)}>
+                  <option value="">Server default voice</option>
+                  {naturalVoices.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}{v.description ? ` — ${v.description}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <button
+              type="button" className={`btn btn-primary ${css.enableAudio}`}
+              onClick={() => { void enableAndTest(); }} disabled={audioBusy}
+            >
+              {audioBusy ? 'Enabling audio…' : 'Enable audio & test voice'}
+            </button>
+            <p className="hint">On iPad, sound needs one real tap first — a helper may tap this. Camera gestures cannot unlock audio.</p>
+            <p className={`${css.audioStatus} ${css[`tone-${audioLabel.tone}`] ?? ''}`} role="status" aria-live="polite">
+              {audioLabel.text}
+            </p>
+            {audio?.message && <p className="hint">{audio.message}</p>}
+            {audioResult && <p className="info">{audioResult}</p>}
           </div>
-          <div className="field">
-            <label htmlFor={`${uid}-rate`}>Speaking rate: {rate.toFixed(1)}×</label>
-            <input id={`${uid}-rate`} type="range" min={0.6} max={1.4} step={0.1} value={rate} onChange={(e) => setRate(e.target.valueAsNumber)} />
+
+          <div className={css.basicVoice}>
+            <h3>{SPEECH_PROVIDER_LABELS.browser}</h3>
+            {!runtime.speechAvailable && (
+              <p className="warning">The basic device voice is not available in this browser. Confirmed messages will still be shown as text.</p>
+            )}
+            <div className="field">
+              <label htmlFor={`${uid}-voice`}>Device voice</label>
+              <select id={`${uid}-voice`} value={voiceURI} onChange={(e) => setVoiceURI(e.target.value)}>
+                <option value="">Browser default voice</option>
+                {voices.map((v) => (
+                  <option key={v.voiceURI} value={v.voiceURI}>
+                    {v.name} ({v.lang}) · {v.localService ? 'local' : 'network'}{v.default ? ' · default' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="hint">“Local” voices are processed on this device. “Network” voices may send text to the browser vendor’s speech service.</p>
+            </div>
+            <div className="field">
+              <label htmlFor={`${uid}-rate`}>Speaking rate: {rate.toFixed(1)}×</label>
+              <input id={`${uid}-rate`} type="range" min={0.6} max={1.4} step={0.1} value={rate} onChange={(e) => setRate(e.target.valueAsNumber)} />
+            </div>
+            <button type="button" className="btn" onClick={() => runtime.testVoice(voiceURI || null, rate)} disabled={!runtime.speechAvailable}>
+              Test basic voice
+            </button>
+            <p className="hint">The test says: “{VOICE_TEST_TEXT}” It is not part of the conversation.</p>
           </div>
-          <button type="button" className="btn" onClick={() => runtime.testVoice(voiceURI || null, rate)} disabled={!runtime.speechAvailable}>
-            Test voice
-          </button>
-          <p className="hint">The test says: “{VOICE_TEST_TEXT}”</p>
         </fieldset>
 
         <fieldset>
@@ -338,9 +481,11 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
 
         <div className="setup-actions">
           <button type="submit" className="btn btn-primary btn-large" disabled={!canStart} aria-describedby={`${uid}-start-hint`}>
-            {accessMode !== 'blink' ? 'Start session' : savedCalibration ? 'Start with saved blink calibration' : 'Next: set up blink control'}
+            {!isFaceMode(accessMode) ? 'Start session'
+              : savedReady ? 'Start with saved calibration'
+                : accessMode === 'brow-blink' ? 'Next: set up eyebrow + blink control' : 'Next: set up blink control'}
           </button>
-          {accessMode === 'blink' && savedCalibration && (
+          {isFaceMode(accessMode) && savedReady && (
             <button type="button" className="btn" disabled={!canStart} onClick={openCalibration}>Recalibrate</button>
           )}
           <p id={`${uid}-start-hint`} className="hint">
@@ -349,6 +494,8 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
                 : needsCode ? 'Enter the access code. '
                   : codeRejected ? 'The access code was not accepted. ' : ''}
             Suggestions: {aiMode === 'live' ? 'Live AI' : aiMode === 'fixture' ? 'Fixture demo' : 'Local only'}.
+            {' '}Voice: {SPEECH_PROVIDER_LABELS[speechProvider]}.
+            {audio && !audio.unlocked ? ' Audio is not enabled yet — on iPad, tap “Enable audio & test voice” first or confirmed messages may stay silent.' : ''}
           </p>
         </div>
       </form>

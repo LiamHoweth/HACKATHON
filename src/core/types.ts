@@ -1,7 +1,10 @@
 // Shared domain contracts for Still Here. Pure types only; no browser or server code.
 
 export type Id = string;
-export type AccessMode = 'pointer' | 'keyboard' | 'switch' | 'blink';
+// 'brow-blink' is primary: a 500 ms eyebrow raise moves NEXT, a calibrated long blink SELECTs.
+// 'blink' is the auto-scan + blink fallback; switch/keyboard/pointer are further fallbacks.
+export type AccessMode = 'brow-blink' | 'blink' | 'switch' | 'keyboard' | 'pointer';
+export type SpeechProvider = 'elevenlabs' | 'browser';
 export type CandidateSource = 'live-model' | 'demo-fixture';
 export type MessageSource = CandidateSource | 'saved-phrase' | 'user-composed';
 export type Delivery = 'queued' | 'speaking' | 'completed' | 'interrupted' | 'failed' | 'uncertain';
@@ -116,7 +119,21 @@ export type ConfirmedUtterance = {
   selectionCycleId: Id; confirmationCycleId: Id;
   delivery: Delivery;
   sessionEpoch: Id;
+  /** Which output path this authorization is for. A browser fallback needs its own new authorization. */
+  provider: SpeechProvider;
+  /** Server-approved ElevenLabs voice choice; null means the server default. */
+  voiceChoiceId: Id | null;
 };
+
+/** Body of POST /api/speech. Sent only for a ConfirmedUtterance produced by confirmSpeak. */
+export type SpeechRequest = {
+  utteranceId: Id;
+  reviewSnapshotId: Id;
+  sessionEpoch: Id;
+  exactText: string;
+  voiceChoiceId: Id | null;
+};
+export type VoiceOption = { id: Id; name: string; description: string | null };
 
 export type ObservationNote = 'chose-shortest' | 'chose-longest' | 'chose-middle' | 'asked-shorter' | 'asked-longer';
 export type SessionObservation = {

@@ -1,14 +1,64 @@
 // Presentation-only label helpers. No state changes happen here.
-import type { AccessMode, AiMode, CandidateSource, Delivery, MessageSource, PartnerTurnSource } from '@/core/types';
+import type { AccessMode, AiMode, CandidateSource, Delivery, MessageSource, PartnerTurnSource, SpeechProvider } from '@/core/types';
 import type { MetricEvent, RecordingStatus, State, StorageStatus } from '@/core/state';
 import type { Provenance } from '@/adaptation/preference-policy';
-import type { BlinkStatus } from '@/runtime/contract';
+import type { AudioRuntime, BlinkStatus, BrowStatus, SpeechPlaybackState } from '@/runtime/contract';
 
 export const ACCESS_LABELS: Record<AccessMode, string> = {
-  blink: 'Blink control',
+  'brow-blink': 'Eyebrows + blink',
+  blink: 'Auto-scan + blink',
   switch: 'Switch scanning',
   keyboard: 'Keyboard',
-  pointer: 'Pointer',
+  pointer: 'Touch / pointer',
+};
+
+/** Setup-screen names for each access choice (the primary choice is listed first). */
+export const ACCESS_CHOICE_LABELS: Record<AccessMode, string> = {
+  'brow-blink': 'Use eyebrows + blinks',
+  blink: 'Auto-scan with blink',
+  switch: 'Switch scanning',
+  keyboard: 'Keyboard',
+  pointer: 'Touch',
+};
+
+export const SPEECH_PROVIDER_LABELS: Record<SpeechProvider, string> = {
+  elevenlabs: 'Natural voice (ElevenLabs)',
+  browser: 'Basic device voice',
+};
+
+export type AudioTone = 'off' | 'ok' | 'work' | 'warn' | 'stop';
+
+/** Factual speech lifecycle labels. Never implies sound played when Safari blocked it. */
+export const SPEECH_STATE_LABELS: Record<SpeechPlaybackState, { text: string; tone: AudioTone }> = {
+  idle: { text: 'Audio ready', tone: 'ok' },
+  requesting: { text: 'Generating voice…', tone: 'work' },
+  buffering: { text: 'Loading audio…', tone: 'work' },
+  playing: { text: 'Speaking', tone: 'work' },
+  completed: { text: 'Playback reported complete', tone: 'ok' },
+  interrupted: { text: 'Stopped before finishing', tone: 'warn' },
+  failed: { text: 'Voice unavailable — shown as text', tone: 'stop' },
+  uncertain: { text: 'Playback status uncertain', tone: 'warn' },
+  blocked: { text: 'Audio blocked — tap Enable audio', tone: 'stop' },
+};
+
+/** One status line for the setup audio panel and status areas. */
+export function audioStatusLabel(audio: Pick<AudioRuntime, 'unlocked' | 'state'> | null | undefined): { text: string; tone: AudioTone } {
+  if (!audio) return { text: 'Audio setup not available yet', tone: 'off' };
+  if (audio.state === 'blocked') return SPEECH_STATE_LABELS.blocked;
+  if (!audio.unlocked && (audio.state === 'idle' || audio.state === 'completed')) {
+    return { text: 'Audio setup needed — tap Enable audio', tone: 'warn' };
+  }
+  if (audio.state === 'requesting') return { text: 'ElevenLabs generating…', tone: 'work' };
+  return SPEECH_STATE_LABELS[audio.state];
+}
+
+/** Eyebrow NEXT state in plain words (progress only; never a confidence value). */
+export const BROW_STATUS_LABELS: Record<BrowStatus, string> = {
+  disabled: 'Eyebrow control off',
+  neutral: 'Eyebrows relaxed — ready',
+  rising: 'Eyebrows raised — keep holding',
+  latched: 'Next accepted — relax your eyebrows',
+  rearming: 'Relaxed — getting ready again',
 };
 
 export const AI_MODE_LABELS: Record<AiMode, string> = {
