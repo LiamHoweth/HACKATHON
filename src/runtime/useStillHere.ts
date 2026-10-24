@@ -1,16 +1,21 @@
 'use client';
 // Browser runtime: owns the reducer, executes effects, drives scanning/switch input, speech,
 // recording, storage, and server status. Implements StillHereRuntime (src/runtime/contract.ts).
+// Blink (primary input): useBlink owns the camera and gesture machine; this hook snapshots the
+// target highlighted at closure onset, freezes scanning while the eyes are closed, and commits
+// that snapshot through the same guarded ACTIVATE on a valid 'select'.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Action, InputSource, Settings, State } from '@/core/state';
 import { initialState } from '@/core/state';
 import type { ProfileDraft } from '@/core/types';
 import { newId, reducer } from '@/core/reducer';
 import { targetsFor } from '@/core/targets';
-import { ACCESS_HEADER, type ServerStatus, type StillHereRuntime, type TranscriptDraftState, type VoiceInfo } from './contract';
+import { ACCESS_HEADER, type BlinkGestureEvent, type ServerStatus, type StillHereRuntime, type TranscriptDraftState, type VoiceInfo } from './contract';
+import { CALIBRATING_STAGES, useBlink } from './useBlink';
 import { EffectsRunner } from './effects-runner';
 import { ScanController } from '@/access/scan-controller';
-import { InputController } from '@/access/input-controller';
+import { InputController, isScanMode } from '@/access/input-controller';
+import type { ScanConfig } from '@/access/scan-controller';
 import { SpeechController, type SynthLike } from '@/audio/speech-controller';
 import { getSynth, speakVoiceTest, subscribeVoices } from '@/audio/voices';
 import { recordingSupported } from '@/audio/recording-controller';
@@ -89,6 +94,19 @@ export function useStillHere(): StillHereRuntime {
   const [switchHeld, setSwitchHeld] = useState(false);
   const hidden = useSyncExternalStore(subscribeVisibility, hiddenSnapshot, serverFalse);
 
+  // ---- Blink (primary input) ----
+  const blink = useBlink(state.settings.accessMode);
+  const [blinkHeld, setBlinkHeld] = useState(false);
+  const blinkPinRef = useRef<string | null>(null);
+  const blinkSnapRef = useRef<{ targetId: string; surfaceRevision: number; cycleId: string; at: number } | null>(null);
+  const blinkUsableRef = useRef(false);
+  const switchHeldRef = useRef(false);
+  const lastSwitchActivateRef = useRef(-Infinity);
+  const lastScanCfgRef = useRef<ScanConfig | null>(null);
+  // Recent highlight changes with monotonic times, so a closure is matched to the target that
+  // was highlighted when the eyes started closing (detection runs a frame or two behind).
+  const highlightLogRef = useRef<{ id: string | null; at: number; rev: number }[]>([]);
+
   // ---- Long-lived controllers (created once, client-side, in effects) ----
   const runnerRef = useRef<EffectsRunner | null>(null);
   const scanRef = useRef<ScanController | null>(null);
@@ -156,20 +174,33 @@ export function useStillHere(): StillHereRuntime {
   const targets = useMemo(() => targetsFor(state), [state]);
   const enabledIds = useMemo(() => targets.filter((t) => t.enabled).map((t) => t.id), [targets]);
   const enabledKey = enabledIds.join('|');
-  const scanning = state.settings.accessMode === 'switch' && state.phase === 'active';
+  const scanning = isScanMode(state.settings.accessMode) && state.phase === 'active';
+  // Blink in use but no stable single face yet: do not cycle choices before input is possible.
+  const blinkAcquiring = blink.active && blink.cameraOn
+    && (blink.status === 'starting' || blink.status === 'no-face' || blink.status === 'multiple-faces');
 
   useEffect(() => {
-    if (!scanRef.current) scanRef.current = new ScanController(setHighlighted);
-    scanRef.current.update({
+    if (!scanRef.current) {
+      scanRef.current = new ScanController((id) => {
+        const log = highlightLogRef.current;
+        log.push({ id, at: now(), rev: stateRef.current.surfaceRevision });
+        if (log.length > 16) log.splice(0, log.length - 16);
+        setHighlighted(id);
+      });
+    }
+    const cfg: ScanConfig = {
       active: scanning,
       ids: enabledKey ? enabledKey.split('|') : [],
       surfaceRevision: state.surfaceRevision,
       intervalMs: state.settings.scanIntervalMs,
       readingPauseMs: state.settings.readingPauseMs,
-      held: scanning && switchHeld,
+      held: scanning && (switchHeld || blinkHeld || blinkAcquiring),
+      pin: blinkHeld ? blinkPinRef.current : null,
       hidden,
-    });
-  }, [scanning, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, hidden]);
+    };
+    lastScanCfgRef.current = cfg;
+    scanRef.current.update(cfg);
+  }, [scanning, enabledKey, state.surfaceRevision, state.settings.scanIntervalMs, state.settings.readingPauseMs, switchHeld, blinkHeld, blinkAcquiring, hidden]);
 
   useEffect(() => {
     return () => {
@@ -195,16 +226,85 @@ export function useStillHere(): StillHereRuntime {
       newId,
       onSwitchActivate: ({ targetId, surfaceRevision, cycleId }) => {
         const s = stateRef.current;
+        lastSwitchActivateRef.current = now();
         dispatch({
           type: 'ACTIVATE', targetId, eventId: newId(), cycleId,
           surfaceRevision, sessionEpoch: s.sessionEpoch, source: 'switch', at: now(),
         });
       },
-      onHeldChange: setSwitchHeld,
+      onHeldChange: (held) => {
+        switchHeldRef.current = held;
+        setSwitchHeld(held);
+      },
       onSafetyPause: () => dispatch({ type: 'SAFETY_PAUSE', at: now() }),
     });
     return input.attach(window);
   }, []);
+
+  // ---- Blink gestures → the same guarded ACTIVATE ----
+  const blinkUsable = blink.active && !CALIBRATING_STAGES.has(blink.calibrator.stage);
+  const blinkSubscribe = blink.subscribe;
+  useIsoLayoutEffect(() => {
+    blinkUsableRef.current = blinkUsable;
+  });
+
+  useEffect(() => {
+    const freeze = (targetId: string) => {
+      blinkPinRef.current = targetId;
+      setBlinkHeld(true);
+      // Freeze immediately (before the next render) so the highlight cannot advance mid-closure.
+      const cfg = lastScanCfgRef.current;
+      if (cfg && cfg.active) scanRef.current?.update({ ...cfg, held: true, pin: targetId });
+    };
+    const unfreeze = () => {
+      blinkSnapRef.current = null;
+      blinkPinRef.current = null;
+      setBlinkHeld(false);
+    };
+    const highlightAt = (at: number): { id: string | null; rev: number } => {
+      const log = highlightLogRef.current;
+      for (let i = log.length - 1; i >= 0; i--) if (log[i].at <= at) return log[i];
+      return { id: scanRef.current?.current ?? null, rev: stateRef.current.surfaceRevision };
+    };
+    const onGesture = (e: BlinkGestureEvent) => {
+      const s = stateRef.current;
+      const usable = blinkUsableRef.current && s.phase === 'active' && s.settings.accessMode === 'blink';
+      switch (e.type) {
+        case 'closure-start': {
+          blinkSnapRef.current = null;
+          if (!usable || switchHeldRef.current) return; // a keyboard switch press owns this cycle
+          const h = highlightAt(e.at);
+          const current = scanRef.current?.current ?? null;
+          if (!h.id || !current) return;
+          blinkSnapRef.current = { targetId: h.id, surfaceRevision: h.rev, cycleId: newId(), at: e.at };
+          freeze(h.id);
+          return;
+        }
+        case 'select': {
+          const snap = blinkSnapRef.current;
+          unfreeze();
+          if (!snap || !usable) return;
+          if (snap.surfaceRevision !== s.surfaceRevision) return; // a new screen opened mid-closure
+          if (lastSwitchActivateRef.current >= snap.at) return; // another input already acted
+          dispatch({
+            type: 'ACTIVATE', targetId: snap.targetId, eventId: newId(), cycleId: snap.cycleId,
+            surfaceRevision: snap.surfaceRevision, sessionEpoch: s.sessionEpoch, source: 'blink', at: now(),
+          });
+          return;
+        }
+        case 'discard':
+          unfreeze();
+          return;
+        case 'face-lost':
+          unfreeze();
+          if (usable) dispatch({ type: 'SAFETY_PAUSE', at: now() });
+          return;
+        case 'face-found':
+          return;
+      }
+    };
+    return blinkSubscribe(onGesture);
+  }, [blinkSubscribe]);
 
   // ---- Session, voice test, partner ----
   const startSession = useCallback((settings: Settings, profileDraft: ProfileDraft | null) => {
@@ -260,7 +360,7 @@ export function useStillHere(): StillHereRuntime {
     state,
     targets,
     highlightedTargetId: scanning ? highlightedTargetId : null,
-    switchHeld: scanning && switchHeld,
+    switchHeld: scanning && (switchHeld || blinkHeld),
     activate,
     dispatch: stableDispatch,
     startSession,
@@ -271,5 +371,6 @@ export function useStillHere(): StillHereRuntime {
     partner,
     accessCode,
     setAccessCode,
+    blink,
   };
 }

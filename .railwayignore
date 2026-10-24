@@ -7,3 +7,5 @@ node_modules/
 ios/
 docs/screenshots/
 *.tsbuildinfo
+public/wasm/*.js
+public/wasm/*.wasm

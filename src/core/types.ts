@@ -1,7 +1,7 @@
 // Shared domain contracts for Still Here. Pure types only; no browser or server code.
 
 export type Id = string;
-export type AccessMode = 'pointer' | 'keyboard' | 'switch';
+export type AccessMode = 'pointer' | 'keyboard' | 'switch' | 'blink';
 export type CandidateSource = 'live-model' | 'demo-fixture';
 export type MessageSource = CandidateSource | 'saved-phrase' | 'user-composed';
 export type Delivery = 'queued' | 'speaking' | 'completed' | 'interrupted' | 'failed' | 'uncertain';

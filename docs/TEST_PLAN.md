@@ -1,10 +1,10 @@
 # Test plan
 
-This maps the master prompt §29 acceptance IDs to tests. **"Written" means a test with that ID exists in `src/tests/`. It does not mean the test passed.** Results go in [TEST_RESULTS.md](TEST_RESULTS.md).
+This maps the blink-first master prompt §29 acceptance IDs to tests. **"Written" means a test with that ID exists in `src/tests/`.** At 11:25 CT every written test passed (`npx vitest run`: 82/82 in 6 files, working tree after commit `5fd9d2d`). Official results are recorded by the integrator in [TEST_RESULTS.md](TEST_RESULTS.md).
 
-Evidence types are kept separate. **Unit** tests run against the reducer or pure functions with injected IDs and clocks, and the provider is mocked or not involved. **Browser** means the real rendered app, checked manually or with E2E. **Hardware** means real audio or switch hardware. **Live** means a real provider call with synthetic content, which is opt-in and bounded. A mocked test proves plumbing, not model compliance or audible output.
+Evidence types are kept separate. **Unit** tests run against the reducer or pure functions with injected IDs and clocks, with the provider mocked or not involved. **Synthetic** blink tests feed numeric eye-closure sequences with fake timestamps, and no camera is involved. **Browser** means the real rendered app. **Camera** means a real webcam and a real person. **Hardware** means real audio or switch hardware. **Live** means a real provider call with synthetic content. A mocked or synthetic test proves logic, not detection reliability, model compliance, or audible output.
 
-Snapshot of `src/tests/` at ~11:00 CT: `reducer.test.ts`, `adaptation.test.ts`, `schemas.test.ts`, `api.test.ts` (route tests with a mocked provider), `helpers.ts`, and `support/server-only.ts`. More may be added.
+Test files at 11:25 CT: `reducer.test.ts`, `adaptation.test.ts`, `schemas.test.ts`, `api.test.ts` (mocked Anthropic SDK), `openai-provider.test.ts` (mocked fetch: strict schema, `store: false`, refusal, one repair, 429/401 mapping), and `audit-regressions.test.ts` (AUD-2, AUD-5). At 11:32 CT the blink engineers had added `blink-gesture.test.ts` and `blink-calibration.test.ts` (uncommitted). With them, 106/106 tests passed in 8 files.
 
 ## A. Core communication and exact speech
 
@@ -77,16 +77,37 @@ Snapshot of `src/tests/` at ~11:00 CT: `reducer.test.ts`, `adaptation.test.ts`, 
 
 | ID | Planned test | Type | Status |
 | --- | --- | --- | --- |
-| ACCESS-01 | Keyboard and single-key scanning work without mic/camera | Browser | Planned |
-| ACCESS-02 | Target IDs stable during reading | Unit (targets) | Planned |
+| ACCESS-01 | Keyboard and single-key scanning work without mic/camera | Browser | Browser pass with synthesized keys (see TEST_RESULTS) |
+| ACCESS-02 | Target IDs stable during selection and reading | Unit (targets) | Planned |
 | ACCESS-03 | Scan-speed change creates no duplicate timers | Unit (scan controller, fake clock) | Planned |
 | ACCESS-04 | Group selection inserts no letter | Unit | Written |
 | ACCESS-05 | Typing in text fields is not intercepted | Browser | Planned |
 | ACCESS-06 | Disabled targets skipped; Back/Cancel/Resume reachable | Unit (targets) | Planned |
 | ACCESS-07 | Speaking → only Stop; paused → only Resume | Unit | Written |
 | ACCESS-08 | Hidden tab does not replay missed ticks | Unit (scan controller) | Planned |
-| ACCESS-09 | All flows reachable via the switch | Browser | Planned |
-| ACCESS-10 / 11 | Blink safety | N/A | Deferred (no blink feature) |
+| ACCESS-09 | All flows reachable via the same access method | Browser | Partial (switch/pointer browser passes) |
+| ACCESS-10 | **Blink adapter:** ordinary (short), long, and qualifying closures, plus stale, missing, out-of-order, and multiple-face sequences, behave safely. Calibration fails openly on overlap or a weak signal | Synthetic | Written (`blink-gesture.test.ts`, `blink-calibration.test.ts`; uncommitted) |
+| ACCESS-11 | **Blink adapter:** the target captured at closure onset is selected exactly once, even if the highlight would have moved. Reacquisition after face loss selects nothing by itself | Synthetic | Written (`blink-gesture.test.ts`, with a simulated integration). The real runtime wiring and the explicit Resume on the paused surface are not yet tested |
+| ACCESS-12 | Practice calibration on the real laptop camera. The operator chooses and confirms with two separate deliberate blinks, hands off all input devices | Camera | Not run |
+| ACCESS-13 | Blink reaches regenerate, guide, quick phrase, review, Cancel, Speak, My words, initiation, and recovery with no mouse-only menus | Camera + browser | Not run |
+| ACCESS-14 | Reading pause, active highlight, closure freeze, selection acknowledgment, cooldown, and face-lost status are visible and stable on the real UI | Camera + browser | Not run |
+| ACCESS-15 | Failing calibration switches openly to a usable alternate input. No fake blink selection. The prepared message is kept | Camera + browser (a forced failure is acceptable) | Not run |
+
+## Blink reliability gate
+
+This is the small demonstration gate from §24. It is a real-camera test, kept separate from synthetic tests. **Passing it does not validate use by people with ALS.** Record every trial, including misses, in [TEST_RESULTS.md](TEST_RESULTS.md). Until then every measure is **not measured**.
+
+Setup to record: date and time, laptop and camera, browser, room and lighting, glasses yes/no, tester (team member, not an AAC user), calibration values accepted (minimum/maximum closure, cooldown, scan interval), and fixture or live source.
+
+| Part | Procedure | Measures |
+| --- | --- | --- |
+| A. Intentional selections | 20 trials. Before each, the operator states which target they intend. They blink deliberately when it is highlighted | Correct selections. **Missed gestures** (intended, nothing selected). **False selections** (wrong target, or a selection with no intent) |
+| B. Ordinary blinking | 2 minutes of normal reading and conversation on the board and on review, without trying to select | **False selections** and **false confirmations** (Speak reached without a second deliberate closure). The target is 0, and any occurrence must be reported |
+| C. Confirmation | Within part A, every selection that reaches review must need a separate blink on Speak | **False confirmations**. Confirm that one long closure never both selects and confirms |
+| D. Tracking loss/recovery | Look away or leave the frame mid-closure, then return. Add a second face if practical | Gesture discarded? App paused? Explicit Resume needed? No selection transferred? |
+| E. Timing | From the event timestamps or a screen recording | **Gesture duration** (closure start to reopen), **scan wait** (target becomes intended → highlighted), and time from highlight to committed selection. Report median and range with n |
+
+Decision rule (for the team, not a clinical threshold): if parts B or C produce any false confirmation, or part A misses many intended selections, the live demo uses keyboard/switch and the presenter says blink is experimental. The team records the decision and the reason in [DECISIONS.md](DECISIONS.md).
 
 ## F. APIs, audio, privacy
 
@@ -104,10 +125,19 @@ Snapshot of `src/tests/` at ~11:00 CT: `reducer.test.ts`, `adaptation.test.ts`, 
 | SYS-10 | Recording stops before speech; app speech never becomes a partner turn | Unit (reducer `discard-recording`) + hardware | Planned |
 | SYS-11 | End session releases media and cancels work | Unit | Partially covered by CORE-11 |
 | SYS-12 | Remote requests refused without `APP_ACCESS_TOKEN` | Unit (route) | Written (`api.test.ts`) |
-| SYS-13 | Camera does not upload | N/A | Deferred (no camera) |
+| SYS-13 | Camera frames are not uploaded; model/WASM load only from this origin | Browser network log during blink use | Not run (required before any "local only" claim) |
 | SYS-14 | Responses use `cache-control: no-store` | Unit (route) | Planned |
 
 ## Browser and live scenarios (§30)
 
 - Browser sequence: three turns, one rejected batch, guidance, quick interruption, parked question, composed message, initiation, cancelled review, stop speech, mic denial, cloud failure, End session. Status: planned.
-- Live synthetic scenarios 1–14 from §30: planned only if a key is authorized. Record the actual outputs and human judgments in [TEST_RESULTS.md](TEST_RESULTS.md).
+- Live synthetic scenarios 1–14 from §30: run 14/14 with valid batches (see [TEST_RESULTS.md](TEST_RESULTS.md)). Human judgments are not recorded yet.
+- Hands-free sequence for the demo (camera): calibrate → partner question → None of these → Guide → select → review → separate blink on Speak → Quick phrases → Start a conversation → face-lost recovery. Status: not run.
+
+## Audit regressions and provider tests
+
+| ID | Test | Status |
+| --- | --- | --- |
+| AUD-2 | An own-words reply answers the active question (also in local-only mode). A quick phrase does not close it | Written |
+| AUD-5 | A discarded late result never restores a rejected batch | Written |
+| OpenAI adapter | Strict json_schema, `store: false`, no tools, refusal mapping, one repair, 429/401 mapping (mocked fetch) | Written (`openai-provider.test.ts`) |

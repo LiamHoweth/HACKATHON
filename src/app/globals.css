@@ -357,14 +357,16 @@ label { font-weight: 600; }
 .last-said { font-size: 1rem; }
 .last-said-failed { font-size: 1.4rem; font-weight: 700; }
 
-.board-tools {
+.board-footer {
   position: sticky;
   bottom: 0;
   background: var(--surface);
   border-top: 2px solid var(--border-soft);
   margin: 0 -1.5rem;
-  padding: 0.9rem 1.5rem 1.25rem;
+  padding: 1.1rem 1.5rem 1.25rem;
   z-index: 2;
+  display: grid;
+  gap: 0.75rem;
 }
 
 /* ---------- Review / speaking / paused ---------- */
@@ -494,7 +496,9 @@ label { font-weight: 600; }
   .app-header { padding: 0.75rem 1rem; }
   .app-body { padding: 0.75rem 1rem; gap: 1rem; }
   .surface { padding: 1rem 1rem 0; }
-  .board-tools { margin: 0 -1rem; padding: 0.75rem 1rem 1rem; }
+  .board-footer { margin: 0 -1rem; padding: 0.9rem 1rem 1rem; }
+  .cal-split { grid-template-columns: minmax(0, 1fr); }
+  .practice-targets { grid-template-columns: minmax(0, 1fr); }
   .layout-grid, .layout-row { grid-template-columns: minmax(0, 1fr); }
   .layout-keys { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); }
 }
@@ -509,9 +513,175 @@ label { font-weight: 600; }
     scroll-behavior: auto !important;
   }
   .caret, .rec-dot { animation: none !important; opacity: 1 !important; }
+  .closure-bar-fill, .eye-meter-fill { transition: none !important; }
 }
 
 @media (forced-colors: active) {
   .target.is-scan { outline: 6px solid Highlight; forced-color-adjust: none; background: Highlight; color: HighlightText; }
   .tone-speak { border: 3px solid ButtonText; }
+  .blink-badge { forced-color-adjust: none; background: HighlightText; color: Highlight; border-color: Highlight; }
+  .blink-status { border-color: CanvasText; }
 }
+
+/* ===================================================================
+   Blink-first presentation
+   =================================================================== */
+
+/* ---------- Blink status pill ---------- */
+
+.blink-status {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.15rem 0.7rem 0.15rem 0.5rem;
+  border: 2px solid currentColor; border-radius: 999px;
+  font-weight: 800; font-size: 0.95rem; line-height: 1.3;
+  white-space: nowrap; vertical-align: middle;
+}
+.blink-icon { display: inline-flex; width: 1.15em; justify-content: center; font-size: 1.1em; line-height: 1; }
+.progress-ring { display: block; }
+.blink-tone-off { color: var(--muted); background: var(--surface-2); }
+.blink-tone-ok { color: var(--accent); background: var(--accent-soft); }
+.blink-tone-work { color: var(--info-text); background: var(--info-bg); }
+.blink-tone-warn { color: var(--warn-text); background: var(--warn-bg); }
+.blink-tone-stop { color: var(--danger); background: var(--danger-soft); }
+.blink-large { font-size: 1.35rem; padding: 0.4rem 1.1rem 0.4rem 0.8rem; border-width: 3px; }
+.blink-large .progress-ring { width: 1.3em; height: 1.3em; }
+
+.status-blink { align-items: center; gap: 0.6rem; }
+.control-mode { letter-spacing: 0.12em; font-weight: 900; }
+
+/* ---------- Blink highlight: the strongest visual signal on screen ---------- */
+
+.target.is-blink-scan,
+.target.is-blink-scan:hover:not(:disabled) {
+  outline: 8px solid var(--scan-ring);
+  outline-offset: 4px;
+  box-shadow: inset 0 0 0 4px var(--scan-text), 0 0 0 16px color-mix(in srgb, var(--scan-bg) 40%, transparent);
+  transition: none;
+  z-index: 1;
+}
+/* Keep the scanned target (and its badge) clear of the sticky tools footer when it scrolls into view. */
+.board .candidates .target, .board-primary .target, .board-anchor .target { scroll-margin: 1.75rem 0 12rem; }
+.board-footer .target { scroll-margin: 1.75rem 0 1rem; }
+.target.is-blink-scan.is-held { box-shadow: inset 0 0 0 10px var(--scan-text), 0 0 0 16px color-mix(in srgb, var(--scan-bg) 40%, transparent); }
+
+.blink-badge {
+  position: absolute; top: -1rem; right: 1rem;
+  background: var(--scan-text); color: var(--scan-bg);
+  border: 2px solid var(--scan-bg);
+  border-radius: 999px; padding: 0.1rem 0.75rem;
+  font-size: 1rem; font-weight: 900; letter-spacing: 0.03em; line-height: 1.5;
+  white-space: nowrap; pointer-events: none;
+}
+.blink-badge.is-selecting { background: var(--scan-bg); color: var(--scan-text); border-color: var(--scan-text); }
+
+.closure-bar {
+  display: block; position: relative; width: 100%; max-width: 28rem; height: 10px;
+  border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.closure-bar-fill { display: block; height: 100%; background: currentColor; transition: width 80ms linear; }
+.target .closure-bar { position: absolute; left: 1rem; right: 1rem; bottom: 0.45rem; width: auto; max-width: none; }
+
+/* ---------- Board hint line ---------- */
+
+.blink-hint {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.9rem;
+  font-size: 1rem; font-weight: 600;
+}
+.board-footer .blink-hint { font-size: 0.95rem; }
+.blink-hint-local { color: var(--muted); font-weight: 500; }
+.review .blink-hint { margin-top: 0.25rem; }
+
+/* ---------- Paused (blink) ---------- */
+
+.paused-status { display: grid; gap: 0.6rem; justify-items: start; }
+.paused-guidance { font-size: 1.3rem; font-weight: 600; }
+
+/* ---------- Setup: blink-first access choice ---------- */
+
+.choice-hero {
+  border: 3px solid var(--border); padding: 1rem 1.1rem; margin-bottom: 0.75rem;
+}
+.choice-hero.is-chosen { border-color: var(--accent); background: var(--accent-soft); }
+.choice-hero.is-chosen:hover { background: var(--accent-soft); }
+.choice-hero-title { font-size: 1.45rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.choice-hero .tag { font-size: 0.85rem; color: var(--accent); }
+.hint-strong { display: block; font-size: 1.05rem; }
+.choice-alt { border: 2px dashed var(--border-soft); padding: 0.75rem 1rem; }
+.choice-alt.is-chosen { border-style: solid; border-color: var(--border); }
+.sub-choices { margin: 0.25rem 0 0 2rem; display: grid; }
+.saved-cal { margin: 0 0 0.75rem; }
+.setup-actions { grid-auto-flow: row; }
+.setup-actions .btn + .btn { margin-top: 0; }
+
+/* ---------- Calibration ---------- */
+
+.calibration { max-width: 60rem; }
+.cal-steps {
+  list-style: none; margin: 0 0 1rem; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  font-size: 0.9rem; font-weight: 700;
+}
+.cal-steps li {
+  padding: 0.2rem 0.7rem; border-radius: 999px;
+  border: 2px solid var(--border-soft); color: var(--muted);
+}
+.cal-steps li.is-done { color: var(--accent); border-color: var(--accent); }
+.cal-steps li.is-done::before { content: "✓ "; }
+.cal-steps li.is-current { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.cal-panel {
+  background: var(--surface); border: 2px solid var(--border-soft); border-radius: var(--radius);
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.cal-body { display: grid; gap: 1rem; justify-items: start; }
+.cal-body h2 { font-size: 1.7rem; }
+.cal-split { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; }
+.cal-copy { display: grid; gap: 0.9rem; justify-items: start; min-width: 0; }
+.cal-instruction { font-size: 1.3rem; font-weight: 600; }
+.cal-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.plain-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.4rem; }
+.face-feedback { font-weight: 800; font-size: 1.15rem; color: var(--warn-text); }
+.face-feedback.is-ok { color: var(--accent); }
+.sample-count { font-size: 1.15rem; }
+
+.preview-frame {
+  position: relative; width: 100%; max-width: 20rem; aspect-ratio: 4 / 3;
+  border-radius: 12px; overflow: hidden; background: #000;
+  border: 2px solid var(--border);
+}
+.preview-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.preview-guide {
+  position: absolute; left: 30%; right: 30%; top: 12%; bottom: 12%;
+  border: 2px dashed rgba(255, 255, 255, 0.7); border-radius: 50%;
+}
+
+.cal-diagnostics {
+  display: grid; gap: 0.5rem; margin-top: 1rem; padding: 0.75rem 1rem;
+  border: 2px solid var(--border-soft); border-radius: 12px; background: var(--surface);
+  justify-items: start;
+}
+.diag-line { font-size: 0.95rem; color: var(--muted); }
+.eye-meter { display: flex; align-items: center; gap: 0.6rem; width: 100%; max-width: 32rem; font-size: 0.85rem; color: var(--muted); font-weight: 700; }
+.eye-meter-track {
+  position: relative; flex: 1; height: 14px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border-soft);
+}
+.eye-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--text); transition: width 60ms linear; }
+.eye-meter-mark { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; }
+.mark-open { background: var(--accent); }
+.mark-closed { background: var(--danger); }
+
+.cal-kv { font-size: 1.1rem; }
+.min-closure { display: grid; gap: 0.5rem; }
+.min-closure-label { font-weight: 700; }
+.min-closure-value { font-size: 1.8rem; font-weight: 800; min-width: 6ch; text-align: center; }
+.cal-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+
+.practice { justify-items: stretch; }
+.practice-targets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin-top: 0.75rem; }
+.practice-target.target { min-height: 132px; align-items: center; text-align: center; cursor: default; }
+.practice-target .target-label { font-size: 2rem; }
+.practice-feedback { font-size: 1.25rem; font-weight: 700; min-height: 1.6em; }
+
+.review-actions { margin-top: 0.75rem; }

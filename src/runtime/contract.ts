@@ -48,7 +48,100 @@ export type StillHereRuntime = {
   /** Access code for a protected deployment (kept in sessionStorage, sent as a header). */
   accessCode: string;
   setAccessCode: (code: string) => void;
+  /** Blink-first access adapter (primary input). */
+  blink: BlinkRuntime;
 };
 
 export const VOICE_TEST_TEXT = 'This is a voice test. It is not part of the conversation.';
 export const ACCESS_HEADER = 'x-still-here-access';
+
+// ---------------------------------------------------------------------------
+// Blink-first access (primary input). Implemented by src/runtime/useBlink.ts and
+// src/access/blink-*.ts; consumed by the calibration screen and status UI.
+// Detection is local face-landmark eye-closure scoring, not gaze tracking or identity.
+
+export type BlinkStatus =
+  | 'off'              // camera not started
+  | 'unsupported'      // no camera / no secure context / model failed to load
+  | 'permission-denied'
+  | 'starting'         // requesting camera, loading model
+  | 'no-face'          // running, no face found (position guidance)
+  | 'multiple-faces'   // >1 face: selection held, nothing commits
+  | 'ready'            // eyes open, armed
+  | 'closing'          // closure in progress; target frozen at onset
+  | 'selected'         // a valid deliberate closure just committed
+  | 'cooldown'         // re-arming after a selection or discarded closure
+  | 'face-lost';       // face lost during use: gesture discarded, app paused
+
+export type BlinkCalibration = {
+  /** Eye-closure score (0 open … 1 closed) at or above which the eyes count as closed. */
+  closedThreshold: number;
+  /** Score at or below which the eyes count as open again (hysteresis). */
+  openThreshold: number;
+  /** A closure shorter than this is an ordinary blink and never selects. */
+  minClosureMs: number;
+  /** A closure longer than this is discarded (rest / eyes closed), never selects. */
+  maxClosureMs: number;
+  cooldownMs: number;
+  calibratedAt: number;
+  /** Longest natural blink observed during calibration (ms), if measured. */
+  naturalMaxMs: number | null;
+  /** Shortest deliberate closure observed during calibration (ms), if measured. */
+  deliberateMinMs: number | null;
+};
+
+/** Raw gesture events from the detector, for calibration/practice screens. */
+export type BlinkGestureEvent =
+  | { type: 'closure-start'; at: number }
+  | { type: 'select'; at: number; durationMs: number }
+  | { type: 'discard'; at: number; durationMs: number; reason: 'too-short' | 'too-long' | 'face-lost' | 'multiple-faces' | 'stale' }
+  | { type: 'face-lost'; at: number }
+  | { type: 'face-found'; at: number };
+
+export type CalibrationStage =
+  | 'consent' | 'position' | 'baseline' | 'natural' | 'deliberate' | 'review'
+  | 'practice-select' | 'practice-confirm' | 'done' | 'failed';
+
+export type BlinkRuntime = {
+  status: BlinkStatus;
+  /** Short human-readable status/guidance line (no confidence percentages). */
+  message: string;
+  /** 0..1 progress of the current closure toward minClosureMs (0 when not closing). */
+  closureProgress: number;
+  /** Latest smoothed eye-closure score 0..1 (calibration meter only); null when no face. */
+  eyeScore: number | null;
+  faceCount: number;
+  /** Measured processing rate (frames per second), for honest diagnostics. */
+  fps: number;
+  calibration: BlinkCalibration | null;
+  /** True when blink is the active input and a calibration exists. */
+  active: boolean;
+  startCamera: () => Promise<void>;
+  stopCamera: () => void;
+  /** Attach/detach a <video> element for the small framing preview (calibration only). */
+  attachPreview: (el: HTMLVideoElement | null) => void;
+  /** Subscribe to raw gesture events (calibration/practice). Returns unsubscribe. */
+  subscribe: (listener: (e: BlinkGestureEvent) => void) => () => void;
+  /** Sample collection for calibration. */
+  calibrator: {
+    stage: CalibrationStage;
+    /** 0..1 progress within the current timed stage. */
+    progress: number;
+    instructions: string;
+    naturalSamplesMs: number[];
+    deliberateSamplesMs: number[];
+    /** Proposed calibration after 'review'; null until computed. */
+    proposed: BlinkCalibration | null;
+    /** Why calibration failed (e.g. natural and deliberate closures overlap). */
+    failureReason: string | null;
+    begin: () => void;      // from consent → starts camera, goes to position
+    advance: () => void;    // move to next stage (UI decides when; timed stages auto-advance)
+    restart: () => void;
+    /** Accept the proposed calibration and enter practice. */
+    accept: () => void;
+    /** Mark practice complete (after a practice select and a separate practice confirm). */
+    finishPractice: () => void;
+    /** Adjust the proposed minimum closure (ms) before accepting. */
+    setMinClosureMs: (ms: number) => void;
+  };
+};

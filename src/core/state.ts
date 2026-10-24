@@ -235,7 +235,7 @@ export type Action =
   | { type: 'DISMISS_NOTICE' };
 
 export const DEFAULT_SETTINGS: Settings = {
-  accessMode: 'switch',
+  accessMode: 'blink',
   scanIntervalMs: SCAN_DEFAULTS.intervalMs,
   readingPauseMs: SCAN_DEFAULTS.readingPauseMs,
   voiceURI: null,

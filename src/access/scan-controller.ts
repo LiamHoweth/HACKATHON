@@ -2,12 +2,14 @@
 // Chained setTimeout (never setInterval) so missed ticks are never replayed.
 
 export type ScanConfig = {
-  active: boolean; // switch mode && phase === 'active'
+  active: boolean; // scanning mode (switch or blink) && phase === 'active'
   ids: string[]; // enabled target ids, in registry order (safe start target first)
   surfaceRevision: number;
   intervalMs: number;
   readingPauseMs: number;
-  held: boolean; // switch held: freeze
+  held: boolean; // switch held or blink closure in progress: freeze
+  /** While held, keep the highlight on this target (the blink closure-onset snapshot). */
+  pin?: string | null;
   hidden: boolean; // document.hidden: pause
 };
 
@@ -57,8 +59,9 @@ export class ScanController {
       this.schedule(next.readingPauseMs);
       return;
     }
-    // Same surface: keep the highlighted target if it still exists, else clamp.
-    const keep = this.highlighted ? next.ids.indexOf(this.highlighted) : -1;
+    // Same surface: keep the pinned (held) or highlighted target if it still exists, else clamp.
+    const pinned = next.held && next.pin ? next.ids.indexOf(next.pin) : -1;
+    const keep = pinned >= 0 ? pinned : this.highlighted ? next.ids.indexOf(this.highlighted) : -1;
     this.index = keep >= 0 ? keep : Math.min(this.index, next.ids.length - 1);
     this.set(next.ids[this.index]);
 

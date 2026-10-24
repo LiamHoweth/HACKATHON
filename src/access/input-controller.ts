@@ -1,5 +1,6 @@
-// Global keyboard handling (capture phase). In switch mode, Space/Enter is a press/release
-// switch: snapshot at press, ignore repeats, commit once on release, then cool down.
+// Global keyboard handling (capture phase). In scanning modes (switch, and blink where the key
+// is the fallback switch), Space/Enter is a press/release switch: snapshot at press, ignore
+// repeats, commit once on release, then cool down.
 import type { AccessMode } from '@/core/types';
 import { SCAN_DEFAULTS } from '@/core/limits';
 
@@ -17,6 +18,11 @@ export type InputDeps = {
   now?: () => number;
   cooldownMs?: number;
 };
+
+/** Modes in which the automatic scanner runs and Space/Enter act as a switch. */
+export function isScanMode(mode: AccessMode): boolean {
+  return mode === 'switch' || mode === 'blink';
+}
 
 const SWITCH_KEYS = new Set(['Space', 'Enter', 'NumpadEnter']);
 
@@ -84,12 +90,12 @@ export class InputController {
     if (!key || isEditable(e.target)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-    if (this.deps.getMode() !== 'switch') {
+    if (!isScanMode(this.deps.getMode())) {
       // Any mode: a held key must not trigger repeated native clicks.
       if (e.repeat) e.preventDefault();
       return;
     }
-    // Switch mode: we own Space/Enter outside editable fields; prevent native click synthesis.
+    // Scanning mode: we own Space/Enter outside editable fields; prevent native click synthesis.
     e.preventDefault();
     e.stopPropagation();
     if (e.repeat || this.snapshot) return;
@@ -108,14 +114,14 @@ export class InputController {
     if (!key) return;
     const snap = this.snapshot;
     const ours = !!snap && snap.key === key;
-    if (!ours && (isEditable(e.target) || this.deps.getMode() !== 'switch')) return;
+    if (!ours && (isEditable(e.target) || !isScanMode(this.deps.getMode()))) return;
     e.preventDefault();
     e.stopPropagation();
     if (!snap || !ours) return;
     this.snapshot = null;
     this.armedAt = this.now() + this.cooldownMs;
     this.deps.onHeldChange(false);
-    if (snap.targetId && snap.surfaceRevision === this.deps.getSurfaceRevision() && this.deps.getMode() === 'switch') {
+    if (snap.targetId && snap.surfaceRevision === this.deps.getSurfaceRevision() && isScanMode(this.deps.getMode())) {
       this.deps.onSwitchActivate({ targetId: snap.targetId, surfaceRevision: snap.surfaceRevision, cycleId: snap.cycleId });
     }
   };

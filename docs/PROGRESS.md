@@ -1,26 +1,48 @@
 # Progress
 
-**Last updated:** 2026-10-24 ~11:00 CT, by the documentation workstream (Claude Code). The integrator should update this file after each gate.
+**Last updated:** 2026-10-24, 11:35 CT, by the documentation workstream (Claude Code). The integrator updates this file after each gate.
+
+## Direction change (~11:20 CT)
+
+The governing brief is now **blink-first**. Webcam-detected deliberate eye closure over automatic scanning is the primary input and the judging demo. Keyboard, switch, and pointer are fallbacks. Gate status is in [BUILD_PLAN.md](BUILD_PLAN.md).
+
+## Timeline
+
+| Time (CT) | Event | Evidence |
+| --- | --- | --- |
+| 09:00 | Hacking began | Event briefing |
+| ~11:00 | Kernel, UI, and runtime integrated. Typecheck, lint, tests, and build pass. Browser fixture loop and switch scanning pass | [TEST_RESULTS.md](TEST_RESULTS.md), commits `2e49ff5`, `433d8ca` |
+| 11:15 | Railway deployment `bd020b7e` (SUCCESS) | `railway deployment list` |
+| ~11:18–11:35 | Live OpenAI `gpt-6-astra`, `gpt-transcribe`, and Railway smoke test verified. 14 live synthetic scenarios recorded | Commit `ea6f576`, [evidence/live-scenarios.json](evidence/live-scenarios.json) |
+| 11:23 | Audit fixes committed (not yet deployed) | Commit `6ea84db` |
+| 11:25 | Experimental native SwiftUI client committed (outside the demo path) | Commit `5fd9d2d` |
+| 11:25 | `npx vitest run`: 82/82 passed in 6 files | Docs workstream run on the working tree; integrator to record |
+| 11:30 | Blink work in progress (uncommitted): MediaPipe assets in `public/`, `scripts/copy-mediapipe-assets.mjs`, blink types in `src/runtime/contract.ts`, `accessMode: 'blink'` default | `git status` |
+| 11:32 | Uncommitted `src/access/blink-{detector,gesture,calibration}.ts`, `src/components/Blink{Calibration,Status}.tsx`, and two blink test files present. `npx vitest run`: 106/106 in 8 files. Blink not yet wired into `useStillHere` | Docs workstream run; integrator to record |
 
 ## Current status
 
-- **Present in source:** `src/core/` (types, state, reducer, targets, context builder, schemas, limits, phrases), `src/adaptation/` (observations, preference policy), `src/server/` (config, request guards, reply prompt, Anthropic provider, validation, fixtures), `src/runtime/contract.ts`, and unit tests in `src/tests/` (reducer, adaptation, schemas, helpers).
-- **Landed at ~10:58 CT, integration ongoing (not verified):** `src/runtime/useStillHere.ts` + `effects-runner.ts`, `src/access/{scan,input}-controller.ts`, `src/audio/*` (speech, recording, transcript client, voices), `src/adaptation/preference-store.ts`, `src/metrics/export.ts`, `src/server/transcription.ts`, `src/components/*`, `src/app/{layout,page}.tsx`, `src/app/api/{replies,status,transcribe}/route.ts`, and `src/tests/api.test.ts`.
-- **Not run by this workstream:** `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. Results belong in [TEST_RESULTS.md](TEST_RESULTS.md).
-- **Docs:** README, `.env.example`, and all `docs/*` presentation files were drafted. Claims are marked planned / in progress / not verified.
+- **Verified:** shared kernel (unit and browser), switch/keyboard scanning (synthesized keys), live OpenAI replies and transcription with synthetic inputs, and Railway access-code enforcement.
+- **In progress:** the gesture state machine and calibration logic pass synthetic tests (uncommitted). The detector, calibration UI, status UI, blink-first setup, and runtime wiring are not verified. **No camera test has been done.**
+- **Not measured:** everything, including blink reliability.
+- **Not verified:** audible speech, browser microphone capture, reload persistence, 200% zoom, and camera network behavior.
 
-## Blockers
+## Next exact actions
 
-| Blocker | Effect | Smallest human action |
+1. **Blink engineers:** wire the detector and gesture machine into the runtime (snapshot the target at `closure-start`, emit one guarded `ACTIVATE` on `select`, face lost → paused surface with an explicit Resume). Finish the calibration and status UI. Commit with `public/models` and `public/wasm` and their README.
+2. **Integrator, real webcam:** run calibration on the demo laptop in the demo lighting. Then run the **blink reliability gate** ([TEST_PLAN.md](TEST_PLAN.md#blink-reliability-gate)): 20 intentional selections, a period of ordinary blinking, and tracking loss/recovery. Record missed gestures, false selections, false confirmations, gesture duration, and scan wait in [TEST_RESULTS.md](TEST_RESULTS.md).
+3. **Integrator, privacy:** watch the browser network log during blink use. Confirm whether any request carries frames and whether the model/WASM load only from this origin. Then update the camera row in [PRIVACY_AND_LIMITATIONS.md](PRIVACY_AND_LIMITATIONS.md).
+4. **Redeploy Railway** (`railway up --service api`) after the blink work lands. Re-run the smoke test, including blink on HTTPS.
+5. **Listen** to speech on the demo laptop. Record the voice name and `localService`.
+6. **Human review** of the 14 live scenario outputs (`humanJudgment` fields).
+7. **15:30 freeze**, then rehearse [DEMO_SCRIPT.md](DEMO_SCRIPT.md) hands-free at least twice, plus once with the keyboard/switch fallback. Update the README table, [PRESENTATION_LOG.md](PRESENTATION_LOG.md), and [JUDGE_QA.md](JUDGE_QA.md) with real numbers.
+8. **By 17:00:** Liam reviews and submits [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md).
+
+## Blockers and risks
+
+| Item | Effect | Smallest human action |
 | --- | --- | --- |
-| No `ANTHROPIC_API_KEY` / `REPLY_MODEL` on the dev machine (as of 10:50 CT) | Live AI is unverified. The demo uses Fixture mode | Liam adds a key and model to `.env.local` if a paid key is authorized, then runs one synthetic request |
-| No transcription key | Microphone path is unverified | Same, for `TRANSCRIPTION_*`, or demo with typed input only |
-| Event AI/pre-event rules not recorded in the repo | Disclosure accuracy | Liam confirms the rules with organizers and records them in [PROJECT_BRIEF.md](PROJECT_BRIEF.md) |
-
-## Next actions
-
-1. Integrator: wire runtime + routes + UI. Run `npm run check` and record the results.
-2. Browser pass on the demo laptop: full fixture demo loop, switch scanning, audible speech, cancel/stop/pause.
-3. Update the README feature table and [PRESENTATION_LOG.md](PRESENTATION_LOG.md) with the verified status.
-4. Optional: if a key is authorized, run a small live smoke test with synthetic prompts and record the model id and outcome.
-5. Feature freeze at 15:30 CT. Rehearse [DEMO_SCRIPT.md](DEMO_SCRIPT.md). Finalize [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md) by 17:00.
+| Blink reliability unknown | The flagship demo could fail live | Run the reliability gate early, in the presentation room if possible. Decide on the fallback by 15:30 |
+| Camera permission may need a helper | Setup is not fully hands-free | Say so in the demo. A helper clicks Allow |
+| Railway is behind `main` | The deployed site lacks the audit fixes and blink | Redeploy after the blink work lands |
+| Event AI and pre-event rules not recorded | Disclosure accuracy | Liam confirms with organizers and records it in [PROJECT_BRIEF.md](PROJECT_BRIEF.md) |

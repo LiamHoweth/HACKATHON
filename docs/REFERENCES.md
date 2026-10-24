@@ -4,7 +4,9 @@ The listing of a source here does not mean it was verified, and it does not supp
 
 ## Prior art: supplied research leads
 
-**Status for every row: supplied research lead — not independently verified.** These came from Liam's project brief. We have not confirmed that each product currently operates or supports each listed feature. No code or assets from these projects were copied. Public source code is not automatically licensed for reuse.
+**Status for every row: supplied research lead — not independently verified.** These came from Liam's project brief (blink-first master prompt §27). We have not confirmed that each product currently operates or supports each listed feature. No code or assets from these projects were copied. Public source code is not automatically licensed for reuse.
+
+Several leads (VisioALS, Bobbai) describe webcam or eye-controlled interaction, so camera-based AAC access is **not new**. We have not checked how any of them detect blinks or gaze.
 
 | Reference | Supplied inspiration to investigate | Address |
 | --- | --- | --- |
@@ -24,8 +26,10 @@ The listing of a source here does not mean it was verified, and it does not supp
 
 | Topic | Source | Status |
 | --- | --- | --- |
-| Anthropic Messages API, structured outputs, effort, server-side fallback beta, model ids | Claude API skill reference bundled with Claude Code (model table cached 2026-10-06) and installed `@anthropic-ai/sdk` 1.3.0 types | Used for the adapter. Not checked against the live account (no key) |
-| Anthropic data retention / pricing | Anthropic's official docs | Not checked for this project |
+| OpenAI Responses API, structured outputs (`json_schema`, strict), `store` | OpenAI official docs; the key's `/v1/models` list (checked 2026-10-24) | Used for the runtime adapter. `gpt-6-astra` confirmed in the model list and in live calls |
+| OpenAI audio transcriptions (`gpt-transcribe`) | OpenAI official docs | Used. Verified live with a synthetic clip on 2026-10-24 |
+| OpenAI data retention / pricing | OpenAI official docs | Not reviewed for this project. Do not describe retention beyond "`store: false` is set" |
+| Anthropic Messages API, structured outputs, refusal-fallback beta | Claude API skill reference (cached 2026-10-06) and `@anthropic-ai/sdk` 1.3.0 types | Secondary adapter. Not checked against a live account (no key) |
 | Next.js route handlers | <https://nextjs.org/docs/app/getting-started/route-handlers> | Supplied reference |
 | Next.js environment variables | <https://nextjs.org/docs/app/guides/environment-variables> | Supplied reference |
 | `getUserMedia` | <https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia> | Supplied reference |
@@ -34,10 +38,18 @@ The listing of a source here does not mean it was verified, and it does not supp
 | `SpeechSynthesisVoice.localService` | <https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisVoice/localService> | Supplied reference |
 | WCAG 2.2 contrast (minimum) | <https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html> | Supplied reference; conformance not tested |
 | WCAG 2.2 keyboard | <https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html> | Supplied reference; conformance not tested |
-| MediaPipe Face Landmarker (web) | <https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker/web_js> | Not used (blink deferred) |
+| MediaPipe Face Landmarker (web) | <https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker/web_js> | Used for the blink adapter (in progress). See "Blink detection assets" below |
 | Claude Code memory / subagents | <https://code.claude.com/docs/en/memory>, <https://code.claude.com/docs/en/sub-agents> | Development tooling only |
 | GitHub CLI `gh repo edit` | <https://cli.github.com/manual/gh_repo_edit> | Not used yet; remote metadata unchanged |
-| OpenAI-compatible transcription endpoint | The provider's official docs | Adapter targets `/audio/transcriptions`. Not verified (no key) |
+
+## Blink detection assets
+
+| Asset | Version | Source | License | Status |
+| --- | --- | --- | --- | --- |
+| `@mediapipe/tasks-vision` (JS API and WASM runtime in `public/wasm`) | 1.1.1, pinned exactly in `package.json` | npm, copied by `scripts/copy-mediapipe-assets.mjs` | Apache-2.0 (from the package's `license` field) | Present locally. Hashes in `public/models/README.md` |
+| `face_landmarker.task` (face detector, landmarks, blendshapes) | `float16/1` | `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`, downloaded 2026-10-24, SHA-256 recorded | Apache-2.0, as recorded by the blink engineer. **To confirm against Google's model card** before the license is stated publicly | Present locally |
+
+The eye-closure signal comes from the model's blendshape outputs (eye-blink coefficients). These are facial-gesture estimates. They are not gaze, identity, or emotion, and we have no evidence that they are clinically validated. We have not verified that the model behaves well across skin tones, glasses, or lighting. That would need its model card and our own testing.
 
 ## Deferred research consideration: Chicago Face Database
 
@@ -45,4 +57,4 @@ The listing of a source here does not mean it was verified, and it does not supp
 
 ## Dependencies and licenses
 
-npm dependencies are listed in `package.json` and pinned in `package-lock.json`: `next`, `react`, `react-dom`, `zod`, `@anthropic-ai/sdk`, `server-only`, and dev tools (`typescript`, `eslint`, `eslint-config-next`, `vitest`, type packages). Their licenses come from their own packages and have not been audited individually for this submission. No third-party images, fonts, models, or datasets are committed. The project license is undecided.
+npm dependencies are listed in `package.json` and pinned in `package-lock.json`: `next`, `react`, `react-dom`, `zod`, `@mediapipe/tasks-vision`, `@anthropic-ai/sdk`, `server-only`, and dev tools (`typescript`, `eslint`, `eslint-config-next`, `vitest`, type packages). Their licenses come from their own packages and have not been audited individually, except MediaPipe above. The only third-party model is the MediaPipe face landmarker. No third-party images, fonts, or datasets are included. The project license is undecided.

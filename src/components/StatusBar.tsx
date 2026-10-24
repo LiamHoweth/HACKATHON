@@ -2,6 +2,7 @@
 
 import type { StillHereRuntime } from '@/runtime/contract';
 import { activeWorkspace } from '@/core/targets';
+import { BlinkStatus } from './BlinkStatus';
 import {
   ACCESS_LABELS, AI_MODE_LABELS, BATCH_SOURCE_LABELS, micLabel, personalizationLabel, storageLabel,
 } from './labels';
@@ -14,12 +15,23 @@ export function StatusBar({ runtime }: { runtime: StillHereRuntime }) {
   const recording = state.recording.status === 'recording';
   const pendingProposal = state.proposals.some((p) => p.status === 'pending');
 
+  const blinkMode = st.accessMode === 'blink';
+
   return (
     <dl className="status-bar" aria-label="Session status">
-      <div className="status-item">
-        <dt>Input</dt>
-        <dd>{ACCESS_LABELS[st.accessMode]}{runtime.switchHeld ? ' · held' : ''}</dd>
-      </div>
+      {blinkMode ? (
+        <div className="status-item status-blink">
+          <dt className="sr-only">Input</dt>
+          <dd className="control-mode">BLINK CONTROL</dd>
+          <dt className="sr-only">Camera</dt>
+          <dd><BlinkStatus blink={runtime.blink} announce /></dd>
+        </div>
+      ) : (
+        <div className="status-item">
+          <dt>Input</dt>
+          <dd>{ACCESS_LABELS[st.accessMode]}{runtime.switchHeld ? ' · held' : ''}</dd>
+        </div>
+      )}
       <div className={`status-item${recording ? ' status-recording' : ''}`}>
         <dt>Mic</dt>
         <dd>{recording && <span className="rec-dot" aria-hidden="true" />}{micLabel(state.recording.status)}</dd>

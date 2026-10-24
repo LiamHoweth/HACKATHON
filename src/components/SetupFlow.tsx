@@ -9,6 +9,10 @@ import { RELATIONSHIPS, SETTINGS } from '@/core/types';
 import type { AccessMode, AiMode, ProfileDraft, Relationship, SettingPlace } from '@/core/types';
 import { SCAN_DEFAULTS } from '@/core/limits';
 import { BUILT_IN_PHRASES } from '@/core/phrases';
+import { BlinkCalibration, describeCalibration } from './BlinkCalibration';
+import { formatTime } from './labels';
+
+type FallbackMode = Exclude<AccessMode, 'blink'>;
 
 const DEMO_NAME = 'Sam (fictional)';
 const DEMO_INTERESTS = 'jazz, basketball, cooking';
@@ -17,7 +21,11 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const { state, serverStatus, voices } = runtime;
   const uid = useId();
 
-  const [accessMode, setAccessMode] = useState<AccessMode>(DEFAULT_SETTINGS.accessMode);
+  const [useBlink, setUseBlink] = useState<boolean>(DEFAULT_SETTINGS.accessMode === 'blink');
+  const [fallbackMode, setFallbackMode] = useState<FallbackMode>(
+    DEFAULT_SETTINGS.accessMode === 'blink' ? 'switch' : DEFAULT_SETTINGS.accessMode,
+  );
+  const [step, setStep] = useState<'form' | 'calibrate'>('form');
   const [scanSeconds, setScanSeconds] = useState<number>(DEFAULT_SETTINGS.scanIntervalMs / 1000);
   const [voiceURI, setVoiceURI] = useState<string>('');
   const [rate, setRate] = useState<number>(DEFAULT_SETTINGS.rate);
@@ -45,8 +53,13 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
   const scanValid = Number.isFinite(scanSeconds)
     && scanSeconds >= SCAN_DEFAULTS.minIntervalMs / 1000 && scanSeconds <= SCAN_DEFAULTS.maxIntervalMs / 1000;
   const needsConsent = aiMode === 'live' && !consent;
-  const needsCode = !!serverStatus?.accessRequired && aiMode === 'live' && runtime.accessCode.trim() === '';
-  const canStart = scanValid && !needsConsent && !needsCode;
+  const accessMode: AccessMode = useBlink ? 'blink' : fallbackMode;
+  const codeRelevant = !!serverStatus?.accessRequired && aiMode === 'live';
+  const needsCode = codeRelevant && runtime.accessCode.trim() === '';
+  // The runtime refetches /api/status whenever the access code changes, so this updates by itself.
+  const codeRejected = codeRelevant && !needsCode && serverStatus?.accessCodeValid === false;
+  const canStart = scanValid && !needsConsent && !needsCode && !codeRejected;
+  const savedCalibration = runtime.blink.calibration;
 
   const useDemo = () => {
     setName(DEMO_NAME);
@@ -54,30 +67,59 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
     setDemoUsed(true);
   };
 
-  const start = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canStart) return;
-    const settings: Settings = {
-      ...DEFAULT_SETTINGS,
-      accessMode,
-      scanIntervalMs: Math.round(scanSeconds * 1000),
-      voiceURI: voiceURI || null,
-      rate,
-      aiMode,
-      cloudConsent: consent,
-      sessionAdaptation: sessionLearning,
-      persistOnDevice: persist,
-      measurement,
-      language: voices.find((v) => v.voiceURI === voiceURI)?.lang ?? DEFAULT_SETTINGS.language,
-      scope: { relationship: relationship || null, setting: place || null },
-      demoProfile: isDemoProfile,
-    };
+  const buildSettings = (mode: AccessMode): Settings => ({
+    ...DEFAULT_SETTINGS,
+    accessMode: mode,
+    scanIntervalMs: Math.round(scanSeconds * 1000),
+    voiceURI: voiceURI || null,
+    rate,
+    aiMode,
+    cloudConsent: consent,
+    sessionAdaptation: sessionLearning,
+    persistOnDevice: persist,
+    measurement,
+    language: voices.find((v) => v.voiceURI === voiceURI)?.lang ?? DEFAULT_SETTINGS.language,
+    scope: { relationship: relationship || null, setting: place || null },
+    demoProfile: isDemoProfile,
+  });
+
+  const enterSession = (mode: AccessMode) => {
     const interestList = interests.split(',').map((s) => s.trim()).filter(Boolean);
     const draft: ProfileDraft | null = name.trim() || interestList.length
       ? { preferredName: name.trim(), interests: interestList }
       : null;
-    runtime.startSession(settings, draft);
+    runtime.startSession(buildSettings(mode), draft);
   };
+
+  const openCalibration = () => {
+    // Recalibrating from a finished or failed run starts a fresh pass.
+    if (runtime.blink.calibrator.stage !== 'consent') runtime.blink.calibrator.restart();
+    setStep('calibrate');
+  };
+
+  const start = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canStart) return;
+    if (accessMode !== 'blink') return enterSession(accessMode);
+    if (savedCalibration) {
+      // Start the camera from this click so the browser permission prompt has a user gesture.
+      void runtime.blink.startCamera();
+      return enterSession('blink');
+    }
+    openCalibration();
+  };
+
+  if (step === 'calibrate') {
+    return (
+      <BlinkCalibration
+        runtime={runtime}
+        scanIntervalMs={Math.round((scanValid ? scanSeconds : DEFAULT_SETTINGS.scanIntervalMs / 1000) * 1000)}
+        onComplete={() => enterSession('blink')}
+        onFallback={() => { runtime.blink.stopCamera(); enterSession('switch'); }}
+        onBack={() => setStep('form')}
+      />
+    );
+  }
 
   return (
     <main className="setup" aria-labelledby={`${uid}-title`}>
@@ -86,24 +128,50 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
         <h1 id={`${uid}-title`}>Set up this session</h1>
         <p className="tagline">Your words. Your choice.</p>
         <p className="principle">AI offers possible words. The person decides what to say. Nothing is spoken without review and a separate confirmation.</p>
-        <p className="muted">A helper can complete this form. Microphone and camera are off; nothing here asks for either permission.</p>
+        <p className="muted">A helper can complete this form. The microphone and camera are off. The camera turns on only after you choose blink control and press “Turn on camera”.</p>
       </header>
 
       <form className="setup-form" onSubmit={start} noValidate>
-        <fieldset>
-          <legend>How will you make selections?</legend>
-          {([
-            ['switch', 'Switch scanning', 'Targets are highlighted in turn. Press Space or Enter (or a switch mapped to them) to choose.'],
-            ['keyboard', 'Keyboard', 'Tab to a control and press Enter or Space.'],
-            ['pointer', 'Pointer', 'Mouse, touch, trackpad, or head pointer.'],
-          ] as const).map(([value, label, hint]) => (
-            <label key={value} className="choice">
-              <input type="radio" name="access" value={value} checked={accessMode === value} onChange={() => setAccessMode(value)} />
-              <span><strong>{label}</strong><span className="hint">{hint}</span></span>
-            </label>
-          ))}
+        <fieldset className="access-fieldset">
+          <legend>How will you choose?</legend>
+          <label className={`choice choice-hero${useBlink ? ' is-chosen' : ''}`}>
+            <input type="radio" name="access" value="blink" checked={useBlink} onChange={() => setUseBlink(true)} />
+            <span>
+              <strong className="choice-hero-title">Use eye blinks <span className="tag">Recommended</span></strong>
+              <span className="hint-strong">The highlight moves through the choices by itself. A deliberate, slightly longer blink selects. Ordinary blinks are ignored.</span>
+              <span className="hint">The camera image stays on this device. It detects eye closure only — not where you look, and not who you are. Nothing is recorded.</span>
+              <span className="hint">The browser will ask for camera permission; a helper may need to click Allow. Next comes a short guided calibration and practice.</span>
+            </span>
+          </label>
+          {useBlink && savedCalibration && (
+            <div className="saved-cal info">
+              <p>Saved blink calibration from {formatTime(savedCalibration.calibratedAt)} ({describeCalibration(savedCalibration)}). You can use it or recalibrate.</p>
+            </div>
+          )}
+
+          <label className={`choice choice-alt${!useBlink ? ' is-chosen' : ''}`}>
+            <input type="radio" name="access" value="other" checked={!useBlink} onChange={() => setUseBlink(false)} />
+            <span>
+              <strong>Use keyboard / switch / pointer instead</strong>
+              <span className="hint">No camera needed. The same review and separate confirmation apply.</span>
+            </span>
+          </label>
+          {!useBlink && (
+            <div className="sub-choices" role="radiogroup" aria-label="Alternative input">
+              {([
+                ['switch', 'Switch scanning', 'Targets are highlighted in turn. Press Space or Enter (or a switch mapped to them) to choose.'],
+                ['keyboard', 'Keyboard', 'Tab to a control and press Enter or Space.'],
+                ['pointer', 'Pointer', 'Mouse, touch, trackpad, or head pointer.'],
+              ] as const).map(([value, label, hint]) => (
+                <label key={value} className="choice">
+                  <input type="radio" name="access-alt" value={value} checked={fallbackMode === value} onChange={() => setFallbackMode(value)} />
+                  <span><strong>{label}</strong><span className="hint">{hint}</span></span>
+                </label>
+              ))}
+            </div>
+          )}
           <div className="field">
-            <label htmlFor={`${uid}-scan`}>Scan speed (seconds per target)</label>
+            <label htmlFor={`${uid}-scan`}>Scan speed (seconds per item)</label>
             <input
               id={`${uid}-scan`} type="number" inputMode="decimal"
               min={SCAN_DEFAULTS.minIntervalMs / 1000} max={SCAN_DEFAULTS.maxIntervalMs / 1000} step={0.25}
@@ -112,7 +180,7 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
               aria-describedby={`${uid}-scan-hint`} aria-invalid={!scanValid}
             />
             <p id={`${uid}-scan-hint`} className="hint">
-              Between {SCAN_DEFAULTS.minIntervalMs / 1000} and {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. New screens add a short reading pause. You can change this later in Controls.
+              How long the highlight stays on each item. Between {SCAN_DEFAULTS.minIntervalMs / 1000} and {SCAN_DEFAULTS.maxIntervalMs / 1000} seconds. New screens add a short reading pause. You can change this later in Controls.
             </p>
           </div>
         </fieldset>
@@ -175,7 +243,12 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
             <div className="field">
               <label htmlFor={`${uid}-code`}>Access code for this deployment</label>
               <input id={`${uid}-code`} type="password" autoComplete="off" value={runtime.accessCode} onChange={(e) => runtime.setAccessCode(e.target.value)} />
-              <p className="hint">Kept for this browser tab only.</p>
+              <p className="hint" role="status">
+                {needsCode ? 'Kept for this browser tab only.'
+                  : serverStatus?.accessCodeValid === true ? '✓ Access code accepted.'
+                    : serverStatus?.accessCodeValid === false ? 'This access code was not accepted. Check it, or choose Fixture demo or Local only.'
+                      : 'Checking the code… (we also check it when you start).'}
+              </p>
             </div>
           )}
         </fieldset>
@@ -265,12 +338,16 @@ export function SetupFlow({ runtime }: { runtime: StillHereRuntime }) {
 
         <div className="setup-actions">
           <button type="submit" className="btn btn-primary btn-large" disabled={!canStart} aria-describedby={`${uid}-start-hint`}>
-            Start session
+            {accessMode !== 'blink' ? 'Start session' : savedCalibration ? 'Start with saved blink calibration' : 'Next: set up blink control'}
           </button>
+          {accessMode === 'blink' && savedCalibration && (
+            <button type="button" className="btn" disabled={!canStart} onClick={openCalibration}>Recalibrate</button>
+          )}
           <p id={`${uid}-start-hint`} className="hint">
             {!scanValid ? 'Enter a scan speed in the allowed range. '
               : needsConsent ? 'Live AI needs cloud consent. '
-                : needsCode ? 'Enter the access code. ' : ''}
+                : needsCode ? 'Enter the access code. '
+                  : codeRejected ? 'The access code was not accepted. ' : ''}
             Suggestions: {aiMode === 'live' ? 'Live AI' : aiMode === 'fixture' ? 'Fixture demo' : 'Local only'}.
           </p>
         </div>

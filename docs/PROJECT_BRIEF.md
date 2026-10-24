@@ -1,6 +1,6 @@
 # Project brief
 
-Status: event and idea selected (Still Here). Facts below come from Liam's master prompt, which supplied the event briefing, and from the repository itself. Fields still unconfirmed are marked. Do not invent answers to fill the template.
+Status: event and idea selected (Still Here, **blink-first** since ~11:20 CT). Facts below come from Liam's master prompts and the event briefing they supplied, and from the repository itself. The blink-first master prompt now governs and supersedes the earlier brief. Fields still unconfirmed are marked. Do not invent answers to fill the template.
 
 ## Event and constraints
 
@@ -13,19 +13,19 @@ Status: event and idea selected (Still Here). Facts below come from Liam's maste
 | Pre-event work and existing-code policy | Briefing says new project code must be written after 09:00 CT. All `src/` code was written after 09:00 on 2026-10-24. The generic repo foundation (no app code) was committed 08:49–09:08 CT. Liam to confirm this is permitted |
 | AI tools, generated assets, and disclosure policy | Unconfirmed. AI use is disclosed in [AI_USAGE.md](AI_USAGE.md); Liam to confirm the event's rule |
 | Required submission materials and hosting duration | Unconfirmed; draft in [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md) |
-| Budget and approved paid services | No paid services authorized. No API keys configured as of 10:50 CT |
+| Budget and approved paid services | An OpenAI key and a Railway deployment are in use (from ~11:15 CT). Keys are kept in `.env.local` and Railway variables only. Spending limits not recorded |
 | Repo visibility and license | Public repository; license undecided |
 
 ## Product and MVP
 
-- **User:** Adults who understand a conversation and know what they want to say, but for whom speaking or typing is slow or difficult (for example, some people with ALS). Not tested with AAC users.
+- **User:** Adults who understand a conversation and know what they want to say, but for whom speaking or typing is slow or difficult (for example, some people with ALS), and who can make a deliberate eye closure. Not tested with AAC users.
 - **Problem:** Composing a reply can take longer than the conversation allows, which costs participation, humor, disagreement, and initiative.
-- **One-sentence pitch:** Still Here offers three possible complete replies that the person can choose, reject, guide, or replace with their own words. Nothing is spoken until they review the exact text and confirm it separately.
-- **Demo flow:** Partner types a question → three suggestions → None of these → Guide: suggest an alternative → select → review → confirm → speech → start a conversation. See [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
-- **Must ship:** (1) typed input → suggestions → review → separate confirmation → speech; (2) switch-accessible rejection, guidance, and independent composition; (3) honest source labeling (fixture vs. live vs. local).
-- **Stretch goals:** Partner audio transcription; approved-preference UI with persistence; measurement mode.
-- **Out of scope:** Blink/camera input (deferred), native app, face recognition, emotion inference, clinical features, emergency dispatch.
-- **Success check:** A teammate runs `npm run dev`, completes the demo flow with the keyboard/switch only, and hears exactly the confirmed text.
+- **One-sentence pitch:** Still Here offers three possible complete replies that the person can choose, reject, guide, or replace with their own words using only deliberate blinks over automatic scanning. Nothing is spoken until they review the exact text and confirm it with a separate blink.
+- **Demo flow (hands-free after calibration):** calibrate → partner types a question → blink None of these → blink Guide: suggest an alternative → blink to select → review → separate blink on Speak → speech → blink Start a conversation. See [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+- **Must ship:** (1) local webcam blink detection with individual calibration, select at closure onset, and a separate blink to confirm; (2) the shared kernel: typed input → suggestions → review → separate confirmation → speech, with rejection, guidance, and independent composition reachable by blink; (3) working keyboard/switch fallback and honest source labeling.
+- **Stretch goals:** Partner audio in the demo; preference persistence across reload; measurement export.
+- **Out of scope:** Gaze cursor, face recognition, emotion inference, a native app in the demo (an experimental iOS client exists outside the demo path), clinical features, emergency dispatch.
+- **Success check:** After calibration, an operator completes the demo flow with blinks only and hears exactly the confirmed text, and the blink reliability gate is recorded. If the gate fails, the same flow works with keyboard/switch and the limitation is disclosed.
 
 Full requirements: [PRODUCT_SPEC.md](PRODUCT_SPEC.md).
 
@@ -40,14 +40,14 @@ Full requirements: [PRODUCT_SPEC.md](PRODUCT_SPEC.md).
 
 ## Technical decisions
 
-- Platforms, languages, and frameworks: Web app; Next.js 16.4.3 App Router, React 19.3, TypeScript, zod 4, `@anthropic-ai/sdk` 1.3.0, vitest 5.
+- Platforms, languages, and frameworks: Web app; Next.js 16.4.3 App Router, React 19.3, TypeScript, zod 4, `@mediapipe/tasks-vision` 1.1.1, `@anthropic-ai/sdk` 1.3.0, vitest 5.
 - Required toolchain versions: Node.js + npm (versions pinned in `package-lock.json`); Python 3.10+ for `scripts/check_repo.py`.
 - Installation, run, build, and test commands: `npm install`, `npm run dev`, `npm run build`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run check` (see [README](../README.md)).
 - Component boundaries and shared interfaces: `src/core` (pure reducer/contracts), `src/adaptation`, `src/server`, `src/runtime/contract.ts`. See [ARCHITECTURE.md](ARCHITECTURE.md).
 - Data storage and synthetic demo fixtures: In-memory session state. Approved preferences in local storage only with consent. Synthetic fixtures in `src/server/fixtures.ts`.
 - Configuration variable names and secure provisioning: See [.env.example](../.env.example). Values go in `.env.local` (gitignored). Never record values here.
-- External APIs, rate limits, cost, and offline/demo fallback: Anthropic Messages API (live replies, not verified); OpenAI-compatible transcription (not verified); labeled Fixture mode and Local-only mode as fallbacks; in-memory per-process rate limit.
-- Hosting, signing, or deployment owner: Liam. Local only so far; no deployment authorized.
+- External APIs, rate limits, cost, and offline/demo fallback: OpenAI Responses API `gpt-6-astra` (verified) and `gpt-transcribe` (verified); Anthropic adapter (unverified); labeled Fixture and Local-only modes as fallbacks; in-memory per-instance rate limits and access-code throttling. Blink detection runs in the browser with no external API.
+- Hosting, signing, or deployment owner: Liam. Railway project `still-here`, service `api` (`https://api-production-18038.up.railway.app`), single instance, access code required. Latest deployment 11:15 CT, so a redeploy is pending.
 
 ## Decisions and scope changes
 
@@ -56,4 +56,6 @@ Full requirements: [PRODUCT_SPEC.md](PRODUCT_SPEC.md).
 | 2026-10-24 | Prepare a general collaboration foundation; choose the event, idea, and stack later. | Liam / setup request |
 | 2026-10-24 | Liam approved Claude pushing working checkpoints directly to `main` during the hackathon (while `main` is unprotected); otherwise use PRs. | Liam / Claude Code chat |
 | 2026-10-24 | Build Still Here (conversation-first AAC) for SASEHacks for Good, using Liam's master prompt as the brief. | Liam / master prompt |
-| 2026-10-24 | Stack: Next.js + TypeScript single app; Anthropic adapter for replies; Fixture mode as default demo path because no API key is configured; blink input deferred. Details in [DECISIONS.md](DECISIONS.md). | Liam / Claude Code session |
+| 2026-10-24 | Stack: Next.js + TypeScript single app; Fixture mode as the default because no key was configured at first; blink deferred. Details in [DECISIONS.md](DECISIONS.md). | Liam / Claude Code session |
+| 2026-10-24 ~11:18 | OpenAI (`gpt-6-astra`) adopted as the runtime provider and deployed to Railway behind an access code. | Liam / Claude Code session |
+| 2026-10-24 ~11:20 | **Direction changed to blink-first** per the new master prompt. Webcam blink is the primary input and demo. Keyboard/switch become fallbacks. The native iOS client stays out of the demo path. | Liam / blink-first master prompt |

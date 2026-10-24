@@ -2,8 +2,10 @@
 import type { AccessMode, AiMode, CandidateSource, Delivery, MessageSource, PartnerTurnSource } from '@/core/types';
 import type { MetricEvent, RecordingStatus, State, StorageStatus } from '@/core/state';
 import type { Provenance } from '@/adaptation/preference-policy';
+import type { BlinkStatus } from '@/runtime/contract';
 
 export const ACCESS_LABELS: Record<AccessMode, string> = {
+  blink: 'Blink control',
   switch: 'Switch scanning',
   keyboard: 'Keyboard',
   pointer: 'Pointer',
@@ -48,6 +50,35 @@ export const PROVENANCE_LABELS: Record<Provenance, string> = {
   'session-hint': 'temporary session hint',
   default: 'default',
 };
+
+export type BlinkTone = 'off' | 'ok' | 'work' | 'warn' | 'stop';
+
+/** Visible text and tone for every blink status. No confidence percentages, ever. */
+export const BLINK_STATUS_LABELS: Record<BlinkStatus, { text: string; tone: BlinkTone; icon: string }> = {
+  off: { text: 'Camera off', tone: 'off', icon: '○' },
+  unsupported: { text: 'Camera unavailable', tone: 'stop', icon: '⊘' },
+  'permission-denied': { text: 'Camera blocked', tone: 'stop', icon: '⊘' },
+  starting: { text: 'Starting camera…', tone: 'work', icon: '◌' },
+  'no-face': { text: 'Position face', tone: 'warn', icon: '◌' },
+  'multiple-faces': { text: 'Two faces — held', tone: 'warn', icon: '◎' },
+  ready: { text: 'Ready', tone: 'ok', icon: '◉' },
+  closing: { text: 'Keep eyes closed…', tone: 'work', icon: '◐' },
+  selected: { text: 'Selected', tone: 'ok', icon: '✓' },
+  cooldown: { text: 'Re-arming', tone: 'work', icon: '◔' },
+  'face-lost': { text: 'Face lost — paused', tone: 'stop', icon: '◌' },
+};
+
+/** Statuses in which the detector is tracking one face and gestures can count. */
+export const BLINK_ARMED: ReadonlySet<BlinkStatus> = new Set<BlinkStatus>(['ready', 'closing', 'selected', 'cooldown']);
+
+/**
+ * Coarse category announced to screen readers. Per-gesture transitions (closing, selected,
+ * cooldown) collapse into "ready" so a polite live region speaks only real state changes.
+ */
+export function blinkAnnouncement(status: BlinkStatus): string {
+  if (BLINK_ARMED.has(status)) return 'Blink control ready.';
+  return `Blink control: ${BLINK_STATUS_LABELS[status].text}.`;
+}
 
 export function micLabel(status: RecordingStatus): string {
   switch (status) {

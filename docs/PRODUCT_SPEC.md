@@ -1,6 +1,6 @@
 # Product spec: Still Here
 
-This is the reconciled requirements summary. The full, authoritative brief is Liam's master prompt, `Still_Here_Claude_Master_Prompt_FINAL.md`. It was supplied locally and is not committed to this repository. Where this file and the code disagree, the code describes current behavior, and the difference belongs in [DECISIONS.md](DECISIONS.md).
+This is the reconciled requirements summary. The authoritative brief is now Liam's **blink-first** master prompt, `Still_Here_Claude_Master_Prompt_BLINK_FIRST.md`, which supersedes `Still_Here_Claude_Master_Prompt_FINAL.md`. Neither is committed to this repository. Where this file and the code disagree, the code describes current behavior, and the difference belongs in [DECISIONS.md](DECISIONS.md).
 
 Numeric thresholds below are prototype engineering defaults from [`src/core/limits.ts`](../src/core/limits.ts). They are not clinical findings.
 
@@ -9,6 +9,7 @@ Numeric thresholds below are prototype engineering defaults from [`src/core/limi
 - **Name:** Still Here. **Tagline:** Your words. Your choice.
 - **Principle:** AI offers possible words. The person decides what to say.
 - **Users we design for:** adults who understand the conversation and know what they want to express, but find speaking or typing slow or difficult (for example, some people with ALS). We assume nothing about comprehension, and we do not assume blinking or any other single input works for everyone.
+- **Primary input:** deliberate eye closure detected by a local webcam face-landmark model, over automatic scanning. Keyboard, single switch, and pointer are fully working fallbacks.
 - **Status:** hackathon prototype; not clinically validated and not tested with AAC users.
 
 ## Non-negotiable invariants
@@ -28,12 +29,19 @@ Numeric thresholds below are prototype engineering defaults from [`src/core/limi
 
 | Priority | Scope | Current status |
 | --- | --- | --- |
-| P0 | Typed partner input; live suggestions when configured; selection; review; separate confirmation; exact speech; keyboard/switch scanning; semantic regeneration; independent composition; central state; stale-result protection; recoverable errors | Core logic implemented; runtime/UI/speech present but not verified; live AI not verified |
-| P1 | Intent guidance; quick phrases; parked turns; initiation; session style adaptation; approved preferences; memory UI; saved phrases; microphone transcription; measurement; presentation evidence | Reducer logic implemented; transcription and measurement export present but not verified |
-| P2 | Blink input; advanced ranking; shorthand expansion; deeper personalization | Deferred |
-| Out of scope | Native app, gaze cursor, face recognition, emotion inference, clinical decision support, emergency dispatch, caregiver surveillance, fine-tuning, vector DB, runtime multi-agent systems | Not built |
+| P0 | **Local webcam blink detection with individual calibration, select at closure onset, visible status and cooldown, a separate second blink to confirm**; typed partner input; live suggestions; automatic scanning; review; exact speech; semantic regeneration; independent composition; keyboard/switch fallback; central state; stale-result protection; recoverable errors | Kernel verified (unit, browser, live OpenAI). **Blink in progress, not verified.** Audible speech not confirmed |
+| P1 | All of the following operable by blink: intent guidance, quick phrases, parked turns, initiation, session style adaptation, approved preferences, memory UI, saved phrases, microphone transcription, measurement, presentation evidence | Implemented and browser-checked with pointer/switch. Not yet operated by blink. Server transcription verified. Nothing measured |
+| P2 | Advanced ranking; shorthand expansion; deeper personalization; alternate gestures (only if reliable) | Not started |
+| Out of scope | Native mobile app in the demo, gaze cursor, face recognition, emotion inference, clinical decision support, emergency dispatch, caregiver surveillance, fine-tuning, vector DB, runtime multi-agent systems | Not built |
 
 ## Functional requirements (summary)
+
+### Blink access (in progress)
+- Camera off until consent. Alternate modes never request it.
+- Guided calibration: position → open-eye baseline → natural blinks → deliberate closures → review → practice select → separate practice confirm. Fails openly when natural and deliberate closures overlap, then offers keyboard/switch.
+- Gesture: closure onset freezes the highlighted target. Closures shorter than the calibrated minimum (ordinary blinks) are ignored. Closures longer than the maximum are discarded. Then a cooldown. Face lost or stale frames → discard and pause, and resuming needs a deliberate action. Multiple faces → hold.
+- Status in text (Ready, Closing, Selected, Cooldown, Face lost, Multiple faces), with no confidence percentages. A small framing preview during calibration only.
+- Only scalar calibration settings may be stored. Never images.
 
 ### Reply suggestions
 - Exactly three complete, meaningfully different candidates per batch. Each has a short meaning label (`act` + `summary`), which is not hidden reasoning.

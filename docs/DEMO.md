@@ -14,9 +14,13 @@ The event's actual requirements in [the brief](PROJECT_BRIEF.md) control the sub
 ### Still Here specifics
 
 - [ ] `npm install && npm run dev` from a clean clone; `npm run check` passes and the result is recorded in [TEST_RESULTS.md](TEST_RESULTS.md).
-- [ ] The source badge shows **Fixture demo** (or **Live AI** only if a live request was verified today), and the presenter says which one it is.
-- [ ] Full loop with the switch key only: partner question → None of these → Guide (Suggest an alternative) → select → review → separate Speak → audible speech → history shows delivery status.
-- [ ] Holding the switch key or double-pressing on review does **not** speak.
+- [ ] Blink calibration completes on the demo laptop in the demo room's lighting. The blink reliability gate is recorded in [TEST_RESULTS.md](TEST_RESULTS.md), or the team has decided to demo with keyboard/switch and say so.
+- [ ] Browser network log checked during blink use (frames not uploaded; model/WASM from this origin) before any privacy claim.
+- [ ] The source badge shows **Live AI** or **Fixture demo**, and the presenter says which one it is.
+- [ ] Full loop with **blinks only** after setup: partner question → None of these → Guide (Suggest an alternative) → select → review → separate blink on Speak → audible speech → history shows delivery status.
+- [ ] The same loop with the switch key only (fallback).
+- [ ] One long closure, or holding the switch key, on review does **not** speak. Normal blinking for a minute selects nothing.
+- [ ] Face lost mid-closure pauses and selects nothing. Resume works by blink.
 - [ ] Cancel on review returns without speaking; Stop interrupts speech and history shows "interrupted".
 - [ ] Quick phrase interrupts My words and the draft survives.
 - [ ] Start a conversation works without a partner question.
@@ -39,4 +43,5 @@ The event's actual requirements in [the brief](PROJECT_BRIEF.md) control the sub
 
 - [ ] Submit by 17:15 CT (planning target 17:00 CT verification). Liam submits; [SUBMISSION_DRAFT.md](SUBMISSION_DRAFT.md) bracketed items resolved.
 - [ ] [AI_USAGE.md](AI_USAGE.md) includes today's Claude Code implementation work.
-- [ ] Limitations stated: not tested with AAC users, live AI status, no blink input, nothing measured unless recorded.
+- [ ] Limitations stated: not tested with AAC users, blink reliability (measured numbers or "not measured"), helper needed for camera permission if true, nothing else measured unless recorded.
+- [ ] Railway redeployed with the final build if the live URL is submitted.

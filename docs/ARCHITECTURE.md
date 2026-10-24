@@ -1,27 +1,29 @@
 # Architecture
 
-This describes the code present on 2026-10-24 around 11:00 CT. Modules marked **(landing)** had just arrived from concurrent workstreams. Their summaries come from file headers and a quick read, and they are not yet integration-tested. Check [PROGRESS.md](PROGRESS.md) for the latest status.
+This describes the code on 2026-10-24 at 11:30 CT. The kernel, runtime, UI, and server are integrated and tested (see [TEST_RESULTS.md](TEST_RESULTS.md)). The **blink access adapter** is being built. It is described here from its runtime contract and the uncommitted modules present at 11:35 (`src/access/blink-{detector,gesture,calibration}.ts`, `src/components/Blink{Calibration,Status}.tsx`). It was not yet wired into `useStillHere`. Check [PROGRESS.md](PROGRESS.md) for the latest status.
 
 ## Stack
 
-Next.js 16.4.3 (App Router), React 19.3, TypeScript 5.9, zod 4.6, `@anthropic-ai/sdk` 1.3.0, vitest 5.0. There is one application, with no microservices and no database.
+Next.js 16.4.3 (App Router), React 19.3, TypeScript 5.9, zod 4.6, `@mediapipe/tasks-vision` 1.1.1, `@anthropic-ai/sdk` 1.3.0, vitest 5.0. There is one application, with no microservices and no database. It is deployed as a single Railway instance. An experimental SwiftUI client in `ios/` is outside the demo path and not connected end to end.
 
 ## Layers
 
 ```text
 Browser
-  components/ (landing)            ── render State + Target[]; call runtime.activate()
-  runtime/useStillHere.ts + effects-runner.ts (landing)
+  components/                      ── render State + Target[]; call runtime.activate()
+  runtime/useStillHere.ts + effects-runner.ts
      ├─ dispatch(Action) → core/reducer.ts (pure)
      ├─ executes queued Effects exactly once (generate, speak, persist, record, …)
-     ├─ access/ (landing)          scan-controller (one chained timer), input-controller
-     ├─ audio/  (landing)          speech-controller, recording-controller, transcript-client, voices
+     ├─ access/                    scan-controller (one chained timer), input-controller
+     │    └─ blink (in progress)   camera → MediaPipe (local assets) → eye-closure score
+     │                             → gesture state machine → SELECT → same guarded ACTIVATE
+     ├─ audio/                     speech-controller, recording-controller, transcript-client, voices
      └─ adaptation/preference-store.ts  versioned local storage (approved items only)
   core/      pure state, reducer, target registry, context builder, schemas, limits
   adaptation/ pure session observations + preference resolution
 
-Server (Next.js route handlers, landing)
-  /api/replies    → validate (zod) → fixture or Anthropic adapter → validate output → JSON
+Server (Next.js route handlers)
+  /api/replies    → validate (zod) → fixture, or OpenAI (default) / Anthropic adapter → validate output → JSON
   /api/transcribe → bounded audio → OpenAI-compatible transcription → draft
   /api/status     → which services are configured (no secrets)
   server/  config, request-guards, reply-prompt, provider, validation, fixtures, transcription
@@ -49,10 +51,10 @@ Server (Next.js route handlers, landing)
 
 | File | Responsibility |
 | --- | --- |
-| [`config.ts`](../src/server/config.ts) | Reads env vars server-side (`server-only`). Replies are configured only when `AI_PROVIDER=anthropic` and both the key and model are set |
+| [`config.ts`](../src/server/config.ts) | Reads env vars server-side (`server-only`). Replies are configured only when `AI_PROVIDER` is `openai` or `anthropic` and that provider's key and `REPLY_MODEL` are set |
 | [`request-guards.ts`](../src/server/request-guards.ts) | Access gate (`x-still-here-access`, timing-safe compare). With no token set, non-localhost requests are flagged `unprotected-remote`. Also provides the per-process rate limiter, bounded body reads, `no-store` JSON, and content-free logs |
 | [`reply-prompt.ts`](../src/server/reply-prompt.ts) | Fixed system instructions plus a separate structured JSON data payload. Dynamic text is never concatenated into instructions |
-| [`provider.ts`](../src/server/provider.ts) | Anthropic adapter: `client.beta.messages.create`, `output_config: { effort: 'low', format: json_schema }`, optional `fallbacks: 'default'` with beta `server-side-fallback-2026-07-01`, `maxRetries: 0`, at most one repair attempt within the deadline, refusal mapped to `PROVIDER_REFUSAL` |
+| [`provider.ts`](../src/server/provider.ts) | **OpenAI** (verified): `fetch` to the Responses API with `store: false`, strict `json_schema` output, no tools, optional reasoning effort, and 429/401 mapping. **Anthropic** (unverified): `client.beta.messages.create`, `output_config: { effort: 'low', format: json_schema }`, optional `fallbacks: 'default'` with beta `server-side-fallback-2026-07-01`, `maxRetries: 0`, at most one repair attempt within the deadline, refusal mapped to `PROVIDER_REFUSAL` |
 | [`validation.ts`](../src/server/validation.ts) | Output screening: schema (exactly three), length policy with small tolerance, markup, exact duplicates, repeats of rejected text. These are screening checks, not proof of semantic diversity |
 | [`fixtures.ts`](../src/server/fixtures.ts) | Deterministic synthetic pools by intent, initiation category, seed, and refinement. Avoids rejected texts. Always labeled `demo-fixture` |
 
@@ -89,7 +91,7 @@ Server (Next.js route handlers, landing)
 - **Paid endpoints:** access is gated by `APP_ACCESS_TOKEN`, and remote requests without a token are refused. The rate limiter works for one process only.
 - **Browser storage:** only approved preferences, profile entries, custom phrases, and suppressed dimensions are stored, using a versioned schema. `preference-store.ts` returns `corrupt` (and loads nothing) when the stored JSON fails the schema. Cross-tab synchronization is intentionally not implemented (see [DECISIONS.md](DECISIONS.md)).
 
-## Landed modules (summary, not yet integration-tested)
+## Runtime modules
 
 | Path | Responsibility (from source headers) |
 | --- | --- |
@@ -104,6 +106,22 @@ Server (Next.js route handlers, landing)
 | `src/app/api/transcribe/route.ts` | Size/type checks, access gate, rate limit, then the OpenAI-compatible adapter |
 | `src/app/api/status/route.ts` | Reports configured/not configured, fixtures enabled, and whether an access code is required. Never returns secrets |
 
+## Blink access adapter (in progress)
+
+- `blink-detector.ts`: MediaPipe `FaceLandmarker` in `VIDEO` mode, `numFaces: 2`, blendshapes on, GPU delegate with CPU fallback, throttled frame processing. Per frame it outputs `{ faces, score }`, where score = min(`eyeBlinkLeft`, `eyeBlinkRight`).
+- `blink-gesture.ts`: a pure state machine with no timers or DOM (phases `no-face`, `face-lost`, `multiple-faces`, `ready`, `closing`, `cooldown`). Fed monotonic frames, it emits gesture events.
+- `blink-calibration.ts`: pure sample segmentation, threshold and duration proposal, honest failure, and scalar-only storage parsing.
+
+| Piece | Responsibility |
+| --- | --- |
+| Assets | `public/wasm/*` (copied from `@mediapipe/tasks-vision` 1.1.1 by `scripts/copy-mediapipe-assets.mjs`) and `public/models/face_landmarker.task` (`float16/1`). Hashes in `public/models/README.md`. Loaded from the app's origin |
+| `BlinkRuntime` | `status` (`off`, `unsupported`, `permission-denied`, `starting`, `no-face`, `multiple-faces`, `ready`, `closing`, `selected`, `cooldown`, `face-lost`), a short `message`, `closureProgress`, `eyeScore` (calibration meter only), `faceCount`, measured `fps`, `calibration`, camera start/stop, preview attach, gesture-event subscription, and `calibrator` |
+| `BlinkCalibration` | Scalars only: `closedThreshold`/`openThreshold` (hysteresis), `minClosureMs`, `maxClosureMs`, `cooldownMs`, observed natural maximum and deliberate minimum |
+| Gesture events | `closure-start`, `select` (with duration), `discard` (`too-short`, `too-long`, `face-lost`, `multiple-faces`, `stale`), `face-lost`, `face-found` |
+| Calibration stages | `consent` → `position` → `baseline` → `natural` → `deliberate` → `review` → `practice-select` → `practice-confirm` → `done`, or `failed` with a reason |
+
+Integration rule: at closure onset the adapter snapshots the highlighted target and surface revision and freezes scanning. A valid reopening emits one activation of *that* target through the same `ACTIVATE` path, as a new input cycle. So the reducer's existing guards (surface revision, fresh cycle for confirmation, 600 ms arming, Stop/Resume-only surfaces) apply to blink unchanged. **Not yet verified in code or on camera.**
+
 ## Not present
 
-Blink/camera code, a service worker or offline cache, any database, analytics, or session replay.
+A service worker or offline cache, any database, analytics, session replay, face recognition, gaze estimation, or emotion inference.

@@ -5,6 +5,7 @@ import { anchorLabel } from '@/core/targets';
 import { TargetList } from './TargetButton';
 import { SurfaceTitle } from './SurfaceTitle';
 import { MESSAGE_SOURCE_LABELS } from './labels';
+import { BlinkHint } from './BlinkStatus';
 
 export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
   const { state, targets } = runtime;
@@ -13,7 +14,13 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
 
   return (
     <div className="review">
-      <SurfaceTitle sub="Nothing is spoken until you select Speak.">Review your message</SurfaceTitle>
+      <SurfaceTitle
+        sub={state.settings.accessMode === 'blink'
+          ? 'Nothing is spoken until you select Speak. The highlight starts on Cancel; a new deliberate blink on Speak says it aloud.'
+          : 'Nothing is spoken until you select Speak.'}
+      >
+        Review your message
+      </SurfaceTitle>
       {review ? (
         <>
           <blockquote className="review-text" lang={state.settings.language}>{review.snapshot.exactText}</blockquote>
@@ -26,6 +33,7 @@ export function ReviewPanel({ runtime }: { runtime: StillHereRuntime }) {
         <p className="muted">There is no message to review.</p>
       )}
       <TargetList targets={targets} runtime={runtime} layout="row" label="Review actions" className="review-actions" />
+      <BlinkHint runtime={runtime} action="speak" />
     </div>
   );
 }

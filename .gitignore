@@ -62,3 +62,7 @@ npm-debug.log*
 /metrics-exports/
 *.webm
 *.m4a
+
+# MediaPipe WASM runtime, copied from the pinned npm package by scripts/copy-mediapipe-assets.mjs
+/public/wasm/*.js
+/public/wasm/*.wasm

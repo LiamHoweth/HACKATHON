@@ -6,6 +6,7 @@ import { workspacePolicy } from '@/core/context-builder';
 import { describeSetting } from '@/adaptation/preference-policy';
 import { INTENT_LABELS } from '@/core/phrases';
 import { TargetButton, TargetList } from './TargetButton';
+import { BlinkHint } from './BlinkStatus';
 import { SurfaceTitle } from './SurfaceTitle';
 import { BATCH_SOURCE_LABELS, DELIVERY_LABELS, PROVENANCE_LABELS } from './labels';
 
@@ -103,9 +104,12 @@ export function ConversationBoard({ runtime }: { runtime: StillHereRuntime }) {
         </p>
       )}
 
-      <nav className="board-tools" aria-label="Conversation tools">
-        <TargetList targets={rest} runtime={runtime} layout="grid" />
-      </nav>
+      <div className="board-footer">
+        <nav className="board-tools" aria-label="Conversation tools">
+          <TargetList targets={rest} runtime={runtime} layout="grid" />
+        </nav>
+        <BlinkHint runtime={runtime} />
+      </div>
     </div>
   );
 }
