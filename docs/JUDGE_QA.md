@@ -1,0 +1,22 @@
+# Judge Q&A
+
+These are evidence-grounded answers. **Reconcile them with [TEST_RESULTS.md](TEST_RESULTS.md) and [PRESENTATION_LOG.md](PRESENTATION_LOG.md) just before judging.** Replace "not run"/"not verified" only when real results exist.
+
+| Question | Answer |
+| --- | --- |
+| **Has this been done before?** | Yes, AI-assisted AAC exists. Projects such as VisioALS, Speak4Me, Google's SpeakFaster research, and Project Converse are in our references as research leads we have not independently verified. We are not claiming a first. |
+| **What is your contribution?** | A specific working combination built today: switch-accessible selection, semantic "None of these" regeneration scoped to one question, explicit intent guidance, conversation continuity (staged and parked questions, quick interruptions, initiation), and consent-gated style preferences. All of it goes through one guarded reducer with exact review and separate confirmation. *(List only items verified in the presentation log.)* |
+| **Why AI rather than predictive typing?** | Our hypothesis is that choosing a whole message can take fewer actions than spelling one. We have **not measured** that. That's why My words (a scanning keyboard) is always available as an equal path, and the planned comparison is in our test plan. |
+| **What happens when the AI is wrong?** | Reject all three (None of these), guide the direction or wording, ask for "same idea, shorter", or write your own. After two rejected batches the app offers "Write it myself" without blocking more suggestions. |
+| **Could it accidentally speak?** | The design prevents it: speaking requires a selection, then a separate confirmation from a different input cycle, on the current screen, at least 600 ms after review opens. Each utterance plays once, and while speaking the only option is Stop. Unit tests cover these rules *(state pass/fail from test results)*. Not yet verified with real switch hardware. Residual risk: a user can still confirm the wrong message, so review shows the exact text. |
+| **What happens without internet?** | Quick phrases and My words don't need AI. Whether they keep working after the network drops, and whether the voice is local, is **not verified**. We have no offline cache, so a reload needs the server. |
+| **How does it learn?** | Only if the user turns on session adaptation. It counts length choices when the options really differed in length and no length was explicitly requested. After 3 different turns it may offer a suggestion. Nothing is saved unless the user confirms "Yes, remember this". Session evidence expires after 30 minutes or at End session. |
+| **Does rejection teach it my opinions?** | No. A rejection only tells the next request "not these meanings for this question". It is cleared when that question is done and is never stored. |
+| **Can someone with ALS use it?** | We don't know yet. Access needs vary. We support pointer, keyboard, and single-switch scanning (keyboard-emulated; specific switch hardware untested). No camera or blink input. **It has not been tested with anyone with ALS or any AAC user.** |
+| **What supports the concept?** | External prior art in our references, which we label as unverified leads and keep separate from our own results. We have no research findings of our own. |
+| **What did you measure?** | **Nothing yet.** *(Update only from TEST_RESULTS.md: trial counts, conditions, and failures.)* |
+| **Have AAC users tested this?** | **No.** Only the team has used it. No recruitment, partnership, or study is arranged. |
+| **How is privacy handled?** | No camera. Fixture and local modes stay on the machine. Live AI sends a bounded context (active question, up to 10 turns, approved items) to Anthropic's API. Audio goes to the transcription service only after consent and Record. Logs carry no content. Only approved preferences are stored, and only if "Remember on this device" is on. We haven't verified provider retention terms. |
+| **Did you use live AI in the demo?** | *(Answer truthfully at demo time.)* As of 10:50 CT no API key was configured, so the demo uses clearly labeled fixture suggestions. The live adapter is written but unverified. |
+| **How was AI used to build this?** | Claude Code implemented the app with Liam directing and reviewing. See [AI_USAGE.md](AI_USAGE.md). Liam owns accuracy and rule compliance. |
+| **What comes next?** | Planned, not arranged: co-design and evaluation with AAC users and specialists, measured comparisons against the scanning keyboard, and a verified live-AI path. |

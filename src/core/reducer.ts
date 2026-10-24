@@ -1,5 +1,5 @@
 // The authoritative reducer. All decisions happen here; effects are queued as data
-// and executed by the browser runtime (src/core/effects.ts) exactly once each.
+// and executed by the browser runtime (src/runtime/effects-runner.ts) exactly once each.
 import type {
   Anchor, Candidate, ConfirmedUserTurn, ConfirmedUtterance, Delivery, Id, PartnerTurn,
   RejectedBatch, ReviewSnapshot, StyleSetting,

@@ -21,7 +21,7 @@ export async function transcribe(audio: File, cfg: ServerConfig, signal: AbortSi
     if (!res.ok) return { ok: false, code: 'TRANSCRIPTION_FAILED', message: 'Transcription failed. Type instead or re-record.' };
     const data = (await res.json()) as { text?: unknown };
     return { ok: true, text: typeof data.text === 'string' ? data.text.trim() : '' };
-  } catch (e) {
+  } catch {
     if (timeout.aborted) return { ok: false, code: 'TIMEOUT', message: 'Transcription took too long.' };
     return { ok: false, code: 'TRANSCRIPTION_FAILED', message: 'Could not reach the transcription service.' };
   }
