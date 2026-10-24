@@ -223,13 +223,13 @@ batches), so the bimodal latency is not a retry or a timeout. It is reasoning to
 | Before: original prompt, no effort set, 4000 token cap (14) | 14/14 | 3.4 s | 6.3 s | 8.5 s | 6/14 (median 5.3 s vs 2.9 s without) |
 | Original prompt + `effort: low` (14) | 14/14 | 3.1 s | 4.8 s | 7.0 s | 2/14 |
 | **After (new defaults): low effort, 1200 cap, casual-student prompt, compact payload (56)** | 56/56 | **2.6 s** | **5.4 s** | 7.6 s | 14/56 (median 4.6 s vs 2.5 s without) |
-| After + `REPLY_SERVICE_TIER=priority` (28) | 28/28 | **1.8 s** | **2.7 s** | **3.1 s** | 4/28 |
+| After + `REPLY_SERVICE_TIER=priority` (28, offline only; deployed test timed out, keep OFF) | 28/28 | **1.8 s** | **2.7 s** | **3.1 s** | 4/28 |
 
 Findings, in order of effect:
 
-- **`service_tier: "priority"` is the big win.** It roughly halves the fixed overhead (a trivial call went from about 1.4 s to 0.9 s) and removes
-  the slow tail on the same model, so quality is unchanged. It is **opt-in** because it is billed at a higher price. The Railway variable to set is
-  `REPLY_SERVICE_TIER=priority`.
+- **`service_tier: "priority"` looked like the big win offline but failed live (see incident below).** It roughly halves the fixed overhead (a trivial call went from about 1.4 s to 0.9 s) and removes
+  the slow tail on the same model, so quality is unchanged. It is **opt-in** because it is billed at a higher price. The Railway variable would be
+  `REPLY_SERVICE_TIER=priority` (tested 14:05 — caused timeouts; keep OFF); see "Priority tier incident" below.
 - **Lowest reasoning effort.** `gpt-6-astra` rejects `minimal` and `none` (it accepts `low`, `medium`, `high`, `xhigh`, `max`), so `low` is the floor.
   It is now the default, set in `src/server/config.ts` (`REPLY_REASONING_EFFORT=off` omits it for models that do not support it). It trims the tail
   (p90 6.3 s to 4.8 s on the original prompt) but does not eliminate it.
@@ -259,5 +259,13 @@ Examples (before = original prompt, after = final prompt; same scenario text):
 The casual register is moderate: contractions and "Yeah, I'm down", "I'm good" appear when they fit, and consequential lines stay careful. Remaining stiff
 spots are mostly in the scenario that asks for detailed (up to 40 word) answers. Not human-reviewed.
 
-Settings now in code: low reasoning effort (default), `REPLY_MAX_OUTPUT_TOKENS` 1200, optional `REPLY_SERVICE_TIER`. Re-run with
+Settings now in code: low reasoning effort (default), `REPLY_MAX_OUTPUT_TOKENS` 1200, optional `REPLY_SERVICE_TIER` (do not set; tested 14:05 — caused timeouts; keep OFF). Re-run with
 `node --import ./scripts/ts-register.mjs --env-file=.env.local scripts/latency-replies.mjs --label x --reps 2 --out docs/evidence/x.json`.
+
+## Priority tier incident (2026-10-24)
+
+- **14:05 CT:** `REPLY_SERVICE_TIER=priority` (OpenAI "Fast"/priority processing, 2x price) was set on Railway. On the deployed server, 4 of 6 `/api/replies` requests hit the 15 s server timeout (`outcome=TIMEOUT` in Railway logs, about 15,000 ms). The other 2 succeeded in about 1.6 to 2.1 s.
+- **~14:10:** the variable was deleted, but deleting a Railway variable did **not** trigger a redeploy, so the timeouts continued with the old value still live.
+- **14:16:** manual redeploy (deployment `19f642d2`). Standard tier afterwards: 4/4 OK in 2.6 to 5.2 s.
+- **Decision:** priority stays **OFF** for the demo. The 1.8 s median above came from an offline run (28 calls) and did not hold on the deployed server. Do not quote it as a result.
+- **Lesson:** after changing or deleting any Railway variable, always redeploy and run `node scripts/smoke-deployed.mjs`.

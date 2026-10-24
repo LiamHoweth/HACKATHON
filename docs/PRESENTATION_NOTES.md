@@ -95,4 +95,4 @@ Current test count: see TEST_RESULTS.md / latest commit (487+ passing at 2:30 PM
 - [VERIFIED, dev server, Touch + Fixture mode, browser] Follow-ups merge walkthrough: 5/5 pass. [NOT YET] merge on the iPad.
 - [VERIFIED, config deployed] Voice is now "Will" (young male). Jessica and Chris remain available.
 - [NOT YET live on iPad] Multi-face lock, one-blink speak timing, audible prefetch, merge on device, redesigned UI on device.
-- [MEASURED, not enabled] OpenAI priority tier: replies call 1.8 s median / 2.7 s p90. Costs more, so it is off.
+- [MEASURED offline, then FAILED live, OFF] OpenAI priority tier: replies call 1.8 s median / 2.7 s p90 in the offline run, but on the deployed server at 14:05 CT 4 of 6 requests hit the 15 s timeout. Keep it off; do not cite the 1.8 s number. (tested 14:05 — caused timeouts; keep OFF)

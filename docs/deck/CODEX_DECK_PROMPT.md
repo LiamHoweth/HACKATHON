@@ -141,7 +141,7 @@ This supersedes the "[FILL AFTER 3:15 RE-RUN]" placeholders and the "in progress
 
 Headline line for the slide: "About 4 seconds from the partner finishing to suggestions on screen, and the voice starts the instant they blink (Mac-measured)." Say "about 0 with prefetch", never "instant".
 
-Optional note (not enabled): OpenAI priority tier measured 1.8 s median / 2.7 s p90 for the replies call alone; it costs more.
+Optional note (not enabled): OpenAI priority tier measured 1.8 s median / 2.7 s p90 for the replies call alone; it costs more (tested 14:05 — caused timeouts; keep OFF).
 
 **Sample suggestions (new casual style, live deployed server)** for the partner line "Are you coming to dinner tonight?":
 1. "Yeah, I'm coming tonight."
@@ -153,3 +153,7 @@ Also from the latency run: "How are you feeling today?" -> "I'm feeling pretty g
 **Other facts now true:** deployed smoke test 6/6 PASS; 514 unit tests passed plus 2 expected fail; follow-ups merge browser walkthrough 5/5 pass (dev server, Touch + Fixture); voice is "Will" (young male); replies now use a casual college-student style (remove "in progress").
 
 **Still NOT YET live on the iPad (keep in the "Not yet" column):** multi-face lock, one-blink speak timing, audible prefetch, follow-ups merge on device, redesigned UI on device.
+
+## Late update (2:20 PM CT)
+
+Do not claim the 1.8 s priority-tier number; it was not used (caused timeouts). Use the standard-tier after numbers.

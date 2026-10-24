@@ -121,6 +121,17 @@ Scope labels as above. Deployed build: Railway 157e3e90 at 13:50 CDT, CSS follow
 | Unit tests (`npx vitest run`) | 514 passed, 2 expected fail. Supersedes the 13:44 CT result (503 passed, 1 failed) | Console output |
 | Follow-ups merge browser walkthrough (dev server, Touch + Fixture mode) | 5/5 pass. Scope: browser, not the iPad | Walkthrough run |
 | Native app reinstalled on the iPad and launched | Done. Launch only, no gameplay check | Install output |
-| Optional: OpenAI priority tier, replies call alone | 1.8 s median, 2.7 s p90. Not enabled (costs more) | Measurement run |
+| Optional: OpenAI priority tier, replies call alone | 1.8 s median, 2.7 s p90 offline. Not enabled (costs more) (tested 14:05 — caused timeouts; keep OFF). See "Priority tier incident" below | Measurement run |
 
 Still not verified live on the iPad: multi-face lock, one-blink speak timing, audible prefetch, follow-ups merge on device.
+
+## Priority tier incident (2026-10-24, 14:05-14:16 CT)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Deployed `/api/replies` with `REPLY_SERVICE_TIER=priority` (14:05) | **FAIL.** 4/6 requests hit the 15 s server timeout (`outcome=TIMEOUT`, about 15,000 ms); 2/6 succeeded in about 1.6-2.1 s. Scope: deployed server (Railway) | Railway logs |
+| Variable deleted (~14:10) | Did not redeploy, so timeouts continued | Railway logs |
+| Manual redeploy 14:16 (deployment `19f642d2`), standard tier | 4/4 OK in 2.6-5.2 s | Railway logs |
+| Decision | Priority OFF for the demo. Always redeploy and run `node scripts/smoke-deployed.mjs` after changing Railway variables | n/a |
+
+Note: no `scripts/smoke-deployed.mjs` result for the 14:16 deployment is recorded in this file; run it before the demo.
