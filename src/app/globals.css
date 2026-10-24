@@ -1279,3 +1279,44 @@ input[type="text"], input[type="number"], input[type="password"], select, textar
 /* Portrait / narrow setup: launch card first so Start is on the first screen. */
 .setup-form .launch-card { order: -1; }
 .setup-form .field:has(> input[type="range"]) { width: 100%; justify-self: stretch; }
+
+/* ---------- QA round 3 ---------- */
+
+/* Header height is stable: the "Stop speaking" button appearing must not wrap the status chips and
+   push the whole surface down. Landscape shell only (portrait keeps wrapping so nothing is clipped). */
+.app-header { min-height: calc(48px + 1rem); box-sizing: border-box; }
+@media (orientation: landscape) and (min-width: 1024px) and (min-height: 600px) {
+  .app-header .status-bar { flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+  .app-header .status-item { flex: 0 0 auto; white-space: nowrap; }
+  /* Least important chips give way first, with an ellipsis. */
+  .app-header .status-secondary, .app-header .status-tip { flex: 0 1 auto; min-width: 0; }
+  .app-header .status-secondary dd, .app-header .status-tip dd { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-header .status-secondary dt, .app-header .status-tip dt { flex: none; }
+}
+
+/* Speaking / paused / composer: same rhythm as menus (title, then 24px before the first block). */
+.speaking, .paused, .composer { display: flex; flex-direction: column; gap: var(--space-5); }
+.speaking > *, .paused > *, .composer > * { min-width: 0; }
+.speaking .delivery:empty { display: none; }
+
+/* Composer: breathing room around the counter, the group label and the key grid. */
+.composer { gap: var(--space-4); }
+.composer > .surface-head { margin-bottom: var(--space-3); }
+.composer .char-count { margin-top: calc(var(--space-1) * -1); }
+.composer .compose-field { margin-top: var(--space-2); }
+.composer .key-group-label { margin-top: var(--space-3); margin-bottom: var(--space-1); font-size: var(--fs-1); }
+.layout-keys > .target[data-target-id="key-back"] { grid-column: 1 / -1; }
+
+/* Paused: Resume is the primary target (accent fill). Scan highlights keep winning when highlighted. */
+.paused .target[data-target-id="pa-resume"]:not(.is-scan):not(.is-blink-scan) {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-text);
+}
+.paused .target[data-target-id="pa-resume"]:not(.is-scan):not(.is-blink-scan):hover:not(:disabled) { filter: brightness(1.08); }
+.paused .target[data-target-id="pa-resume"] { min-height: 112px; }
+.paused .target[data-target-id="pa-resume"] .target-label { font-size: 1.9rem; }
+
+/* Conversation: soft top fade so clipped older messages read as scrollable. */
+.chat {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 1.5rem);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 1.5rem);
+}
