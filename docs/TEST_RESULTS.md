@@ -10,7 +10,7 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 | --- | --- | --- | --- | --- |
 | 2026-10-24 11:00 | `npm run typecheck` | Passed (exit 0) | local | Whole project |
 | 2026-10-24 11:00 | `npm run lint` | Passed (0 errors, 0 warnings) | local | After fixing one unused-variable warning |
-| 2026-10-24 11:12 | `npm test` (vitest) | Passed: 72/72 in 4 files | local | Reducer, adaptation, schema, API-route tests. The Anthropic SDK is **mocked** in `api.test.ts`: proves plumbing, validation, and retry budget, not model behavior. Earlier run: 54 passed + 2 `it.fails` documenting bugs (CONV-03 missing Quick phrases in composer; PREF-12 humor-guided choice counted as length evidence); both fixed, tests flipped to passing. |
+| 2026-10-24 11:50 | `npm test` (vitest) | Passed: 134/134 in 10 files (incl. blink gesture, calibration, scan attribution/timing, detector timestamp, audit regressions) | local | Reducer, adaptation, schema, API-route tests. The Anthropic SDK is **mocked** in `api.test.ts`: proves plumbing, validation, and retry budget, not model behavior. Earlier run: 54 passed + 2 `it.fails` documenting bugs (CONV-03 missing Quick phrases in composer; PREF-12 humor-guided choice counted as length evidence); both fixed, tests flipped to passing. |
 | 2026-10-24 11:00 | `npm run build` | Passed | local | `/` static; `/api/replies`, `/api/status`, `/api/transcribe` dynamic. Client bundle grep found no server prompt or key variable names. |
 | 2026-10-24 ~11:00 (docs pass) | `python3 scripts/check_repo.py` | Passed (exit 0) | macOS, local, uncommitted working tree | Checks Markdown links and sensitive filenames only; rerun at each checkpoint |
 
@@ -26,6 +26,15 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 | 2026-10-24 ~11:10 | Built-in browser pane | My words: composed "Hi" via group → letter targets; review showed "Your own words"; Cancel returned to the composer with the draft intact. Start a conversation → Ask someone a question → initiation suggestions with no partner turn. Controls → End session → confirmation → setup | Passed | After this check, session-only approvals were changed to end with the session (test CORE-11b) |
 | — | — | Stop speaking / Pause / Resume in the browser | Not run | Covered by reducer tests ACCESS-07; not exercised in the browser |
 | 2026-10-24 ~11:12 | Built-in browser pane | 1440×900 desktop layout with switch scanning (screenshot `docs/screenshots/board-switch-scanning-fixture.jpg`) and ~800 px narrow single-column layout | Passed (visual) | 200% zoom not checked |
+
+### Blink-first checks (2026-10-24 ~11:45 CT)
+
+| When (CT) | Environment | Check | Result | Notes |
+| --- | --- | --- | --- | --- |
+| ~11:44 | Built-in browser pane (camera permission blocked by the pane) | Blink-first setup renders ("Use eye blinks" default, keyboard/switch secondary); Turn on camera → denied → honest message, retry, and "Use keyboard / switch instead" → session starts in switch scanning with highlight on the first target | Passed | No real camera available in this environment |
+| ~11:40 | Built-in browser pane (by blink engineer) | MediaPipe FaceLandmarker created from local `/wasm` + `/models` (GPU and CPU), `detectForVideo` on a blank frame returned 0 faces; all requests to localhost | Passed | Camera not started |
+| ~11:46 | Railway | `/wasm/vision_wasm_internal.wasm` (13.5 MB) and `/models/face_landmarker.task` (3,758,596 bytes) served with HTTP 200 from the deployment | Passed | Blink assets served from our own origin |
+| — | Real laptop webcam | Calibration, 20-selection reliability gate, hands-free select + separate confirm, face-lost pause/resume (ACCESS-12/14) | **Not run yet** | Requires a person at the camera |
 
 ## Live provider checks
 
