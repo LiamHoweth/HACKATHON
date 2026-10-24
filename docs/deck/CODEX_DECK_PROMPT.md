@@ -98,3 +98,30 @@ Where the docs do not yet hold a result, put a visible amber-bordered placeholde
 ## Late update (1:45 PM CT, from Claude)
 - New sources: `docs/manual/QUICK_GUIDE.md` (use for a "How to use it" slide) and `docs/ux-audit/UX_AUDIT.md` with `docs/ux-audit/before/*.jpg` (real iPad screenshots; the UI has since been simplified, so label them "before simplification").
 - [VERIFIED] Hands-free conversation works on the iPad: the partner just talks, and one long blink speaks the top suggestion. See PRESENTATION_NOTES.md from 1:15 PM on.
+
+## Late update (2:35 PM CT, from Claude) — read this before finalizing
+
+Tags: [VERIFIED] observed or measured; [SYNTHETIC] unit tests only; [NOT YET] built, not verified live; [IN PROGRESS] being changed right now. State [NOT YET] items only with their caveat. New sources: `docs/evidence/E2E_LATENCY.md`, `docs/manual/QUICK_GUIDE_SLIDE.md`, `docs/JUDGE_QA.md`, `docs/REHEARSAL.md`, `docs/ux-audit/UX_AUDIT.md`.
+
+**Product facts (these supersede the review-then-confirm framing on slides 4-6 for the default mode)**
+- [VERIFIED on iPad] Hands-free conversation: the partner just talks, speech is transcribed automatically, and the app does not listen while it speaks (team manual test, about 1:20 PM; not a reliability study).
+- [VERIFIED] Installable native iPad app (WKWebView shell, development build, one registered iPad, 7-day free profile). Replace `[FILL AFTER NATIVE INSTALL]` with this; call it "installable iPad app (development build)", not an App Store app.
+- [SYNTHETIC; live timing NOT YET] Fast mode, on by default: the top suggestion is highlighted first and one long blink speaks it (one-blink speak). Say plainly this trades the review step for speed; a setup checkbox restores review plus a separate confirming blink. Slides 4-6 currently say "separate confirm"; show the default flow and mention review as the safer option.
+- [SYNTHETIC; NOT YET live] Audio prefetch: speech for the 3 suggestions is requested while the person reads. Never say "instant". Prefetch spends extra voice characters.
+- [SYNTHETIC; NOT YET live] Multi-face lock: follows the central face that has been in view longest. PRESENTATION_NOTES (1:15 PM) tags it "VERIFIED, unit tests"; treat that as unit-tested only (JUDGE_QA and REHEARSAL agree).
+- [IN PROGRESS] Replies are being tuned for speed and a casual college-student voice. Do not describe the new voice or speed as done.
+- UI redesigned into one design system. Real iPad "before" screenshots are in `docs/ux-audit/before/*.jpg` (label them "before simplification"). There are NO "after" screenshots, so do not invent or mock them. UX_AUDIT says 79 frames, PRESENTATION_NOTES says 90; use "dozens of iPad frames" or 79.
+- Test count: PRESENTATION_NOTES says 487+ passing at 2:30 PM. Prefer the number in `docs/TEST_RESULTS.md` if it is newer.
+
+**Latency (`docs/evidence/E2E_LATENCY.md`, 10 runs, 40 API calls, 0 failures)**
+- Conditions to print on the slide: measured from a Mac on the venue network against the deployed server, synthetic speech (macOS `say`), excludes the person's gesture and reading time, not measured on the iPad. Mark it [VERIFIED, baseline].
+- Median (p90) in ms: end-of-speech detection 650 (client constant); transcribe 520 (656); 3 suggestions 3872 (6648); voice request to full MP3 691 (797). Partner stops to 3 suggestions on screen: 5070 (7784). Blink to voice without prefetch: 691 (797). With prefetch: about 0 only if reading plus blinking takes longer than about 0.7 s (not measured).
+- Replies were bimodal: five runs at 2.1-2.5 s, five at 5.2-7.1 s, so the median sits between the clusters. Plan around p90.
+- This is the before number for the faster-replies change. Put `[FILL AFTER 3:15 RE-RUN]` next to every final latency figure and the re-run date. The older "median 3.8 s live AI" and "3.56 s on-iPad" figures are separate measurements; label which is which.
+
+**Slides to add or change**
+- Slide order tweak: insert "From question to spoken reply" right after the Live demo slide (timeline: partner speaks, 650 ms silence detect, transcribe, 3 suggestions, person's blink, voice). Table as above, the [FILL AFTER 3:15 RE-RUN] column beside it, and one line: "We timed one chain. We make no faster-than-typing claim."
+- Drop-in "How to use it" slide: use `docs/manual/QUICK_GUIDE_SLIDE.md` (title "Two gestures. One conversation.", 8 bullets plus a 5-row gesture table). Trim to the gesture table plus 3 bullets to meet the 35-word limit; put the rest in notes. Merge it with slide 5 if over 5 minutes.
+- Demo slide notes: beats and times from `docs/REHEARSAL.md` (3:00 total): Problem 0:00-0:15; Beat 1 question and spoken reply 0:15-0:50; Beat 2 follow-up (raise once, blink) 0:50-1:15; Beat 3 Guide my response then Disagree 1:15-1:55; Beat 4 multi-face lean-in 1:55-2:25 (cut first if flaky); Close 2:25-3:00. The pitch slot is 5:15 PM; rehearsal is about 3:30 PM.
+- Evidence slide "Not yet" column, from the JUDGE_QA status table: 20-raise/20-blink `/trial` reliability and false positives, live one-blink timing, prefetch benefit, multi-face live, camera-stays-on-device network check (SYS-13 not run), AAC users or clinicians. Verified column adds hands-free conversation and the installed app.
+- Keep the "Do not say" list in the speaker notes: instant, faster than typing, first, zero retention, camera never leaves the iPad as verified, offline, tested with AAC users.

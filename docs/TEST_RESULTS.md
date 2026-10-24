@@ -87,3 +87,25 @@ Environment for all rows below unless noted: Apple M3 MacBook (macOS), Node v24.
 |---|---|---|
 | Partner speaks without pressing anything → transcribed → suggestions → reply spoken, in the installed iPad app | Pass | Reported by the team after a manual test on the demo iPad |
 | Microphone works in the installed app (play-and-record fix, commit after aedf913) | Pass | Reported by the team |
+
+## Afternoon verification (2026-10-24, ~1:30–1:45 PM CT)
+
+Scope labels: "Mac" means run from a Mac against the deployed server or provider, not measured on the iPad. "Reported" means stated by the team, with no artifact in the repo.
+
+| Check | Result | Evidence |
+|---|---|---|
+| End-to-end latency against the deployed server (10 runs, 40 calls, 0 failures). Partner stops → 3 suggestions: median 5.1 s, p90 7.8 s. Transcription median 0.52 s. Replies median 3.9 s, bimodal (2.1–2.5 s in five runs, 5.2–7.1 s in five). Speech, full MP3, median 0.69 s. | Measured. Scope: Mac, synthetic speech (macOS `say`), excludes the person's reading and blink time, includes no on-device capture or playback, and ran before the faster-replies change. | `docs/evidence/E2E_LATENCY.md`, `docs/evidence/e2e-latency-1338.json` (`scripts/e2e-latency.mjs`) |
+| Pre-demo smoke test of the deployed server: GET /, /api/status (code valid, all providers configured), /api/replies (3 candidates), /api/speech (audio/mpeg, about 21 KB), /api/transcribe (correct text), Permissions-Policy `camera=(self) microphone=(self)` | 6/6 pass. Scope: Mac to deployed server. | `scripts/smoke-deployed.mjs` run output (no saved artifact) |
+| Transcription latency, Mac to the transcription provider directly (`gpt-transcribe`, 23 calls, 0 failed). Medians: baseline 599 ms, language 839 ms, language+prompt 538 ms, language+prompt+text 563 ms, new shorter clip (1.0 s lead, 0.65 s trail, 32 kbps AAC, about 20 KB vs about 46 KB) with language+prompt 473 ms. n=4 per variant, so the differences between variants are small-sample and not conclusive. | Measured. Scope: Mac, not the iPad, not venue Wi-Fi. | `docs/evidence/latency-transcribe-20261024-13-35.json` |
+| Native iPad app pre-build (`xcodebuild`) | Build succeeded, signed "Apple Development: Liam Howeth", team TA67BL3L69, provisioning profile valid to 2027-10-24. Not yet reinstalled on the iPad. | Build and signing output (no saved artifact) |
+| Hands-free conversation on the iPad (partner speaks → transcribed → suggestions → reply spoken) | Pass. Reported by the team, about 1:20 PM CT; not independently re-run. | Team manual test |
+| Visual QA at 1366×1024 (headless Chrome, dev server) | No blocking issues. Minor polish items found and being fixed. Scope: desktop browser at iPad size, not the iPad itself. | Headless Chrome run (no saved screenshots listed) |
+| Unit tests (`npx vitest run`, 13:44 CT) | **503 passed, 1 failed, 2 expected fail (506 total); 31 of 32 test files passed.** The one failure is `src/tests/openai-provider.test.ts:126`: the test asserts that `REPLY_SYSTEM_PROMPT` matches `/Never invent memories/`, and the current prompt no longer contains that phrase. This is probably from an in-flight server prompt edit. Either the test or the prompt needs reconciling, and the prompt's no-invented-memories rule should be confirmed intact. | `npx vitest run` console output |
+
+### Not yet verified live
+
+- Multi-face lock
+- One-blink speak timing
+- Audio prefetch (the latency script measured speech time alone and in parallel, not prefetch inside the app)
+- College-student reply style
+- Redesigned UI on the iPad

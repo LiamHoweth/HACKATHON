@@ -6,6 +6,9 @@ Record results in the tables at the bottom: pass, fail, or note. Then tell Claud
 
 ## 0. Prep (helper, about 2 minutes)
 
+Before going on stage, run `node scripts/smoke-deployed.mjs` on the Mac — all lines must say PASS.
+(It makes 5 API calls, takes under 30 s, and never prints the access code.)
+
 - [ ] iPad charged (above 60%) or plugged in, brightness high, volume about 70%, silent mode off. Auto-lock is disabled by the app.
 - [ ] Open **Still Here**. First launch only: tap **Allow** for camera and microphone. The access code is built in and audio needs no tap.
 - [ ] Mount the iPad 50-70 cm from the operator's face at eye level, even light on the face, no bright window behind.

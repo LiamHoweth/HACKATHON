@@ -63,18 +63,18 @@ For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts c
 **Operator:** raises eyebrows **once** (hold about 0.5 s) to move the highlight to the second suggestion, then **one long blink** to speak it.
 **Narrator:** "One raise moves one step. A long blink chooses. Normal blinking does nothing."
 - **Audience should notice:** the highlight moves exactly one card per raise, and the natural blinks in between do not trigger anything.
-- **Bonus (only if rehearsed twice with no problems):** the partner asks the follow-up while the app is still speaking. The app answers right after it finishes. Do not do this live if it was not clean in rehearsal.
+- **Bonus (only if rehearsed twice with no problems):** the partner asks the follow-up while the app is still speaking. The line waits and the app answers right after it finishes. Do not do this live if it was not clean in rehearsal.
 - **If a raise is not detected:** hold 0.5 s again, slightly more pronounced, no more than twice. Then blink on the top suggestion and move on. Narrator: "Eyebrow detection is lighting dependent. The top choice is already ready."
 - **If the highlight overshoots:** pick whatever is highlighted if it is acceptable, otherwise raise to **None of these** and continue.
 
 ### 1:15-1:55 Beat 3: control, Guide my response then Disagree *(narrator talks first, then quiet until the voice finishes)*
 **Narrator:** "The AI is not in charge. [Operator] can steer it. I'll stay silent while they work." *(then quiet)*
-**Partner:** "Let's skip dinner and just stay in. Okay?" **Partner then stays silent.** If the partner speaks while Operator is in a menu, the app jumps to new suggestions and the demo loses its place.
+**Partner:** "Let's skip dinner and just stay in. Okay?" **Partner then stays silent.** Extra partner speech within about 20 s is merged into the current question and refreshes the suggestions (the operator is not pulled out of the menu, but the highlight returns to the top suggestion), so keep it to one sentence. Back-channel words alone ("uh huh", "okay") are ignored.
 **Operator:** when suggestions appear, raise eyebrows ____ times to **Guide my response**, long blink; raise ____ times to **Disagree**, long blink. New suggestions all disagree; top one is highlighted. Long blink to speak it.
-**Narrator** *(only after the voice finishes; any voice during the menus is heard as a partner line)*: "Guide my response, then Disagree. Every option now disagrees. The AI offers words, but the person chose the direction and the sentence."
+**Narrator** *(only after the voice finishes; extra speech within 20 s is merged into the current question and refreshes the suggestions — keep the narrator quiet anyway)*: "Guide my response, then Disagree. Every option now disagrees. The AI offers words, but the person chose the direction and the sentence."
 - **Audience should notice:** the person rejects the default and changes the meaning of every suggestion, and the spoken reply disagrees.
 - **If the menu navigation goes wrong:** the helper taps **Guide my response** and **Disagree** directly. Narrator: "Same screens, same control, touch instead of face."
-- **If a stray voice jumps to new suggestions mid-menu:** helper taps **Stop listening**, operator continues by blink or touch. Narrator: "The room picked up a voice, so I'm turning listening off."
+- **If a stray voice merges into the question and refreshes the suggestions mid-menu:** helper taps **Stop listening**, operator continues by blink or touch. Narrator: "The room picked up a voice, so I'm turning listening off."
 - **If time is running out (past 1:55):** skip speaking the disagree reply and go to Beat 4 now.
 
 ### 1:55-2:25 Beat 4: someone leans in (multi-face) *(narrator talks, then quiet)*

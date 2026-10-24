@@ -174,3 +174,35 @@ These are ordered by expected impact on the iPad demo. None of them has been imp
    if the GPU delegate is failing.
 6. Record the iPad model, iPadOS version, network (venue Wi-Fi or hotspot) and the time in CT next to every number. Keep the
    Mac and iPad numbers in separate tables.
+
+## Hands-free listening: partner stops talking to transcript submitted (2026-10-24, ~13:40 CT)
+
+Evidence: `docs/evidence/latency-transcribe-20261024-13-35.json`, made by `node scripts/transcribe-latency.mjs`
+(23 calls, `say` clips encoded to m4a/AAC, sent straight to the provider from this Mac; not the iPad, not venue Wi-Fi).
+
+**What dominates the delay.** The model round trip is small. The wait for the end-of-speech decision is the largest part.
+
+| Step | Before | After | Source |
+|---|---|---|---|
+| Silence needed to end an utterance (`VAD.endSilenceMs`) | 900 ms | 650 ms | constant, `continuous-listener.ts` |
+| Average leading silence in the upload (`VAD.idleRestartMs` 4000 to 2000, mean is half) | about 2.0 s | about 1.0 s | constant |
+| Upload size for a 3 s clip (bitrate 64 kbps assumed before, `audioBitsPerSecond` 48 kbps now) | about 45 KB | about 20 to 30 KB | measured at 64 and 32 kbps; Safari may ignore the option |
+| Model round trip, median of 4 clips (3 to 6 s long) | 599 ms (438 to 915) | 473 ms (440 to 604) | measured |
+
+Expected saving from partner silence to submitted transcript: about 250 ms from the VAD change plus about 100 ms (not
+significant at n=4) from shorter, smaller uploads. Rough total 0.3 to 0.4 s of roughly 1.5 s.
+
+**Request parameters (measured on 4 clips each).** The provider accepted `language=en`, `prompt` and `response_format=text` with
+`gpt-transcribe`. None gave a latency change larger than the run-to-run spread (medians 538 to 839 ms on identical clips, so the
+spread is about 300 ms). The app now sends `language=en` (config `TRANSCRIPTION_LANGUAGE`, default `en`, `auto` disables), which avoids
+language mis-detection on 1 to 2 word clips. A prompt is supported but **off by default** (`TRANSCRIPTION_PROMPT`): it showed no
+speed gain, and prompts can be echoed back on noise. A silence-only clip returned an empty transcript with and without the prompt.
+`response_format` stays `json` (`text` was not faster). A faster model was not evaluated, and `TRANSCRIPTION_MODEL` is unchanged.
+
+**Noise risk.** The shorter silence window means a pause over 650 ms now splits one sentence into two partner lines. Pauses between
+words are usually under 500 ms, and a test covers a 400 ms pause staying in one utterance. `minSpeechMs` (450) and the
+`usableTranscript` filter are unchanged. The recorder is no longer swapped while an onset is building. The transcribe route limit went from 12 to 20 per
+minute per client, because more splits mean more uploads.
+
+**Not done.** Server-side trimming of leading silence needs an audio decoder, so it was skipped. Re-run the script on the demo
+Wi-Fi, and time a real utterance on the iPad (Safari Web Inspector Network tab, `/api/transcribe` row), before quoting a number.

@@ -38,7 +38,8 @@ The screen always shows a reminder: *Eyebrows up 0.5 s: Next. Long blink: Select
 1. **Partner:** just talk near the iPad. Each thing you say is transcribed and becomes the "Partner asked" line automatically.
 2. A few seconds later, **three possible replies** appear. The top one is already highlighted.
 3. **Person:** one **long blink** speaks the highlighted reply in a natural voice. Or raise eyebrows to move to another reply, **None of these** (new suggestions), **Guide my response** (agree, disagree, ask and so on), **Quick phrases**, or **My words** (spell it out).
-4. Listening pauses while Still Here speaks, then resumes. If the partner speaks while the person is in a menu, the app jumps to the new suggestions.
+4. Listening pauses while Still Here speaks, then resumes. If the partner says more within about 20 s of the open question ("Are you coming to dinner?" then "It's at seven"), the new words are added to the same question and the suggestions refresh to cover both, with the highlight back on the top one. The person is not pulled out of menus; the refreshed suggestions are waiting on the board. Lines heard while Still Here is speaking, or while a review or pause dialog is open, wait and are answered right after. Beyond about 20 s, a new partner line starts a new question.
+5. Short interjections on their own ("uh huh", "mm-hmm", "yeah", "okay", "got it") are ignored. "Yes?", "No." and "Hey" still count.
 
 **Fast mode (on by default).** One long blink speaks the suggestion immediately. To add a review step and a separate confirming blink, turn fast mode off in setup. In fast mode, suggested sentences may be sent to the voice service ahead of time so the chosen one plays instantly.
 

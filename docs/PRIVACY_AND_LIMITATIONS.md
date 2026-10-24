@@ -54,7 +54,8 @@ End session invalidates the session epoch, aborts pending generation, cancels sp
 - **Multiple faces:** tracking follows the most central, longest-present face and ignores others, so someone leaning in should not take over. This is unit-tested only, not confirmed live. Face count is not identity and does not guarantee that only one person is present.
 - **Background voices.** In a noisy room, other people's voices may be transcribed as partner lines. A wrong partner line produces wrong suggestions, never speech by itself. Use **Stop listening** and type the line instead.
 - **Fast mode removes the review step.** By default one long blink speaks the highlighted suggestion at once, so one stray long blink would speak it. Stop (a long blink while speaking) and Pause remain available. Review plus a separate confirming blink is one setup checkbox away.
-- **Sentence splitting.** A pause longer than about 0.65 s may split one partner sentence into two partner lines.
+- **Sentence splitting.** A pause longer than about 0.65 s may split one partner sentence into two partner lines. Within about 20 s of an unanswered question, the later line is merged into the same question and the suggestions refresh; after that it starts a new question.
+- **Back-channel filter.** Lone interjections ("uh huh", "mm-hmm", "yeah", "okay", "got it") are ignored, so a real one-word reply could be missed. "Yes?", "No." and "Hey" still count.
 - **Prefetch sends unchosen text.** In fast mode, suggestions the person never picks are still sent to ElevenLabs.
 - **Not tested with AAC users** or people with ALS. No clinicians or specialists were consulted.
 - **Nothing measured yet.**

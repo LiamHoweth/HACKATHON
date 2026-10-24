@@ -7,7 +7,7 @@
 - **Three possible replies** appear a few seconds later, with the top one already highlighted.
 - **Long blink speaks it** in a natural voice, right away. A long blink while it is speaking stops it.
 - **Eyebrows up moves** to another reply, "None of these" (new suggestions), Guide my response, Quick phrases, or My words.
-- **Hands-free listening** pauses while Still Here speaks. If the partner speaks mid-menu, the screen jumps to fresh suggestions.
+- **Hands-free listening** pauses while Still Here speaks. If the partner says more within about 20 s, it joins the same question and the suggestions refresh, without pulling the person out of a menu. "Uh huh" and "okay" alone are ignored.
 - **Safe by design:** nothing is said unless the person chooses it. Pause button and face-lost auto-pause. Basic device voice as a fallback.
 - **Private:** camera images stay on the iPad and are never recorded. Only the partner's speech is sent for transcription.
 

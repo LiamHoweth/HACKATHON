@@ -1,0 +1,273 @@
+{
+  "generatedAt": "2026-10-24T18:35:45.350Z",
+  "host": "Mac (this machine) to the transcription provider directly; not the iPad, not venue Wi-Fi",
+  "model": "gpt-transcribe",
+  "baseHost": "api.openai.com",
+  "calls": 23,
+  "note": "before = 2.0 s lead + 0.9 s trail, 64 kbps mono AAC; after = 1.0 s lead + 0.65 s trail, 32 kbps mono AAC. Lead values are the average idle-restart offset for 4000 ms and 2000 ms idleRestartMs.",
+  "promptUsed": "A short, everyday spoken sentence in a conversation.",
+  "summary": {
+    "baseline": {
+      "n": 4,
+      "medianMs": 599,
+      "minMs": 438,
+      "maxMs": 915,
+      "failed": 0,
+      "medianClipBytes": 45646
+    },
+    "language": {
+      "n": 4,
+      "medianMs": 839,
+      "minMs": 574,
+      "maxMs": 875,
+      "failed": 0,
+      "medianClipBytes": 45646
+    },
+    "language+prompt": {
+      "n": 4,
+      "medianMs": 538,
+      "minMs": 493,
+      "maxMs": 621,
+      "failed": 0,
+      "medianClipBytes": 45646
+    },
+    "language+prompt+text": {
+      "n": 4,
+      "medianMs": 563,
+      "minMs": 515,
+      "maxMs": 870,
+      "failed": 0,
+      "medianClipBytes": 45646
+    },
+    "after (new clip + language+prompt)": {
+      "n": 4,
+      "medianMs": 473,
+      "minMs": 440,
+      "maxMs": 604,
+      "failed": 0,
+      "medianClipBytes": 20100
+    }
+  },
+  "results": [
+    {
+      "variant": "baseline",
+      "phrase": "Are you coming to dinner tonight?",
+      "clipSeconds": 4.54,
+      "clipBytes": 42400,
+      "ok": true,
+      "status": 200,
+      "ms": 722,
+      "text": "Are you coming to dinner tonight?"
+    },
+    {
+      "variant": "baseline",
+      "phrase": "Do you want some water or something to eat?",
+      "clipSeconds": 5.15,
+      "clipBytes": 48892,
+      "ok": true,
+      "status": 200,
+      "ms": 475,
+      "text": "Do you want some water or something to eat?"
+    },
+    {
+      "variant": "baseline",
+      "phrase": "The doctor said the appointment is at three fifteen on Thursday.",
+      "clipSeconds": 6.13,
+      "clipBytes": 56503,
+      "ok": true,
+      "status": 200,
+      "ms": 915,
+      "text": "The doctor said the appointment is at 3:15 on Thursday."
+    },
+    {
+      "variant": "baseline",
+      "phrase": "How are you feeling today?",
+      "clipSeconds": 4.33,
+      "clipBytes": 40799,
+      "ok": true,
+      "status": 200,
+      "ms": 438,
+      "text": "How are you feeling today?"
+    },
+    {
+      "variant": "language",
+      "phrase": "Are you coming to dinner tonight?",
+      "clipSeconds": 4.54,
+      "clipBytes": 42400,
+      "ok": true,
+      "status": 200,
+      "ms": 819,
+      "text": "Are you coming to dinner tonight?"
+    },
+    {
+      "variant": "language",
+      "phrase": "Do you want some water or something to eat?",
+      "clipSeconds": 5.15,
+      "clipBytes": 48892,
+      "ok": true,
+      "status": 200,
+      "ms": 858,
+      "text": "Do you want some water or something to eat?"
+    },
+    {
+      "variant": "language",
+      "phrase": "The doctor said the appointment is at three fifteen on Thursday.",
+      "clipSeconds": 6.13,
+      "clipBytes": 56503,
+      "ok": true,
+      "status": 200,
+      "ms": 875,
+      "text": "The doctor said the appointment is at 3:15 on Thursday."
+    },
+    {
+      "variant": "language",
+      "phrase": "How are you feeling today?",
+      "clipSeconds": 4.33,
+      "clipBytes": 40799,
+      "ok": true,
+      "status": 200,
+      "ms": 574,
+      "text": "How are you feeling today?"
+    },
+    {
+      "variant": "language+prompt",
+      "phrase": "Are you coming to dinner tonight?",
+      "clipSeconds": 4.54,
+      "clipBytes": 42400,
+      "ok": true,
+      "status": 200,
+      "ms": 510,
+      "text": "Are you coming to dinner tonight?"
+    },
+    {
+      "variant": "language+prompt",
+      "phrase": "Do you want some water or something to eat?",
+      "clipSeconds": 5.15,
+      "clipBytes": 48892,
+      "ok": true,
+      "status": 200,
+      "ms": 493,
+      "text": "Do you want some water or something to eat?"
+    },
+    {
+      "variant": "language+prompt",
+      "phrase": "The doctor said the appointment is at three fifteen on Thursday.",
+      "clipSeconds": 6.13,
+      "clipBytes": 56503,
+      "ok": true,
+      "status": 200,
+      "ms": 621,
+      "text": "The doctor said the appointment is at 3:15 on Thursday."
+    },
+    {
+      "variant": "language+prompt",
+      "phrase": "How are you feeling today?",
+      "clipSeconds": 4.33,
+      "clipBytes": 40799,
+      "ok": true,
+      "status": 200,
+      "ms": 565,
+      "text": "How are you feeling today?"
+    },
+    {
+      "variant": "language+prompt+text",
+      "phrase": "Are you coming to dinner tonight?",
+      "clipSeconds": 4.54,
+      "clipBytes": 42400,
+      "ok": true,
+      "status": 200,
+      "ms": 870,
+      "text": "Are you coming to dinner tonight?"
+    },
+    {
+      "variant": "language+prompt+text",
+      "phrase": "Do you want some water or something to eat?",
+      "clipSeconds": 5.15,
+      "clipBytes": 48892,
+      "ok": true,
+      "status": 200,
+      "ms": 515,
+      "text": "Do you want some water or something to eat?"
+    },
+    {
+      "variant": "language+prompt+text",
+      "phrase": "The doctor said the appointment is at three fifteen on Thursday.",
+      "clipSeconds": 6.13,
+      "clipBytes": 56503,
+      "ok": true,
+      "status": 200,
+      "ms": 593,
+      "text": "The doctor said the appointment is at three fifteen on Thursday."
+    },
+    {
+      "variant": "language+prompt+text",
+      "phrase": "How are you feeling today?",
+      "clipSeconds": 4.33,
+      "clipBytes": 40799,
+      "ok": true,
+      "status": 200,
+      "ms": 532,
+      "text": "How are you feeling today?"
+    },
+    {
+      "variant": "after (new clip + language+prompt)",
+      "phrase": "Are you coming to dinner tonight?",
+      "clipSeconds": 3.3,
+      "clipBytes": 18745,
+      "ok": true,
+      "status": 200,
+      "ms": 440,
+      "text": "Are you coming to dinner tonight?"
+    },
+    {
+      "variant": "after (new clip + language+prompt)",
+      "phrase": "Do you want some water or something to eat?",
+      "clipSeconds": 3.91,
+      "clipBytes": 21455,
+      "ok": true,
+      "status": 200,
+      "ms": 480,
+      "text": "Do you want some water or something to eat?"
+    },
+    {
+      "variant": "after (new clip + language+prompt)",
+      "phrase": "The doctor said the appointment is at three fifteen on Thursday.",
+      "clipSeconds": 4.88,
+      "clipBytes": 25302,
+      "ok": true,
+      "status": 200,
+      "ms": 466,
+      "text": "The doctor said the appointment is at 3:15 on Thursday."
+    },
+    {
+      "variant": "after (new clip + language+prompt)",
+      "phrase": "How are you feeling today?",
+      "clipSeconds": 3.08,
+      "clipBytes": 17671,
+      "ok": true,
+      "status": 200,
+      "ms": 604,
+      "text": "How are you feeling today?"
+    },
+    {
+      "variant": "silence baseline",
+      "phrase": "(silence)",
+      "clipSeconds": 2.6,
+      "clipBytes": 14626,
+      "ok": true,
+      "status": 200,
+      "ms": 534,
+      "text": ""
+    },
+    {
+      "variant": "silence language+prompt",
+      "phrase": "(silence)",
+      "clipSeconds": 2.6,
+      "clipBytes": 14626,
+      "ok": true,
+      "status": 200,
+      "ms": 393,
+      "text": ""
+    }
+  ]
+}
