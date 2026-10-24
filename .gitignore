@@ -49,3 +49,16 @@ target/
 /coverage/
 /work/
 /outputs/
+
+# Next.js
+/.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+npm-debug.log*
+
+# Local evidence that may contain conversation content
+/metrics-exports/
+*.webm
+*.m4a
