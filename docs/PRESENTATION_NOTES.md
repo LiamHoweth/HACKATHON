@@ -64,3 +64,8 @@ AI offers possible words; the person decides what to say. On an iPad: raise your
 - [VERIFIED, manual on the iPad] Hands-free conversation works end to end in the installed app (team test, ~1:20 PM). Multi-face lock and one-blink speak: covered by unit tests; confirm in rehearsal.
 - Talking point: time from partner question to spoken reply = transcription + suggestions + one blink + voice (~0.6 s).
 - Earlier fix (1:04 PM): the microphone failed on iPad because a "playback" audio session blocks capture; recording now switches to play-and-record.
+
+## 1:45 PM — UI simplified from an iPad screen audit
+- [VERIFIED, deployed + tests] Simplified the demo UI after auditing 90 iPad screenshots: honest one-line setup intro, advanced options folded away, a 3-item header, hands-free listening first in the partner panel, plain wording ("Got it — one moment", "Spoken"), and a partner line now jumps straight to new suggestions from any menu.
+- Sources for slides: docs/ux-audit/UX_AUDIT.md (before table + 6 before screenshots) and docs/manual/QUICK_GUIDE.md (one-page user guide: setup, gestures, troubleshooting, privacy).
+- [NOT YET] After-screenshots of the new UI (skipped by choice).

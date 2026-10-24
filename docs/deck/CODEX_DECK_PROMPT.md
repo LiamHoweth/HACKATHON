@@ -94,3 +94,7 @@ Where the docs do not yet hold a result, put a visible amber-bordered placeholde
 
 - [VERIFIED] A native iPad demo app ("Still Here", `ipad-shell/`, a WKWebView shell) was built, signed, installed and launched on the demo iPad Air 13" (M2) at about 12:51 PM CT (commit `aedf913`). It pre-grants camera and microphone, plays voice without an extra tap, disables auto-lock, and has the access code built in. You may put it on the demo or architecture slide as "installable iPad app (development build)".
 - [NOT YET] Live face gestures and audible speech inside the installed app are not verified yet. Use `[FILL AFTER IPAD TEST]` for those.
+
+## Late update (1:45 PM CT, from Claude)
+- New sources: `docs/manual/QUICK_GUIDE.md` (use for a "How to use it" slide) and `docs/ux-audit/UX_AUDIT.md` with `docs/ux-audit/before/*.jpg` (real iPad screenshots; the UI has since been simplified, so label them "before simplification").
+- [VERIFIED] Hands-free conversation works on the iPad: the partner just talks, and one long blink speaks the top suggestion. See PRESENTATION_NOTES.md from 1:15 PM on.
