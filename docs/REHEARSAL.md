@@ -1,6 +1,6 @@
 # Live demo script: 3 minutes
 
-For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts come from [PRESENTATION_NOTES.md](PRESENTATION_NOTES.md), [manual/QUICK_GUIDE.md](manual/QUICK_GUIDE.md) and [TEST_RESULTS.md](TEST_RESULTS.md). For judge questions, use [JUDGE_QA.md](JUDGE_QA.md), but note it predates the conversational flow: its "review, then separate confirm" and "two faces hold selection" answers are out of date. Setup details and result tables are in [IPAD_TEST_RUNBOOK.md](IPAD_TEST_RUNBOOK.md).
+For the Still Here judging slot (5:15 PM CT). Rehearse at about 3:30 PM. Facts come from [PRESENTATION_NOTES.md](PRESENTATION_NOTES.md), [manual/QUICK_GUIDE.md](manual/QUICK_GUIDE.md) and [TEST_RESULTS.md](TEST_RESULTS.md). For judge questions, use [JUDGE_QA.md](JUDGE_QA.md). Setup details and result tables are in [IPAD_TEST_RUNBOOK.md](IPAD_TEST_RUNBOOK.md).
 
 **One rule to say and to keep: AI offers possible words; the person decides what to say.**
 

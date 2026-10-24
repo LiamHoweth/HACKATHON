@@ -69,3 +69,5 @@ AI offers possible words; the person decides what to say. On an iPad: raise your
 - [VERIFIED, deployed + tests] Simplified the demo UI after auditing 90 iPad screenshots: honest one-line setup intro, advanced options folded away, a 3-item header, hands-free listening first in the partner panel, plain wording ("Got it — one moment", "Spoken"), and a partner line now jumps straight to new suggestions from any menu.
 - Sources for slides: docs/ux-audit/UX_AUDIT.md (before table + 6 before screenshots) and docs/manual/QUICK_GUIDE.md (one-page user guide: setup, gestures, troubleshooting, privacy).
 - [NOT YET] After-screenshots of the new UI (skipped by choice).
+
+Current test count: see TEST_RESULTS.md / latest commit (487+ passing at 2:30 PM).
