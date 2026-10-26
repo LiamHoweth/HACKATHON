@@ -14,7 +14,7 @@ settings:
     DEVELOPMENT_TEAM: TA67BL3L69
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    TARGETED_DEVICE_FAMILY: "2"
+    TARGETED_DEVICE_FAMILY: "1,2"
 targets:
   StillHereShell:
     type: application
@@ -38,8 +38,12 @@ targets:
         UIViewControllerBasedStatusBarAppearance: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        NSCameraUsageDescription: "Still Here uses the front camera on this iPad to detect eyebrow raises and blinks. Video is processed on the device and is not recorded or uploaded."
-        NSMicrophoneUsageDescription: "Still Here records your conversation partner only when they tap Talk, so their words can be shown as text."
+        NSCameraUsageDescription: "Still Here uses the front camera to detect eyebrow raises, jaw drops and blinks. Video is processed on this device and is not recorded or uploaded."
+        NSMicrophoneUsageDescription: "Still Here listens for your conversation partner during a conversation so their words can be shown as text and answered. Listening pauses while the app speaks."
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
